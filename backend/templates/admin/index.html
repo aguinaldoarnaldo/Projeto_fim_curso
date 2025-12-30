@@ -1,0 +1,19 @@
+{% extends "unfold/layouts/base.html" %}
+
+{% load i18n %}
+
+{% block content %}
+    <div class="px-4 py-8 md:px-8">
+        {% if kpis %}
+            <div class="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-4">
+                {% for kpi in kpis %}
+                    {% include "unfold/helpers/kpi.html" with title=kpi.title metric=kpi.metric footer=kpi.footer icon=kpi.icon color=kpi.color %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block dashboard_content %}
+            {% include "unfold/helpers/modules.html" %}
+        {% endblock %}
+    </div>
+{% endblock %}

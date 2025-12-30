@@ -1,0 +1,34 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Declaração de Matrícula</div>
+
+<p>Para os devidos efeitos e a pedido do interessado, faz-se saber que:</p>
+
+<p style="text-indent: 2cm;">
+    <strong>{{ aluno.nome_completo }}</strong>,
+    de nacionalidade Angolana, estado civil solteiro, natural de {{ aluno.municipio_residencia }},
+    província de {{ aluno.provincia_residencia }}, portador do Bilhete de Identidade nº {{ aluno.numero_bi }},
+    encontra-se regularmente matriculado neste Instituto no presente ano letivo,
+    frequentando o Curso de <strong>{{ aluno.id_turma.id_curso.nome_curso }}</strong>,
+    na Turma <strong>{{ aluno.id_turma.codigo_turma }}</strong>,
+    com o número de matrícula <strong>{{ aluno.numero_matricula }}</strong>.
+</p>
+
+<p>Por ser verdade e ter sido solicitado, mandamos passar a presente declaração que vai por nós assinada e autenticada
+    com o carimbo a óleo em uso neste estabelecimento de ensino.</p>
+
+<p>Direção do Instituto Politécnico do Maiombe, em Cabinda aos {{ hoje|date:"d" }} de {{ hoje|date:"F" }} de {{
+    hoje|date:"Y" }}.</p>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <strong>O Diretor Geral</strong>
+</div>
+
+<div class="verification">
+    <strong>Código de Autenticidade:</strong> {{ solicitacao.uuid_documento }}<br>
+    A autenticidade deste documento pode ser verificada em: {{ site_url }}/verificar-documento/{{
+    solicitacao.uuid_documento }}
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Guia Técnico de Continuidade do Projecto</div>
+
+<h3>1. Introdução</h3>
+<p>Este documento serve como manual de integração para desenvolvedores que se juntarão ao projecto de <strong>Gestão
+        Escolar e Emissão de Documentos (IP Maiombe)</strong>. O sistema foi construído com foco em escalabilidade,
+    segurança e estética profissional.</p>
+
+<h3>2. Arquitetura do Sistema</h3>
+<ul>
+    <li><strong>Core:</strong> Django 5.2.4 (O coração do sistema).</li>
+    <li><strong>Interface Admin:</strong> Django Unfold (Layout moderno e Dark Mode).</li>
+    <li><strong>API Layer:</strong> Django REST Framework (DRF) para integração com frontend.</li>
+    <li><strong>Segurança:</strong> SimpleJWT + Custom Authentication (SchoolJWTAuthentication).</li>
+    <li><strong>Documentos:</strong> xhtml2pdf (Conversão de HTML para documentos oficiais).</li>
+</ul>
+
+<h3>3. Estrutura de Pastas (Backend)</h3>
+<ul>
+    <li><code>core/</code>: Configurações globais, settings.py e roteamento principal.</li>
+    <li><code>apis/models/</code>: Modelagem modular (31 tabelas divididas por contexto).</li>
+    <li><code>apis/views/</code>: Lógica de ViewSets e endpoints da API.</li>
+    <li><code>apis/services/</code>: <strong>Camada Crítica</strong> - Centraliza as regras de negócio (PDF, Académico,
+        Documentos).</li>
+    <li><code>apis/permissions/</code>: Controle de acesso granular por Cargo (Diretor, Professor, Aluno).</li>
+</ul>
+
+<h3>4. Como Iniciar (Setup)</h3>
+<pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd;">
+# 1. Instalar dependências
+pip install -r requirements.txt
+
+# 2. Migrar o banco de dados (PostgreSQL)
+python manage.py migrate
+
+# 3. Criar Superusuário (Acesso Admin)
+python manage.py createsuperuser
+
+# 4. Iniciar Servidor
+python manage.py runserver
+</pre>
+
+<h3>5. Fluxo de Geração de Documentos</h3>
+<p>O fluxo segue o padrão: <i>Solicitação -> Pagamento -> Aprovação -> Geração</i>. Quando um Diretor aprova uma
+    solicitação via API ou Admin, o <code>DocumentService</code> aciona o <code>PDFService</code>, que renderiza o
+    template HTML e salva o PDF no directório <code>/media/documentos/</code>.</p>
+
+<h3>6. Próximos Passos Recomendados</h3>
+<ol>
+    <li><strong>Módulo Yasmin (IA):</strong> Implementar reconhecimento facial para chamadas automáticas.</li>
+    <li><strong>Notificações:</strong> Configurar envio de e-mails para alunos quando documentos forem aprovados.</li>
+    <li><strong>Integração de Pagamento:</strong> Conectar o RUPE ao gateway bancário real.</li>
+</ol>
+
+<div class="verification" style="text-align: center;">
+    <strong>Nota:</strong> Mantenha sempre os comentários em Português e siga o padrão de Clean Code já estabelecido no
+    directório de Services.
+</div>
+{% endblock %}
