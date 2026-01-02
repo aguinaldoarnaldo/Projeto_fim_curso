@@ -11,6 +11,8 @@ import {
     Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import './Matriculas.css';
+
 
 const NovaMatricula = () => {
     const navigate = useNavigate();
@@ -21,47 +23,48 @@ const NovaMatricula = () => {
             case 1:
                 return (
                     <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
-                        <h3 style={{ marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e3a8a' }}>
+                        <h3 className="form-title">
                             <User size={22} /> Dados Pessoais do Aluno
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                            <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Nome Completo</label>
-                                <input type="text" placeholder="Digite o nome completo" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }} />
+                        <div className="form-grid-2col">
+                            <div className="form-full-width">
+                                <label className="field-label">Nome Completo</label>
+                                <input type="text" placeholder="Digite o nome completo" className="field-input" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Data de Nascimento</label>
-                                <input type="date" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }} />
+                                <label className="field-label">Data de Nascimento</label>
+                                <input type="date" className="field-input" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Sexo</label>
-                                <select style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                <label className="field-label">Sexo</label>
+                                <select className="field-select">
                                     <option>Seleccionar...</option>
                                     <option>Masculino</option>
                                     <option>Feminino</option>
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>NIF / BI</label>
-                                <input type="text" placeholder="Número de identificação" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }} />
+                                <label className="field-label">NIF / BI</label>
+                                <input type="text" placeholder="Número de identificação" className="field-input" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Nacionalidade</label>
-                                <input type="text" defaultValue="Angolana" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }} />
+                                <label className="field-label">Nacionalidade</label>
+                                <input type="text" defaultValue="Angolana" className="field-input" />
                             </div>
                         </div>
                     </div>
                 );
+
             case 2:
                 return (
                     <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
-                        <h3 style={{ marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e3a8a' }}>
+                        <h3 className="form-title">
                             <BookOpen size={22} /> Escolha Académica
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                        <div className="form-grid-2col">
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Curso</label>
-                                <select style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                <label className="field-label">Curso</label>
+                                <select className="field-select">
                                     <option>Seleccionar Curso...</option>
                                     <option>Informática</option>
                                     <option>Gestão de Empresas</option>
@@ -69,8 +72,8 @@ const NovaMatricula = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Classe</label>
-                                <select style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                <label className="field-label">Classe</label>
+                                <select className="field-select">
                                     <option>Seleccionar Classe...</option>
                                     <option>10ª Classe</option>
                                     <option>11ª Classe</option>
@@ -78,91 +81,94 @@ const NovaMatricula = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Turno</label>
-                                <select style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none' }}>
+                                <label className="field-label">Turno</label>
+                                <select className="field-select">
                                     <option>Manhã</option>
                                     <option>Tarde</option>
                                     <option>Noite</option>
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: '#4b5563' }}>Ano Lectivo</label>
-                                <input type="text" defaultValue="2024/2025" disabled style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #d1d5db', outline: 'none', background: '#f3f4f6' }} />
+                                <label className="field-label">Ano Lectivo</label>
+                                <input type="text" defaultValue="2024/2025" disabled className="field-input" style={{ background: '#f3f4f6' }} />
                             </div>
                         </div>
                     </div>
                 );
+
             case 3:
                 return (
                     <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
-                        <h3 style={{ marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px', color: '#1e3a8a' }}>
+                        <h3 className="form-title">
                             <FileText size={22} /> Documentação Exigida
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                            <div style={{ border: '2px dashed #d1d5db', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                                <Upload size={32} color="#9ca3af" style={{ marginBottom: '10px' }} />
-                                <p style={{ fontSize: '14px', fontWeight: 600 }}>Cópia do BI / Passaporte</p>
-                                <p style={{ fontSize: '12px', color: '#6b7280' }}>PDF, JPG ou PNG até 5MB</p>
+                        <div className="upload-grid">
+                            <div className="upload-box">
+                                <Upload size={32} color="#9ca3af" className="upload-box-icon" />
+                                <p className="upload-box-title">Cópia do BI / Passaporte</p>
+                                <p className="upload-box-hint">PDF, JPG ou PNG até 5MB</p>
                             </div>
-                            <div style={{ border: '2px dashed #d1d5db', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                                <Upload size={32} color="#9ca3af" style={{ marginBottom: '10px' }} />
-                                <p style={{ fontSize: '14px', fontWeight: 600 }}>Certificado de Habilitações</p>
-                                <p style={{ fontSize: '12px', color: '#6b7280' }}>Documento original digitalizado</p>
+                            <div className="upload-box">
+                                <Upload size={32} color="#9ca3af" className="upload-box-icon" />
+                                <p className="upload-box-title">Certificado de Habilitações</p>
+                                <p className="upload-box-hint">Documento original digitalizado</p>
                             </div>
-                            <div style={{ border: '2px dashed #d1d5db', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                                <Upload size={32} color="#9ca3af" style={{ marginBottom: '10px' }} />
-                                <p style={{ fontSize: '14px', fontWeight: 600 }}>Fotografias tipo Passe</p>
-                                <p style={{ fontSize: '12px', color: '#6b7280' }}>Máximo 2 fotos</p>
+                            <div className="upload-box">
+                                <Upload size={32} color="#9ca3af" className="upload-box-icon" />
+                                <p className="upload-box-title">Fotografias tipo Passe</p>
+                                <p className="upload-box-hint">Máximo 2 fotos</p>
                             </div>
-                            <div style={{ border: '2px dashed #d1d5db', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                                <Upload size={32} color="#9ca3af" style={{ marginBottom: '10px' }} />
-                                <p style={{ fontSize: '14px', fontWeight: 600 }}>Comprovativo de Pagamento</p>
-                                <p style={{ fontSize: '12px', color: '#6b7280' }}>Taxa de inscrição/matrícula</p>
+                            <div className="upload-box">
+                                <Upload size={32} color="#9ca3af" className="upload-box-icon" />
+                                <p className="upload-box-title">Comprovativo de Pagamento</p>
+                                <p className="upload-box-hint">Taxa de inscrição/matrícula</p>
                             </div>
                         </div>
                     </div>
                 );
+
             default: return null;
         }
     };
 
     return (
         <div className="page-container">
-            <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <header className="page-header matriculas-header-content">
                 <div>
                     <button
                         onClick={() => navigate('/matriculas')}
-                        style={{ background: 'none', border: 'none', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600, cursor: 'pointer', marginBottom: '10px', padding: 0 }}
+                        className="btn-back-link"
                     >
                         <ArrowLeft size={16} /> Voltar à lista
                     </button>
                     <h1>Nova Ficha de Matrícula</h1>
                     <p>Preencha os dados abaixo com precisão para registrar o novo aluno.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f3f4f6', padding: '8px 15px', borderRadius: '100px' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: step >= 1 ? '#1e3a8a' : '#9ca3af', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>1</div>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: step >= 1 ? '#1e3a8a' : '#9ca3af' }}>Dados</span>
+                <div className="step-header-actions">
+                    <div className="step-indicator">
+                        <div className="step-number" style={{ background: step >= 1 ? '#1e3a8a' : '#9ca3af' }}>1</div>
+                        <span className="step-label" style={{ color: step >= 1 ? '#1e3a8a' : '#9ca3af' }}>Dados</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f3f4f6', padding: '8px 15px', borderRadius: '100px' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: step >= 2 ? '#1e3a8a' : '#9ca3af', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>2</div>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: step >= 2 ? '#1e3a8a' : '#9ca3af' }}>Curso</span>
+                    <div className="step-indicator">
+                        <div className="step-number" style={{ background: step >= 2 ? '#1e3a8a' : '#9ca3af' }}>2</div>
+                        <span className="step-label" style={{ color: step >= 2 ? '#1e3a8a' : '#9ca3af' }}>Curso</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f3f4f6', padding: '8px 15px', borderRadius: '100px' }}>
-                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: step >= 3 ? '#1e3a8a' : '#9ca3af', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>3</div>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: step >= 3 ? '#1e3a8a' : '#9ca3af' }}>Docs</span>
+                    <div className="step-indicator">
+                        <div className="step-number" style={{ background: step >= 3 ? '#1e3a8a' : '#9ca3af' }}>3</div>
+                        <span className="step-label" style={{ color: step >= 3 ? '#1e3a8a' : '#9ca3af' }}>Docs</span>
                     </div>
                 </div>
             </header>
 
-            <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+            <div className="step-container">
                 {renderStep()}
 
-                <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between' }}>
+                <div className="step-actions">
                     <button
                         onClick={() => setStep(s => Math.max(1, s - 1))}
                         disabled={step === 1}
-                        style={{ padding: '12px 25px', borderRadius: '10px', border: '1px solid #d1d5db', background: 'white', fontWeight: 600, cursor: step === 1 ? 'not-allowed' : 'pointer', opacity: step === 1 ? 0.5 : 1 }}
+                        className="btn-step-prev"
+                        style={{ cursor: step === 1 ? 'not-allowed' : 'pointer', opacity: step === 1 ? 0.5 : 1 }}
                     >
                         Anterior
                     </button>
@@ -170,7 +176,7 @@ const NovaMatricula = () => {
                     {step < 3 ? (
                         <button
                             onClick={() => setStep(s => s + 1)}
-                            style={{ padding: '12px 30px', borderRadius: '10px', border: 'none', background: '#1e3a8a', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            className="btn-step-next"
                         >
                             Próximo Passo <ChevronRight size={18} />
                         </button>
@@ -180,13 +186,14 @@ const NovaMatricula = () => {
                                 alert('Matrícula registrada com sucesso!');
                                 navigate('/matriculas');
                             }}
-                            style={{ padding: '12px 30px', borderRadius: '10px', border: 'none', background: '#10b981', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                            className="btn-step-finish"
                         >
                             <Save size={18} /> Finalizar Matrícula
                         </button>
                     )}
                 </div>
             </div>
+
         </div>
     );
 };

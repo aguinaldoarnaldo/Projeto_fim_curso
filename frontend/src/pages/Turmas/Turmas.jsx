@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import './Turmas.css';
+
 import {
     Search,
     Plus,
@@ -104,15 +106,14 @@ const Turmas = () => {
     return (
         <div className="page-container">
             <header className="page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="turmas-header-content">
                     <div>
                         <h1>Gestão de Turmas</h1>
                         <p>Configuração e monitoramento das turmas do ano lectivo corrente.</p>
                     </div>
                     <button
                         onClick={handleAdd}
-                        className="nav-item-active"
-                        style={{ height: 'fit-content', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}
+                        className="nav-item-active btn-config-turma"
                     >
                         <Plus size={20} />
                         Configurar Turma
@@ -120,43 +121,45 @@ const Turmas = () => {
                 </div>
             </header>
 
+
             <div className="table-card" style={{ padding: '0' }}>
-                {/* Search and Filters Header */}
-                <div style={{ padding: '24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
-                        <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={20} />
+                <div className="search-filters-header">
+                    <div className="search-box-turma">
+                        <Search className="search-icon-turma" size={20} />
                         <input
                             type="text"
                             placeholder="Pesquisar por ID, Turma ou Coordenador..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '100%', padding: '14px 14px 14px 48px', borderRadius: '14px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc', color: '#111827', fontSize: '15px' }}
+                            className="search-input-turma"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        style={{ padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', fontWeight: 500 }}
+                        className="btn-toggle-filters"
+                        style={{ background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151' }}
                     >
                         <Filter size={18} />
                         Filtros
                     </button>
                 </div>
 
+
                 {/* Dynamic Filters */}
                 {showFilters && (
-                    <div style={{ padding: '24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '20px' }}>
+                    <div className="filters-expanded-pane">
+                        <div className="filters-grid-turmas">
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Ano Lectivo</label>
-                                <select name="ano" value={filters.ano} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', color: '#111827' }}>
+                                <label className="filter-label-turma">Ano Lectivo</label>
+                                <select name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none' }}>
+                                <label className="filter-label-turma">Curso</label>
+                                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
@@ -164,8 +167,8 @@ const Turmas = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none' }}>
+                                <label className="filter-label-turma">Sala</label>
+                                <select name="sala" value={filters.sala} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todas</option>
                                     <option value="Lab 01">Lab 01</option>
                                     <option value="Lab 02">Lab 02</option>
@@ -174,8 +177,8 @@ const Turmas = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Turno</label>
-                                <select name="turno" value={filters.turno} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none' }}>
+                                <label className="filter-label-turma">Turno</label>
+                                <select name="turno" value={filters.turno} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="Manhã">Manhã</option>
                                     <option value="Tarde">Tarde</option>
@@ -183,13 +186,17 @@ const Turmas = () => {
                                 </select>
                             </div>
                         </div>
-                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <div className="clear-filters-box">
                             <button
                                 onClick={() => setFilters({ ano: '', curso: '', sala: '', turno: '' })}
-                                style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Limpar Filtros</button>
+                                className="btn-clear-filters"
+                            >
+                                Limpar Filtros
+                            </button>
                         </div>
                     </div>
                 )}
+
 
                 {/* Turmas Table */}
                 <div className="table-wrapper">
@@ -210,13 +217,13 @@ const Turmas = () => {
                         <tbody>
                             {filteredData.map((t) => (
                                 <tr key={t.id}>
-                                    <td style={{ fontWeight: 700, color: '#1e3a8a' }}>{t.id}</td>
-                                    <td style={{ fontWeight: 600 }}>{t.turma}</td>
+                                    <td className="turma-id-cell">{t.id}</td>
+                                    <td className="turma-name-cell">{t.turma}</td>
                                     <td>{t.curso}</td>
                                     <td style={{ fontWeight: 500 }}>{t.sala}</td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+                                        <div className="coordinator-cell">
+                                            <div className="coordinator-avatar-small">
                                                 {t.coordenador.split(' ').pop().charAt(0)}
                                             </div>
                                             <span>{t.coordenador}</span>
@@ -225,23 +232,24 @@ const Turmas = () => {
                                     <td>{t.ano}</td>
                                     <td>{t.turno}</td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                        <div className="capacity-cell">
                                             <span style={{ fontWeight: 700, color: t.qtdAlunos >= 50 ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / 50</span>
-                                            <div style={{ width: '80px', height: '6px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
-                                                <div style={{ width: `${(t.qtdAlunos / 50) * 100}%`, height: '100%', background: t.qtdAlunos >= 50 ? '#ef4444' : '#1e3a8a' }} />
+                                            <div className="capacity-progress-container">
+                                                <div style={{ width: `${(t.qtdAlunos / 50) * 100}%`, background: t.qtdAlunos >= 50 ? '#ef4444' : '#1e3a8a' }} className="capacity-progress-bar" />
                                             </div>
                                         </div>
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
                                         <button
                                             onClick={() => handleEdit(t)}
-                                            style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'background 0.2s' }}
+                                            className="btn-edit-turma"
                                             title="Editar Turma"
                                         >
                                             <Edit3 size={18} />
                                         </button>
                                     </td>
                                 </tr>
+
                             ))}
                         </tbody>
                     </table>
@@ -250,28 +258,29 @@ const Turmas = () => {
 
             {/* Add/Edit Modal */}
             {showModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-                    <div style={{ width: '90%', maxWidth: '600px', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'fadeIn 0.2s ease-out' }}>
-                        <div style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1e293b' }}>
+                <div className="modal-overlay-turmas">
+                    <div className="modal-content-turmas">
+                        <div className="modal-header-turmas">
+                            <h2 className="modal-title-turmas">
                                 {modalMode === 'add' ? 'Nova Configuração de Turma' : `Editar Turma: ${selectedTurma?.turma}`}
                             </h2>
                             <button
                                 onClick={() => setShowModal(false)}
-                                style={{ background: '#f8fafc', border: 'none', padding: '8px', borderRadius: '12px', cursor: 'pointer' }}>
+                                className="btn-close-modal-turmas"
+                            >
                                 <X size={20} color="#64748b" />
                             </button>
                         </div>
 
-                        <form style={{ padding: '32px' }} onSubmit={(e) => e.preventDefault()}>
+                        <form className="modal-form-turmas" onSubmit={(e) => e.preventDefault()}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div style={{ gridColumn: 'span 2' }}>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Nome da Turma</label>
-                                    <input type="text" placeholder="Ex: INF10A" defaultValue={selectedTurma?.turma} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none' }} />
+                                    <label className="form-label-turmas">Nome da Turma</label>
+                                    <input type="text" placeholder="Ex: INF10A" defaultValue={selectedTurma?.turma} className="form-input-turmas" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Curso</label>
-                                    <select defaultValue={selectedTurma?.curso} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                                    <label className="form-label-turmas">Curso</label>
+                                    <select defaultValue={selectedTurma?.curso} className="form-input-turmas">
                                         <option>Seleccionar Curso</option>
                                         <option>Informática</option>
                                         <option>Gestão</option>
@@ -279,8 +288,8 @@ const Turmas = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Turno</label>
-                                    <select defaultValue={selectedTurma?.turno} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                                    <label className="form-label-turmas">Turno</label>
+                                    <select defaultValue={selectedTurma?.turno} className="form-input-turmas">
                                         <option>Seleccionar Turno</option>
                                         <option>Manhã</option>
                                         <option>Tarde</option>
@@ -288,33 +297,37 @@ const Turmas = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Sala</label>
-                                    <input type="text" placeholder="Ex: Sala 01" defaultValue={selectedTurma?.sala} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none' }} />
+                                    <label className="form-label-turmas">Sala</label>
+                                    <input type="text" placeholder="Ex: Sala 01" defaultValue={selectedTurma?.sala} className="form-input-turmas" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Ano Lectivo</label>
-                                    <input type="text" placeholder="Ex: 2024/2025" defaultValue={selectedTurma?.ano} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none' }} />
+                                    <label className="form-label-turmas">Ano Lectivo</label>
+                                    <input type="text" placeholder="Ex: 2024/2025" defaultValue={selectedTurma?.ano} className="form-input-turmas" />
                                 </div>
                                 <div style={{ gridColumn: 'span 2' }}>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Coordenador</label>
-                                    <input type="text" placeholder="Nome Completo do Professor" defaultValue={selectedTurma?.coordenador} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none' }} />
+                                    <label className="form-label-turmas">Coordenador</label>
+                                    <input type="text" placeholder="Nome Completo do Professor" defaultValue={selectedTurma?.coordenador} className="form-input-turmas" />
                                 </div>
                             </div>
 
                             {/* Capacity Alert */}
-                            <div style={{ marginTop: '24px', padding: '16px', background: '#fffbeb', borderRadius: '12px', border: '1px solid #fef3c7', display: 'flex', gap: '12px' }}>
+                            <div className="capacity-alert-box">
                                 <AlertTriangle size={20} color="#d97706" />
-                                <p style={{ fontSize: '12px', color: '#92400e', lineHeight: '1.5' }}>
+                                <p className="capacity-alert-text">
                                     <strong>Aviso de Capacidade:</strong> O limite recomendado é entre 45 e 50 alunos por turma para garantir a qualidade do ensino e as normas da instituição.
                                 </p>
                             </div>
 
-                            <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
+                            <div className="modal-actions-turmas">
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+                                    className="btn-modal-cancel"
+                                >
+                                    Cancelar
+                                </button>
                                 <button
-                                    style={{ flex: 2, padding: '12px', borderRadius: '12px', border: 'none', background: '#1e3a8a', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    className="btn-modal-submit-turma"
+                                >
                                     {modalMode === 'add' ? 'Criar Turma' : 'Salvar Alterações'} <ChevronRight size={18} />
                                 </button>
                             </div>
@@ -322,6 +335,7 @@ const Turmas = () => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

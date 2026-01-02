@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn } from 'lucide-react';
+import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,102 +12,53 @@ const Login = () => {
   };
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
-      fontFamily: 'Inter, sans-serif'
-    }}>
-      <div style={{ 
-        background: 'white', 
-        padding: '40px', 
-        borderRadius: '24px', 
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', 
-        width: '100%', 
-        maxWidth: '400px' 
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ 
-            width: '64px', 
-            height: '64px', 
-            background: '#dbeafe', 
-            borderRadius: '16px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            margin: '0 auto 16px',
-            color: '#2563eb'
-          }}>
+    <div className="login-page-wrapper">
+      <div className="login-card">
+        <div className="login-header">
+          <div className="login-logo-container">
             <LogIn size={32} />
           </div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827' }}>Bem-vindo de volta</h1>
-          <p style={{ color: '#6b7280', marginTop: '8px' }}>SGMatrícula - Sistema de Gestão Escolar</p>
+          <h1 className="login-title">Bem-vindo de volta</h1>
+          <p className="login-subtitle">SGMatrícula - Sistema de Gestão Escolar</p>
         </div>
 
         <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '8px' }}>Email</label>
-            <div style={{ position: 'relative' }}>
-              <Mail style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} />
-              <input 
-                type="email" 
+          <div className="form-group">
+            <label className="label-style">Email</label>
+            <div className="input-container">
+              <Mail className="input-icon" size={18} />
+              <input
+                type="email"
                 placeholder="admin@escola.ao"
                 required
-                style={{ 
-                  width: '100%', 
-                  padding: '12px 12px 12px 40px', 
-                  borderRadius: '12px', 
-                  border: '1px solid #e5e7eb', 
-                  outline: 'none',
-                  fontSize: '15px'
-                }}
+                className="login-input"
               />
             </div>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '8px' }}>Palavra-passe</label>
-            <div style={{ position: 'relative' }}>
-              <Lock style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} />
-              <input 
-                type="password" 
+          <div className="form-group-last">
+            <label className="label-style">Palavra-passe</label>
+            <div className="input-container">
+              <Lock className="input-icon" size={18} />
+              <input
+                type="password"
                 placeholder="••••••••"
                 required
-                style={{ 
-                  width: '100%', 
-                  padding: '12px 12px 12px 40px', 
-                  borderRadius: '12px', 
-                  border: '1px solid #e5e7eb', 
-                  outline: 'none',
-                  fontSize: '15px'
-                }}
+                className="login-input"
               />
             </div>
           </div>
 
-          <button 
+          <button
             type="submit"
-            style={{ 
-              width: '100%', 
-              padding: '14px', 
-              background: '#2563eb', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '12px', 
-              fontWeight: 600, 
-              fontSize: '16px', 
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
+            className="btn-login-submit"
           >
             Entrar no Sistema
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <a href="#" style={{ color: '#2563eb', fontSize: '14px', textDecoration: 'none', fontWeight: 500 }}>Esqueceu a senha?</a>
+        <div className="forgot-password-container">
+          <a href="#" className="forgot-password-link">Esqueceu a senha?</a>
         </div>
       </div>
     </div>

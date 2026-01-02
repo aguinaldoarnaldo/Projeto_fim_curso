@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import './Alunos.css';
+
 import {
     Search,
     Plus,
@@ -101,6 +103,249 @@ const Alunos = () => {
                 obs: 'Graduada com distinção.'
             }
         },
+
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Ana Paula Lourenço',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Aguinaldo Arnaldo',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Aguinaldo Arnaldo',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
+        {
+            id: 'ALU-2024-001',
+            nome: 'Aguinaldo Arnaldo',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'L-01',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '05 Jan 2024',
+            detalhes: {
+                nif: 'A00123456',
+                nascimento: '12/05/2008',
+                encarregado: 'João Lourenço',
+                telefone: '+244 923 000 111',
+                email: 'ana.paula@email.com',
+                endereco: 'Luanda, Maianga',
+                bi: '001234567LA041',
+                obs: 'A aluna possui alergia a amendoim.'
+            }
+        },
     ];
 
     const handleFilterChange = (e) => {
@@ -116,6 +361,7 @@ const Alunos = () => {
         }
     };
 
+
     return (
         <div className="page-container">
             <header className="page-header">
@@ -126,8 +372,7 @@ const Alunos = () => {
                     </div>
                     <button
                         onClick={() => setShowNewStudentModal(true)}
-                        className="nav-item-active"
-                        style={{ height: 'fit-content', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, transition: 'transform 0.2s' }}
+                        className="btn-new-student nav-item-active"
                     >
                         <Plus size={20} />
                         Novo Aluno
@@ -135,70 +380,75 @@ const Alunos = () => {
                 </div>
             </header>
 
-            <div className="table-card" style={{ padding: '0' }}>
+            <div className="table-card">
                 {/* Search and Filters Header */}
-                <div style={{ padding: '24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
-                        <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={20} />
+                <div className="search-filter-header">
+                    <div className="search-input-container">
+                        <Search className="search-input-icon" size={20} />
                         <input
                             type="text"
                             placeholder="Pesquisar por nome ou ID do aluno..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '100%', padding: '14px 14px 14px 48px', borderRadius: '14px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc', color: '#0f172a', fontSize: '15px' }}
+                            className="search-input"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        style={{ padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', fontWeight: 500, transition: 'all 0.2s' }}
+                        className="btn-toggle-filters"
+                        style={{
+                            background: showFilters ? '#1e3a8a' : 'white',
+                            color: showFilters ? 'white' : '#374151'
+                        }}
                     >
                         <Filter size={18} />
                         Filtros
                     </button>
                 </div>
 
+
                 {/* Dynamic Filters */}
                 {showFilters && (
-                    <div style={{ padding: '24px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '20px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Ano Lectivo</label>
-                                <select name="ano" value={filters.ano} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', color: '#1e293b', background: 'white' }}>
+                    <div className="filters-panel">
+                        <div className="filters-grid">
+                            <div className="filter-group">
+                                <label>Ano Lectivo</label>
+                                <select name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select">
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Classe</label>
-                                <select name="classe" value={filters.classe} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', color: '#1e293b' }}>
+                            <div className="filter-group">
+                                <label>Classe</label>
+                                <select name="classe" value={filters.classe} onChange={handleFilterChange} className="filter-select">
                                     <option value="">Todas</option>
                                     <option value="10ª Classe">10ª Classe</option>
                                     <option value="11ª Classe">11ª Classe</option>
                                     <option value="12ª Classe">12ª Classe</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', color: '#1e293b' }}>
+                            <div className="filter-group">
+                                <label>Curso</label>
+                                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select">
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
                                     <option value="Direito">Direito</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', color: '#1e293b' }}>
+                            <div className="filter-group">
+                                <label>Sala</label>
+                                <select name="sala" value={filters.sala} onChange={handleFilterChange} className="filter-select">
                                     <option value="">Todas</option>
                                     <option value="L-01">L-01</option>
                                     <option value="S-204">S-204</option>
                                     <option value="S-102">S-102</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Turma</label>
-                                <select name="turma" value={filters.turma} onChange={handleFilterChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', color: '#1e293b' }}>
+                            <div className="filter-group">
+                                <label>Turma</label>
+                                <select name="turma" value={filters.turma} onChange={handleFilterChange} className="filter-select">
                                     <option value="">Todas</option>
                                     <option value="INF10A">INF10A</option>
                                     <option value="GST12B">GST12B</option>
@@ -209,12 +459,13 @@ const Alunos = () => {
                         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
                             <button
                                 onClick={() => setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' })}
-                                style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                className="btn-reset-filters">
                                 <X size={16} /> Resetar Filtros
                             </button>
                         </div>
                     </div>
                 )}
+
 
                 {/* Students Table */}
                 <div className="table-wrapper">
@@ -236,14 +487,14 @@ const Alunos = () => {
                         </thead>
                         <tbody>
                             {studentsData.map((s) => (
-                                <tr key={s.id} onClick={() => setSelectedStudent(s)} style={{ cursor: 'pointer' }}>
-                                    <td style={{ fontWeight: 700, color: '#1e40af' }}>{s.id}</td>
+                                <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
+                                    <td className="student-id">{s.id}</td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                                        <div className="student-info">
+                                            <div className="student-avatar">
                                                 {s.nome.charAt(0)}
                                             </div>
-                                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{s.nome}</span>
+                                            <span className="student-name">{s.nome}</span>
                                         </div>
                                     </td>
                                     <td>{s.anoLectivo}</td>
@@ -254,11 +505,8 @@ const Alunos = () => {
                                     <td>{s.turma}</td>
                                     <td>
                                         <span
+                                            className="student-status-badge"
                                             style={{
-                                                padding: '6px 14px',
-                                                borderRadius: '100px',
-                                                fontSize: '12px',
-                                                fontWeight: 700,
                                                 background: getStatusStyle(s.status).bg,
                                                 color: getStatusStyle(s.status).color,
                                                 border: `1px solid ${getStatusStyle(s.status).border}`
@@ -267,9 +515,9 @@ const Alunos = () => {
                                             {s.status}
                                         </span>
                                     </td>
-                                    <td style={{ color: '#94a3b8', fontSize: '13px' }}>{s.dataMatricula}</td>
+                                    <td className="student-date">{s.dataMatricula}</td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <button style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer' }}>
+                                        <button className="btn-more-actions">
                                             <MoreVertical size={20} />
                                         </button>
                                     </td>
@@ -278,94 +526,95 @@ const Alunos = () => {
                         </tbody>
                     </table>
                 </div>
+
             </div>
 
             {/* Student Detail Central Modal */}
             {selectedStudent && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-                    <div style={{ width: '90%', maxWidth: '800px', background: 'white', borderRadius: '30px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', position: 'relative', animation: 'scaleUp 0.3s ease-out' }}>
+                <div className="modal-overlay">
+                    <div className="detail-modal-card">
                         <button
                             onClick={() => setSelectedStudent(null)}
-                            style={{ position: 'absolute', top: '24px', right: '24px', background: '#f1f5f9', border: 'none', padding: '10px', borderRadius: '14px', cursor: 'pointer', zInteger: 10 }}>
+                            className="btn-close-modal">
                             <X size={24} color="#64748b" />
                         </button>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr' }}>
+                        <div className="detail-modal-grid">
                             {/* Left Profile Card */}
-                            <div style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%)', padding: '48px 32px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div style={{ width: '120px', height: '120px', borderRadius: '40px', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', fontWeight: 800, marginBottom: '24px', border: '2px solid rgba(255,255,255,0.2)' }}>
+                            <div className="profile-sidebar">
+                                <div className="profile-avatar-large">
                                     {selectedStudent.nome.charAt(0)}
                                 </div>
-                                <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>{selectedStudent.nome}</h2>
-                                <p style={{ opacity: 0.8, fontSize: '14px', marginBottom: '24px' }}>ID: {selectedStudent.id}</p>
+                                <h2 className="profile-name">{selectedStudent.nome}</h2>
+                                <p className="profile-id">ID: {selectedStudent.id}</p>
 
-                                <div style={{ background: 'rgba(255,255,255,0.1)', padding: '12px 24px', borderRadius: '100px', fontWeight: 700, fontSize: '13px' }}>
+                                <div className="profile-status">
                                     {selectedStudent.status}
                                 </div>
 
-                                <div style={{ marginTop: 'auto', width: '100%' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', opacity: 0.9 }}>
+                                <div className="profile-footer">
+                                    <div className="profile-footer-item">
                                         <ClipboardList size={18} />
-                                        <span style={{ fontSize: '14px' }}>Lançamento de Notas</span>
+                                        <span className="profile-footer-text">Lançamento de Notas</span>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', opacity: 0.9 }}>
+                                    <div className="profile-footer-item">
                                         <ShieldCheck size={18} />
-                                        <span style={{ fontSize: '14px' }}>Histórico Disciplinar</span>
+                                        <span className="profile-footer-text">Histórico Disciplinar</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Right Content Area */}
-                            <div style={{ padding: '48px', overflowY: 'auto', maxHeight: '80vh' }}>
-                                <div style={{ marginBottom: '40px' }}>
-                                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="content-area">
+                                <div className="info-section">
+                                    <h3 className="section-title">
                                         <User size={20} /> Informações do Aluno
                                     </h3>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                                    <div className="info-grid">
                                         <div>
-                                            <p style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>Nº BILHETE IDENTIDADE</p>
-                                            <p style={{ fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.bi}</p>
+                                            <p className="info-label">Nº BILHETE IDENTIDADE</p>
+                                            <p className="info-value">{selectedStudent.detalhes.bi}</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>NIF</p>
-                                            <p style={{ fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.nif}</p>
+                                            <p className="info-label">NIF</p>
+                                            <p className="info-value">{selectedStudent.detalhes.nif}</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>DATA NASCIMENTO</p>
-                                            <p style={{ fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.nascimento}</p>
+                                            <p className="info-label">DATA NASCIMENTO</p>
+                                            <p className="info-value">{selectedStudent.detalhes.nascimento}</p>
                                         </div>
                                         <div>
-                                            <p style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>ENCARREGADO</p>
-                                            <p style={{ fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.encarregado}</p>
+                                            <p className="info-label">ENCARREGADO</p>
+                                            <p className="info-value">{selectedStudent.detalhes.encarregado}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ marginBottom: '40px' }}>
-                                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div className="info-section">
+                                    <h3 className="section-title">
                                         <Mail size={20} /> Contactos e Morada
                                     </h3>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#475569' }}>
+                                    <div className="contact-list">
+                                        <div className="contact-item">
                                             <Phone size={18} />
-                                            <span style={{ fontWeight: 500 }}>{selectedStudent.detalhes.telefone}</span>
+                                            <span className="contact-text">{selectedStudent.detalhes.telefone}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#475569' }}>
+                                        <div className="contact-item">
                                             <Mail size={18} />
-                                            <span style={{ fontWeight: 500 }}>{selectedStudent.detalhes.email}</span>
+                                            <span className="contact-text">{selectedStudent.detalhes.email}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#475569' }}>
+                                        <div className="contact-item">
                                             <MapPin size={18} />
-                                            <span style={{ fontWeight: 500 }}>{selectedStudent.detalhes.endereco}</span>
+                                            <span className="contact-text">{selectedStudent.detalhes.endereco}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <h3 className="section-title">
                                         <ClipboardList size={20} /> Observações Internas
                                     </h3>
-                                    <div style={{ padding: '20px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', fontSize: '14px', lineHeight: '1.6' }}>
+                                    <div className="observations-box">
                                         {selectedStudent.detalhes.obs}
                                     </div>
                                 </div>
@@ -375,48 +624,49 @@ const Alunos = () => {
                 </div>
             )}
 
+
             {/* New Student Form Modal */}
             {showNewStudentModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-                    <div style={{ width: '90%', maxWidth: '700px', background: 'white', borderRadius: '30px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', animation: 'fadeIn 0.3s ease-out' }}>
-                        <div style={{ padding: '32px 40px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="modal-overlay">
+                    <div className="form-modal-card">
+                        <div className="form-modal-header">
                             <div>
-                                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>Novo Registro de Aluno</h2>
-                                <p style={{ color: '#64748b', marginTop: '4px' }}>Preencha os dados básicos para iniciar a matrícula.</p>
+                                <h2>Novo Registro de Aluno</h2>
+                                <p>Preencha os dados básicos para iniciar a matrícula.</p>
                             </div>
                             <button
                                 onClick={() => setShowNewStudentModal(false)}
-                                style={{ background: '#f8fafc', border: 'none', padding: '12px', borderRadius: '16px', cursor: 'pointer' }}>
+                                className="btn-close-form">
                                 <X size={24} color="#64748b" />
                             </button>
                         </div>
 
-                        <form style={{ padding: '40px' }} onSubmit={(e) => e.preventDefault()}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                                <div style={{ gridColumn: 'span 2' }}>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>Nome Completo</label>
-                                    <input type="text" placeholder="Ex: João Manuel dos Santos" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc' }} />
+                        <form className="form-container" onSubmit={(e) => e.preventDefault()}>
+                            <div className="form-grid">
+                                <div className="form-group form-group-full">
+                                    <label>Nome Completo</label>
+                                    <input type="text" placeholder="Ex: João Manuel dos Santos" className="form-input" />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>Nº Bilhete de Identidade</label>
-                                    <input type="text" placeholder="000XXXXXXXLA0XX" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc' }} />
+                                <div className="form-group">
+                                    <label>Nº Bilhete de Identidade</label>
+                                    <input type="text" placeholder="000XXXXXXXLA0XX" className="form-input" />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>NIF</label>
-                                    <input type="text" placeholder="XXXXXXX" style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc' }} />
+                                <div className="form-group">
+                                    <label>NIF</label>
+                                    <input type="text" placeholder="XXXXXXX" className="form-input" />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>Curso</label>
-                                    <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc' }}>
+                                <div className="form-group">
+                                    <label>Curso</label>
+                                    <select className="form-select">
                                         <option>Seleccionar Curso</option>
                                         <option>Informática</option>
                                         <option>Gestão</option>
                                         <option>Direito</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: '#475569', marginBottom: '10px' }}>Classe</label>
-                                    <select style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', background: '#f8fafc' }}>
+                                <div className="form-group">
+                                    <label>Classe</label>
+                                    <select className="form-select">
                                         <option>Seleccionar Classe</option>
                                         <option>10ª Classe</option>
                                         <option>11ª Classe</option>
@@ -425,12 +675,12 @@ const Alunos = () => {
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: '40px', display: 'flex', gap: '16px' }}>
+                            <div className="form-actions">
                                 <button
                                     onClick={() => setShowNewStudentModal(false)}
-                                    style={{ flex: 1, padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+                                    className="btn-cancel">Cancelar</button>
                                 <button
-                                    style={{ flex: 2, padding: '16px', borderRadius: '16px', border: 'none', background: '#1e3a8a', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                    className="btn-confirm">
                                     Confirmar Registro <ChevronRight size={20} />
                                 </button>
                             </div>
@@ -438,6 +688,7 @@ const Alunos = () => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

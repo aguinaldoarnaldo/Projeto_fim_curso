@@ -1,4 +1,6 @@
 import React from 'react';
+import './Classe.css';
+
 import { BookOpen, Award } from 'lucide-react';
 
 const Classe = () => {
@@ -25,8 +27,9 @@ const Classe = () => {
               </div>
             </div>
             <h3>{c.nome}</h3>
-            <p style={{ marginTop: '10px', fontSize: '14px', color: '#6b7280' }}>{c.nivel}</p>
+            <p className="class-level-text">{c.nivel}</p>
           </div>
+
         ))}
       </div>
     </div>

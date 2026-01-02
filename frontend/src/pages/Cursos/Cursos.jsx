@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import './Cursos.css';
+
 import {
     Search,
     Plus,
@@ -53,52 +55,33 @@ const Cursos = () => {
     return (
         <div className="page-container">
             <header className="page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="cursos-header-content">
                     <div>
                         <h1>Gestão de Cursos</h1>
                         <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
-                    <button
-                        style={{
-                            height: 'fit-content',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '10px 20px',
-                            border: 'none',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            backgroundColor: '#1e3a8a',
-                            color: 'white',
-                            fontWeight: 600
-                        }}
-                    >
+                    <button className="btn-new-course">
                         <Plus size={18} />
                         Novo Curso
                     </button>
                 </div>
             </header>
 
-            <div className="table-card" style={{ padding: '0' }}>
-                <div style={{ padding: '24px', borderBottom: '1px solid #f3f4f6' }}>
-                    <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
-                        <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} />
+
+            <div className="table-card">
+                <div className="search-container">
+                    <div className="search-wrapper">
+                        <Search className="search-icon" size={18} />
                         <input
                             type="text"
                             placeholder="Pesquisar curso..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '12px 12px 12px 40px',
-                                borderRadius: '12px',
-                                border: '1px solid #e5e7eb',
-                                outline: 'none',
-                                background: '#f9fafb'
-                            }}
+                            className="search-input"
                         />
                     </div>
                 </div>
+
 
                 <div className="table-wrapper">
                     <table className="data-table">
@@ -114,24 +97,24 @@ const Cursos = () => {
                         <tbody>
                             {filteredCourses.map((course) => (
                                 <tr key={course.id}>
-                                    <td style={{ fontWeight: 600, color: '#1e3a8a' }}>{course.id}</td>
+                                    <td className="course-id">{course.id}</td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ background: '#eff6ff', color: '#1e3a8a', padding: '8px', borderRadius: '8px' }}>
+                                        <div className="course-info">
+                                            <div className="course-icon-bg">
                                                 <BookOpen size={16} />
                                             </div>
-                                            <span style={{ fontWeight: 600 }}>{course.nome}</span>
+                                            <span className="course-name">{course.nome}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b' }}>
+                                        <div className="duration-info">
                                             <Clock size={14} />
                                             <span>{course.duracao}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+                                        <div className="coordinator-info">
+                                            <div className="coordinator-avatar">
                                                 <User size={14} />
                                             </div>
                                             <span>{course.coordenador}</span>
@@ -139,19 +122,7 @@ const Cursos = () => {
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
                                         <button
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                color: '#3b82f6',
-                                                cursor: 'pointer',
-                                                padding: '8px',
-                                                borderRadius: '8px',
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '4px',
-                                                fontSize: '14px',
-                                                fontWeight: 600
-                                            }}
+                                            className="btn-edit-course"
                                             title="Editar Curso"
                                         >
                                             <Edit3 size={16} />
@@ -159,6 +130,7 @@ const Cursos = () => {
                                         </button>
                                     </td>
                                 </tr>
+
                             ))}
                         </tbody>
                     </table>

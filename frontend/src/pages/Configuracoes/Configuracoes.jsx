@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import './Configuracoes.css';
+
 import {
     Settings,
     Database,
@@ -30,71 +32,63 @@ const Configuracoes = () => {
                 <p>Gerencie as preferências e manutenção do sistema de gestão escolar.</p>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
+            <div className="config-container-grid">
                 {/* Side Menu */}
-                <div className="table-card" style={{ height: 'fit-content', padding: '10px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', background: '#eff6ff', border: 'none', borderRadius: '8px', color: '#1e3a8a', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                <div className="table-card config-side-menu">
+                    <div className="config-menu-list">
+                        <button className="config-menu-btn config-menu-btn-active">
                             <Database size={20} /> Manutenção e Backup
                         </button>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', background: 'none', border: 'none', borderRadius: '8px', color: '#4b5563', fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}>
+                        <button className="config-menu-btn config-menu-btn-inactive">
                             <Shield size={20} /> Segurança e Acesso
                         </button>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', background: 'none', border: 'none', borderRadius: '8px', color: '#4b5563', fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}>
+                        <button className="config-menu-btn config-menu-btn-inactive">
                             <User size={20} /> Perfil do Administrador
                         </button>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', background: 'none', border: 'none', borderRadius: '8px', color: '#4b5563', fontWeight: 500, cursor: 'pointer', textAlign: 'left' }}>
+                        <button className="config-menu-btn config-menu-btn-inactive">
                             <Bell size={20} /> Notificações
                         </button>
                     </div>
                 </div>
 
+
                 {/* Content Area */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="config-content-column">
                     {/* Backup Section */}
                     <div className="table-card" style={{ padding: '30px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px' }}>
-                            <div style={{ background: '#eff6ff', color: '#1e3a8a', padding: '12px', borderRadius: '12px' }}>
+                        <div className="config-section-header">
+                            <div className="config-icon-box-blue">
                                 <Database size={24} />
                             </div>
                             <div>
-                                <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Segurança de Dados e Backup</h3>
-                                <p style={{ color: '#6b7280', fontSize: '14px' }}>Exporte todos os dados do sistema para segurança.</p>
+                                <h3 className="config-section-title">Segurança de Dados e Backup</h3>
+                                <p className="config-section-subtitle">Exporte todos os dados do sistema para segurança.</p>
                             </div>
                         </div>
 
-                        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                        <div className="backup-info-card">
+                            <div className="backup-info-header">
                                 <div>
-                                    <p style={{ fontWeight: 600, fontSize: '15px' }}>Último Backup Realizado</p>
-                                    <p style={{ color: '#6b7280', fontSize: '13px' }}>24 de Dezembro de 2024 às 15:30</p>
+                                    <p className="backup-info-label">Último Backup Realizado</p>
+                                    <p className="backup-info-date">24 de Dezembro de 2024 às 15:30</p>
                                 </div>
-                                <div style={{ background: '#d1fae5', color: '#065f46', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
+                                <div className="status-integrity-badge">
                                     Integridade OK
                                 </div>
                             </div>
-                            <p style={{ fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>
+                            <p className="backup-info-description">
                                 O backup inclui todos os registros de alunos, matrículas, notas, turmas e documentos digitais armazenados no servidor.
                             </p>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '15px' }}>
+
+                        <div className="config-actions-row">
                             <button
                                 onClick={handleBackup}
                                 disabled={backupStatus === 'processing'}
+                                className="btn-config-primary"
                                 style={{
-                                    flex: 1,
-                                    padding: '14px 20px',
-                                    background: '#1e3a8a',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '10px',
-                                    fontWeight: 600,
                                     cursor: backupStatus === 'processing' ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '10px',
                                     opacity: backupStatus === 'processing' ? 0.7 : 1
                                 }}
                             >
@@ -107,42 +101,45 @@ const Configuracoes = () => {
                                     </>
                                 )}
                             </button>
-                            <button style={{ flex: 1, padding: '14px 20px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                            <button className="btn-config-secondary">
                                 Restaurar de ficheiro
                             </button>
                         </div>
 
+
                         {backupStatus === 'completed' && (
-                            <div style={{ marginTop: '20px', padding: '15px', background: '#d1fae5', color: '#065f46', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px' }}>
+                            <div className="backup-success-alert">
                                 <CheckCircle size={18} />
                                 Backup concluído com sucesso e pronto para download!
                             </div>
                         )}
                     </div>
 
+
                     {/* System Info */}
                     <div className="table-card" style={{ padding: '30px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                            <div style={{ background: '#f3f4f6', color: '#374151', padding: '10px', borderRadius: '10px' }}>
+                        <div className="info-header-small">
+                            <div className="info-icon-box-gray">
                                 <Info size={20} />
                             </div>
-                            <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Sobre o Sistema</h3>
+                            <h3 className="info-title-small">Sobre o Sistema</h3>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f3f4f6' }}>
-                                <span style={{ color: '#6b7280', fontSize: '14px' }}>Versão do Software</span>
-                                <span style={{ fontWeight: 600, fontSize: '14px' }}>v2.4.0 (Stable)</span>
+                        <div className="info-details-list">
+                            <div className="info-detail-item">
+                                <span className="info-detail-label">Versão do Software</span>
+                                <span className="info-detail-value">v2.4.0 (Stable)</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f3f4f6' }}>
-                                <span style={{ color: '#6b7280', fontSize: '14px' }}>Licença</span>
-                                <span style={{ fontWeight: 600, fontSize: '14px' }}>Institucional - Ilimitada</span>
+                            <div className="info-detail-item">
+                                <span className="info-detail-label">Licença</span>
+                                <span className="info-detail-value">Institucional - Ilimitada</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-                                <span style={{ color: '#6b7280', fontSize: '14px' }}>Espaço em Disco (Anexos)</span>
-                                <span style={{ fontWeight: 600, fontSize: '14px' }}>14.2 GB / 50 GB</span>
+                            <div className="info-detail-item">
+                                <span className="info-detail-label">Espaço em Disco (Anexos)</span>
+                                <span className="info-detail-value">14.2 GB / 50 GB</span>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>

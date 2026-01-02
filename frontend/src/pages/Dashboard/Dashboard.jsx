@@ -1,22 +1,24 @@
 import React from 'react';
-import { 
-  Users, 
-  GraduationCap, 
-  UserCheck, 
-  DollarSign, 
-  TrendingUp, 
+import './Dashboard.css';
+
+import {
+  Users,
+  GraduationCap,
+  UserCheck,
+  DollarSign,
+  TrendingUp,
   TrendingDown,
   MoreVertical
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  LineChart, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
   Line,
   Cell,
   PieChart,
@@ -99,13 +101,13 @@ const Dashboard = () => {
             <h2>Fluxo de Matrículas</h2>
             <MoreVertical size={20} />
           </div>
-          <div style={{ width: '100%', height: 300 }}>
+          <div className="chart-container-large">
             <ResponsiveContainer>
               <BarChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                 />
                 <Bar dataKey="matriculas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -113,6 +115,7 @@ const Dashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
         </div>
 
         <div className="chart-card">
@@ -120,7 +123,7 @@ const Dashboard = () => {
             <h2>Status de Candidaturas</h2>
             <MoreVertical size={20} />
           </div>
-          <div style={{ width: '100%', height: 300 }}>
+          <div className="chart-container-large">
             <ResponsiveContainer>
               <PieChart>
                 <Pie
@@ -139,15 +142,16 @@ const Dashboard = () => {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px' }}>
+            <div className="pie-chart-legend">
               {pieData.map((entry, index) => (
-                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: COLORS[index] }} />
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>{entry.name}</span>
+                <div key={index} className="legend-item">
+                  <div className="legend-color-dot" style={{ backgroundColor: COLORS[index] }} />
+                  <span className="legend-text">{entry.name}</span>
                 </div>
               ))}
             </div>
           </div>
+
         </div>
       </div>
 

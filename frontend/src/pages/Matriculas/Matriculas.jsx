@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import './Matriculas.css';
+
 import {
     Search,
     Filter,
@@ -127,21 +129,21 @@ const Matriculas = () => {
     return (
         <div className="page-container">
             <header className="page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="matriculas-header-content">
                     <div>
                         <h1>Gestão de Matrículas</h1>
                         <p>Controle centralizado de matrículas e registros acadêmicos.</p>
                     </div>
                     <button
                         onClick={() => navigate('/matriculas/nova')}
-                        className="nav-item-active"
-                        style={{ height: 'fit-content', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', border: 'none', borderRadius: '12px', cursor: 'pointer' }}
+                        className="btn-new-matricula nav-item-active"
                     >
                         <Calendar size={18} />
                         Nova Matrícula
                     </button>
                 </div>
             </header>
+
 
             {/* Stats Summary Tooltips (Optional visual flair) 
             <div className="stats-grid" style={{ marginBottom: '24px' }}>
@@ -159,70 +161,72 @@ const Matriculas = () => {
                 </div>
             </div>*/}
 
-            <div className="table-card" style={{ padding: '0' }}>
+            <div className="table-card">
                 {/* Search and Toggle Filter */}
-                <div style={{ padding: '24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+                <div className="search-filter-row">
+                    <div className="search-box">
                         <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} />
                         <input
                             type="text"
                             placeholder="Buscar aluno ou número de matrícula..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid #e5e7eb', outline: 'none', background: '#f9fafb', color: '#111827' }}
+                            className="search-box-input"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        style={{ padding: '10px 16px', borderRadius: '12px', border: '1px solid #e5e7eb', background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}
+                        className="btn-advanced-filters"
+                        style={{ background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151' }}
                     >
                         <Filter size={18} />
                         Filtros Avançados
                     </button>
                 </div>
 
+
                 {/* Filters Panel */}
                 {showFilters && (
-                    <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid #f3f4f6' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Ano Lectivo</label>
-                                <select name="ano" value={filters.ano} onChange={handleFilterChange} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: 'white', color: '#111827' }}>
+                    <div className="filters-container">
+                        <div className="filters-row">
+                            <div className="filter-item">
+                                <label>Ano Lectivo</label>
+                                <select name="ano" value={filters.ano} onChange={handleFilterChange}>
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Classe</label>
-                                <select name="classe" value={filters.classe} onChange={handleFilterChange} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                            <div className="filter-item">
+                                <label>Classe</label>
+                                <select name="classe" value={filters.classe} onChange={handleFilterChange}>
                                     <option value="">Todas</option>
                                     <option value="10ª Classe">10ª Classe</option>
                                     <option value="11ª Classe">11ª Classe</option>
                                     <option value="12ª Classe">12ª Classe</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                            <div className="filter-item">
+                                <label>Curso</label>
+                                <select name="curso" value={filters.curso} onChange={handleFilterChange}>
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
                                     <option value="Direito">Direito</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                            <div className="filter-item">
+                                <label>Sala</label>
+                                <select name="sala" value={filters.sala} onChange={handleFilterChange}>
                                     <option value="">Todas</option>
                                     <option value="L-01">L-01</option>
                                     <option value="S-204">S-204</option>
                                     <option value="S-102">S-102</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Turma</label>
-                                <select name="turma" value={filters.turma} onChange={handleFilterChange} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                            <div className="filter-item">
+                                <label>Turma</label>
+                                <select name="turma" value={filters.turma} onChange={handleFilterChange}>
                                     <option value="">Todas</option>
                                     <option value="INF10A">INF10A</option>
                                     <option value="GST12B">GST12B</option>
@@ -231,10 +235,11 @@ const Matriculas = () => {
                             </div>
                         </div>
                         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>Limpar Filtros</button>
+                            <button onClick={clearFilters} className="btn-clear-filters">Limpar Filtros</button>
                         </div>
                     </div>
                 )}
+
 
                 {/* Detailed Table */}
                 <div className="table-wrapper">
@@ -256,8 +261,8 @@ const Matriculas = () => {
                         </thead>
                         <tbody>
                             {matriculasData.map((m) => (
-                                <tr key={m.id} onClick={() => setSelectedMatricula(m)} style={{ cursor: 'pointer' }}>
-                                    <td style={{ fontWeight: 600, color: '#1e3a8a' }}>{m.id}</td>
+                                <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row">
+                                    <td className="student-id">{m.id}</td>
                                     <td>
                                         <div className="student-info">
                                             <div className="student-avatar" style={{ width: '32px', height: '32px', fontSize: '14px' }}>{m.aluno.charAt(0)}</div>
@@ -273,7 +278,7 @@ const Matriculas = () => {
                                     <td>{getStatusBadge(m.status)}</td>
                                     <td className="date-cell">{m.dataMatricula}</td>
                                     <td>
-                                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+                                        <button className="btn-more-actions">
                                             <MoreVertical size={18} />
                                         </button>
                                     </td>
@@ -282,89 +287,90 @@ const Matriculas = () => {
                         </tbody>
                     </table>
                 </div>
+
             </div>
 
             {/* Details Side Drawer/Modal */}
             {selectedMatricula && (
-                <div style={{ position: 'fixed', top: 0, right: 0, width: '450px', height: '100vh', background: 'white', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', zIndex: 1000, overflowY: 'auto' }}>
-                    <div style={{ padding: '24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>Detalhes da Matrícula</h2>
-                        <button onClick={() => setSelectedMatricula(null)} style={{ background: '#f3f4f6', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}>
+                <div className="side-drawer">
+                    <div className="drawer-header">
+                        <h2>Detalhes da Matrícula</h2>
+                        <button onClick={() => setSelectedMatricula(null)} className="btn-close-drawer">
                             <X size={20} />
                         </button>
                     </div>
 
-                    <div style={{ padding: '24px' }}>
+                    <div className="drawer-content">
                         {/* Profile Section */}
-                        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                            <div style={{ width: '80px', height: '80px', background: '#1e3a8a', color: 'white', borderRadius: '24px', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 700, margin: '0 auto 16px' }}>
+                        <div className="profile-summary">
+                            <div className="profile-avatar-circle">
                                 {selectedMatricula.aluno.charAt(0)}
                             </div>
-                            <h3 style={{ fontSize: '22px', fontWeight: 700, color: '#111827' }}>{selectedMatricula.aluno}</h3>
-                            <p style={{ color: '#6b7280' }}>ID: {selectedMatricula.id}</p>
+                            <h3>{selectedMatricula.aluno}</h3>
+                            <p>ID: {selectedMatricula.id}</p>
                             <div style={{ marginTop: '12px' }}>{getStatusBadge(selectedMatricula.status)}</div>
                         </div>
 
                         {/* Academic Info */}
-                        <div style={{ marginBottom: '32px' }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>Informação Académica</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ color: '#3b82f6' }}><BookOpen size={18} /></div>
+                        <div className="academic-section">
+                            <h4 className="data-section-title">Informação Académica</h4>
+                            <div className="academic-grid">
+                                <div className="academic-item">
+                                    <div className="icon-blue"><BookOpen size={18} /></div>
                                     <div>
-                                        <p style={{ fontSize: '12px', color: '#64748b' }}>Classe/Curso</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 600 }}>{selectedMatricula.classe} - {selectedMatricula.curso}</p>
+                                        <p className="item-label">Classe/Curso</p>
+                                        <p className="item-value">{selectedMatricula.classe} - {selectedMatricula.curso}</p>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ color: '#3b82f6' }}><Home size={18} /></div>
+                                <div className="academic-item">
+                                    <div className="icon-blue"><Home size={18} /></div>
                                     <div>
-                                        <p style={{ fontSize: '12px', color: '#64748b' }}>Sala/Turma</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 600 }}>{selectedMatricula.sala} / {selectedMatricula.turma}</p>
+                                        <p className="item-label">Sala/Turma</p>
+                                        <p className="item-value">{selectedMatricula.sala} / {selectedMatricula.turma}</p>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ color: '#3b82f6' }}><Calendar size={18} /></div>
+                                <div className="academic-item">
+                                    <div className="icon-blue"><Calendar size={18} /></div>
                                     <div>
-                                        <p style={{ fontSize: '12px', color: '#64748b' }}>Ano Lectivo</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 600 }}>{selectedMatricula.anoLectivo}</p>
+                                        <p className="item-label">Ano Lectivo</p>
+                                        <p className="item-value">{selectedMatricula.anoLectivo}</p>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ color: '#3b82f6' }}><Clock size={18} /></div>
+                                <div className="academic-item">
+                                    <div className="icon-blue"><Clock size={18} /></div>
                                     <div>
-                                        <p style={{ fontSize: '12px', color: '#64748b' }}>Turno</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 600 }}>{selectedMatricula.turno}</p>
+                                        <p className="item-label">Turno</p>
+                                        <p className="item-value">{selectedMatricula.turno}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Sensitive / Student Details */}
-                        <div style={{ marginBottom: '32px' }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>DADOS SENSÍVEIS & CONTACTOS</h4>
-                            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="academic-section">
+                            <h4 className="data-section-title">DADOS SENSÍVEIS & CONTACTOS</h4>
+                            <div className="sensitive-data-box">
+                                <div className="data-row">
                                     <span style={{ fontSize: '13px', color: '#64748b' }}>NIF:</span>
                                     <span style={{ fontSize: '13px', fontWeight: 600 }}>{selectedMatricula.detalhes.nif}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <div className="data-row">
                                     <span style={{ fontSize: '13px', color: '#64748b' }}>Data de Nascimento:</span>
                                     <span style={{ fontSize: '13px', fontWeight: 600 }}>{selectedMatricula.detalhes.dataNascimento}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                                <div className="data-row data-row-bordered">
                                     <span style={{ fontSize: '13px', color: '#64748b' }}>Encarregado:</span>
                                     <span style={{ fontSize: '13px', fontWeight: 600 }}>{selectedMatricula.detalhes.encarregado}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div className="contact-row">
                                     <Phone size={14} color="#64748b" />
                                     <span style={{ fontSize: '13px', fontWeight: 500 }}>{selectedMatricula.detalhes.telefone}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div className="contact-row">
                                     <Mail size={14} color="#64748b" />
                                     <span style={{ fontSize: '13px', fontWeight: 500 }}>{selectedMatricula.detalhes.email}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div className="contact-row">
                                     <MapPin size={14} color="#64748b" />
                                     <span style={{ fontSize: '13px', fontWeight: 500 }}>{selectedMatricula.detalhes.endereco}</span>
                                 </div>
@@ -373,22 +379,22 @@ const Matriculas = () => {
 
                         {/* Payment and Docs */}
                         <div>
-                            <h4 style={{ fontSize: '14px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', marginBottom: '16px' }}>PAGAMENTO & DOCUMENTAÇÃO</h4>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <h4 className="data-section-title">PAGAMENTO & DOCUMENTAÇÃO</h4>
+                            <div className="academic-item" style={{ marginBottom: '16px' }}>
                                 <div style={{ color: '#10b981' }}><CreditCard size={18} /></div>
                                 <div>
-                                    <p style={{ fontSize: '12px', color: '#64748b' }}>Estado do Pagamento</p>
-                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#10b981' }}>{selectedMatricula.detalhes.pagamentoStatus}</p>
+                                    <p className="item-label">Estado do Pagamento</p>
+                                    <p className="item-value" style={{ color: '#10b981' }}>{selectedMatricula.detalhes.pagamentoStatus}</p>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                 {selectedMatricula.detalhes.documentos.map((doc, idx) => (
-                                    <span key={idx} style={{ padding: '6px 12px', background: '#dbeafe', color: '#1e40af', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>{doc}</span>
+                                    <span key={idx} className="document-badge">{doc}</span>
                                 ))}
                             </div>
                         </div>
 
-                        <button style={{ width: '100%', marginTop: '40px', padding: '16px', background: '#1e3a8a', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <button className="btn-print-matricula">
                             <FileText size={18} />
                             Imprimir Ficha de Matrícula
                         </button>
@@ -400,9 +406,10 @@ const Matriculas = () => {
             {selectedMatricula && (
                 <div
                     onClick={() => setSelectedMatricula(null)}
-                    style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)', zIndex: 999 }}
+                    className="backdrop"
                 />
             )}
+
         </div>
     );
 };
