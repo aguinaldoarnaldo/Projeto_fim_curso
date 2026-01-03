@@ -103,6 +103,28 @@ const Alunos = () => {
                 obs: 'Graduada com distinção.'
             }
         },
+        {
+            id: 'ALU-2024-004',
+            nome: 'Aguinaldo Arnaldo',
+            anoLectivo: '2024/2025',
+            classe: '10ª Classe',
+            curso: 'Informática',
+            sala: 'S-201',
+            turno: 'Manhã',
+            turma: 'INF10A',
+            status: 'Ativo',
+            dataMatricula: '20 Jan 2024',
+            detalhes: {
+                nif: 'D00123456',
+                nascimento: '07/07/2005',
+                encarregado: 'Julia Maria',
+                telefone: '+244 922 666 777',
+                email: 'aguinaldoarnaldo5@gmail.com',
+                endereco: 'Mombamba, Luanda',
+                bi: '001234567LA022',
+                obs: 'Regularização de mensalidade pendente.'
+            }
+        }
     ];
 
     const handleFilterChange = (e) => {
