@@ -124,7 +124,29 @@ const Alunos = () => {
                 bi: '001234567LA022',
                 obs: 'Regularização de mensalidade pendente.'
             }
-        }
+        },
+        {
+            id: 'ALU-2024-005',
+            nome: 'Manuela Lisboa',
+            anoLectivo: '2023/2024',
+            classe: '11ª Classe',
+            curso: 'Direito',
+            sala: 'S-102',
+            turno: 'Manhã',
+            turma: 'DIR11C',
+            status: 'Concluído',
+            dataMatricula: '15 Jan 2023',
+            detalhes: {
+                nif: 'C00456123',
+                nascimento: '20/09/2005',
+                encarregado: 'Manuel Lisboa',
+                telefone: '+244 944 444 555',
+                email: 'manuelalisboa5@gmail.com',
+                endereco: 'Viana, Luanda',
+                bi: '004561234LA011',
+                obs: 'Graduada com distinção.'
+            }
+        },
     ];
 
     const handleFilterChange = (e) => {
