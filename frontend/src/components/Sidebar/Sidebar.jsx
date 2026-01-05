@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BarChart2,
@@ -6,19 +6,15 @@ import {
   FileText,
   BookOpen,
   Users as TurmasIcon,
-  Calendar,
-  CreditCard,
+  Home,
+  GraduationCap,
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight,
-  Home,
-  GraduationCap
+  ChevronRight
 } from 'lucide-react';
 
-const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(true);
-
+const Sidebar = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
     { name: 'Dashboard', icon: <BarChart2 size={20} />, path: '/dashboard' },
     { name: 'Matrículas', icon: <FileText size={20} />, path: '/matriculas' },
@@ -42,7 +38,7 @@ const Sidebar = () => {
           </div>
         )}
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggleSidebar}
           className="sidebar-toggle"
         >
           {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
