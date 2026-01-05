@@ -102,7 +102,7 @@ const Dashboard = () => {
             <MoreVertical size={20} />
           </div>
           <div className="chart-container-large">
-            <ResponsiveContainer>
+            <ResponsiveContainer debounce={100}>
               <BarChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
@@ -124,7 +124,7 @@ const Dashboard = () => {
             <MoreVertical size={20} />
           </div>
           <div className="chart-container-large">
-            <ResponsiveContainer>
+            <ResponsiveContainer debounce={100}>
               <PieChart>
                 <Pie
                   data={pieData}

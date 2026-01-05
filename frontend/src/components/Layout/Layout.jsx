@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../Sidebar/Sidebar';
 import TopNavbar from '../TopNavbar/TopNavbar';
-import '../../SchoolManagementSystem.css';
+import '../../Global.css';
 
 const Layout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);

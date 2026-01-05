@@ -37,7 +37,9 @@ body {
   color: white;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Faster and smoother */
+  will-change: width; /* Hint for GPU */
+  overflow: hidden; /* Prevent content reflow issues during resize */
 }
 
 .sidebar-closed {
@@ -122,13 +124,13 @@ body {
   flex: 1;
   padding: 30px;
   overflow-y: auto;
-  display: flex;
-  justify-content: center; /* Center the page-container */
+  display: flex; /* Kept flex for potential future use, but removed center */
+  flex-direction: column; /* Ensure vertical stacking if needed, though page-container handles it */
 }
 
 .page-container {
   width: 100%;
-  max-width: 1600px; /* Limit width */
+  /* max-width removed to allow full width */
   margin: 0;
   padding: 0;
   display: flex;
@@ -180,8 +182,8 @@ body {
 .data-table th {
   text-align: left;
   padding: 16px 24px;
-  background-color: #f1f5f9; /* Lighter header */
-  color: #475569; /* Darker text */
+  background-color: var(--sidebar-bg); /* Blue header */
+  color: white; /* White text */
   font-size: 12px;
   text-transform: uppercase;
   font-weight: 700;
