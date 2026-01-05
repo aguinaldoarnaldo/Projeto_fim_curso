@@ -83,7 +83,7 @@ const Alunos = () => {
         },
         {
             id: 'ALU-2024-003',
-            nome: 'Carla Dias Macaia',
+            nome: 'Carla dias Macaia',
             anoLectivo: '2023/2024',
             classe: '11ª Classe',
             curso: 'Direito',
