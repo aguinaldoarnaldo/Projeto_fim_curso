@@ -71,7 +71,7 @@ const Cursos = () => {
             <div className="table-card">
                 <div className="search-container">
                     <div className="search-wrapper">
-                        <Search className="search-icon" size={18} />
+                        <Search className="cursos-search-icon" size={18} />
                         <input
                             type="text"
                             placeholder="Pesquisar curso..."
