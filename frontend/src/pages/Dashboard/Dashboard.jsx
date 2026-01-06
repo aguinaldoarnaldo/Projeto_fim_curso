@@ -1,192 +1,371 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import './Dashboard.css';
-
 import {
   Users,
+  Home,
+  BookOpen,
   GraduationCap,
-  UserCheck,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  MoreVertical
+  Layers,
+  Search,
+  Bell,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Megaphone
 } from 'lucide-react';
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  Cell,
   PieChart,
-  Pie
+  Pie,
+  Cell,
+  Legend
 } from 'recharts';
 
-const data = [
-  { name: 'Jan', matriculas: 400, inscritos: 240 },
-  { name: 'Fev', matriculas: 300, inscritos: 139 },
-  { name: 'Mar', matriculas: 200, inscritos: 980 },
-  { name: 'Abr', matriculas: 278, inscritos: 390 },
-  { name: 'Mai', matriculas: 189, inscritos: 480 },
-  { name: 'Jun', matriculas: 239, inscritos: 380 },
-  { name: 'Jul', matriculas: 349, inscritos: 430 },
+// --- MOCK DATA ---
+
+const kpiData = {
+  alunos: { total: 1250, ativos: 1100, trancados: 50, concluidos: 100 },
+  turmas: { total: 42, concluidas: 12 },
+  salas: 24,
+  classes: 6,
+  cursos: 8,
+};
+
+const historicalData = {
+  '2024': [
+    { mes: 'Jan', matriculas: 150, inscritos: 300 },
+    { mes: 'Fev', matriculas: 120, inscritos: 100 },
+    { mes: 'Mar', matriculas: 60, inscritos: 40 },
+    { mes: 'Ago', matriculas: 50, inscritos: 80 },
+    { mes: 'Set', matriculas: 40, inscritos: 60 },
+  ],
+  '2025': [
+    { mes: 'Jan', matriculas: 180, inscritos: 350 },
+    { mes: 'Fev', matriculas: 90, inscritos: 120 },
+  ]
+};
+
+const genderData = [
+  { name: 'Masculino', value: 580 },
+  { name: 'Feminino', value: 670 },
 ];
 
-const pieData = [
-  { name: 'Confirmadas', value: 400 },
-  { name: 'Pendentes', value: 300 },
-  { name: 'Canceladas', value: 100 },
-];
+const COLORS_GENDER = ['#3b82f6', '#ec4899'];
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b'];
+// --- ANGOLA CALENDAR LOGIC ---
+
+const ANGOLA_HOLIDAYS = {
+  '1-1': 'Ano Novo',
+  '4-2': 'Início da Luta Armada',
+  '8-3': 'Dia Internacional da Mulher',
+  '23-3': 'Dia da Libertação da África Austral',
+  '4-4': 'Dia da Paz e Reconciliação',
+  '1-5': 'Dia do Trabalhador',
+  '17-9': 'Dia do Fundador da Nação e do Herói Nacional',
+  '2-11': 'Dia dos Finados',
+  '11-11': 'Dia da Independência',
+  '25-12': 'Natal'
+};
+
+const EVENT_DATES = {
+  '15-1': 'Início das Inscrições',
+  '5-2': 'Início das Aulas'
+};
+
+const CalendarWidget = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month, 1).getDay();
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  };
+
+  const renderDays = () => {
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+    const days = [];
+    const today = new Date();
+
+    // Empty slots for previous month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateKey = `${i}-${currentDate.getMonth() + 1}`;
+      const isHoliday = ANGOLA_HOLIDAYS[dateKey];
+      const isEvent = EVENT_DATES[dateKey];
+      const isToday = i === today.getDate() &&
+        currentDate.getMonth() === today.getMonth() &&
+        currentDate.getFullYear() === today.getFullYear();
+
+      days.push(
+        <div
+          key={i}
+          className={`calendar-day 
+                        ${isToday ? 'is-today' : ''} 
+                        ${isHoliday ? 'is-holiday' : ''}
+                        ${isEvent ? 'is-event' : ''}
+                    `}
+          title={isHoliday || isEvent || ''}
+        >
+          <span>{i}</span>
+          {isHoliday && <div className="dot-marker holiday"></div>}
+          {isEvent && <div className="dot-marker event"></div>}
+        </div>
+      );
+    }
+    return days;
+  };
+
+  // Get Holiday or Event name for selected month display
+  const getMonthEvents = () => {
+    const notes = [];
+    const daysInMonth = getDaysInMonth(currentDate);
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateKey = `${i}-${currentDate.getMonth() + 1}`;
+      if (ANGOLA_HOLIDAYS[dateKey]) notes.push({ day: i, type: 'Feriado', name: ANGOLA_HOLIDAYS[dateKey] });
+      if (EVENT_DATES[dateKey]) notes.push({ day: i, type: 'Evento', name: EVENT_DATES[dateKey] });
+    }
+    return notes;
+  };
+
+  const monthNotes = getMonthEvents();
+
+  return (
+    <div className="calendar-widget">
+      <div className="calendar-header">
+        <button onClick={prevMonth} className="btn-cal-nav"><ChevronLeft size={16} /></button>
+        <h3>{currentDate.toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' })}</h3>
+        <button onClick={nextMonth} className="btn-cal-nav"><ChevronRight size={16} /></button>
+      </div>
+      <div className="calendar-weekdays">
+        <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+      </div>
+      <div className="calendar-grid">
+        {renderDays()}
+      </div>
+
+      {/* Legend / Upcoming */}
+      <div className="calendar-footer">
+        <h4>Eventos do Mês</h4>
+        {monthNotes.length > 0 ? (
+          <div className="calendar-notes-list">
+            {monthNotes.map((note, idx) => (
+              <div key={idx} className={`note-item ${note.type === 'Feriado' ? 'note-holiday' : 'note-event'}`}>
+                <span className="note-day">{note.day}</span>
+                <span className="note-name">{note.name}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="no-events-text">Nenhum feriado ou evento este mês.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN DASHBOARD ---
 
 const Dashboard = () => {
-  const stats = [
-    { label: 'Total Alunos', value: '12,478', icon: <GraduationCap />, trend: '+12%', type: 'blue' },
-    { label: 'Matrículas Hoje', value: '478', icon: <UserCheck />, trend: '+5%', type: 'green' },
-    { label: 'Inscritos Pendentes', value: '156', icon: <Users />, trend: '-2%', type: 'purple' },
-    { label: 'Receita Mensal', value: '42,8k $', icon: <DollarSign />, trend: '+18%', type: 'orange' },
-  ];
+  const [selectedYear, setSelectedYear] = useState('2024');
 
-  const recentMatriculas = [
-    { id: 1, aluno: 'António J. Silva', turma: '10ª A', data: '22 Dez 2024', status: 'confirmada' },
-    { id: 2, aluno: 'Maria José', turma: '12ª B', data: '23 Dez 2024', status: 'pendente' },
-    { id: 3, aluno: 'Carlos Bento', turma: '11ª C', data: '24 Dez 2024', status: 'analise' },
-    { id: 4, aluno: 'Isabel Santos', turma: '9ª A', data: '24 Dez 2024', status: 'confirmada' },
-    { id: 5, aluno: 'Pedro Manuel', turma: '10ª B', data: '25 Dez 2024', status: 'confirmada' },
-  ];
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'confirmada': return <span className="status-badge status-confirmed">Confirmada</span>;
-      case 'pendente': return <span className="status-badge status-pending">Pendente</span>;
-      case 'analise': return <span className="status-badge status-analysis">Em Análise</span>;
-      default: return <span className="status-badge status-default">{status}</span>;
-    }
-  };
+  const chartData = useMemo(() => {
+    return historicalData[selectedYear] || [];
+  }, [selectedYear]);
 
   return (
     <div className="dashboard-container">
-      <header className="page-header">
-        <h1>Painel Geral</h1>
-        <p>Bem-vindo ao sistema de gestão escolar - SGMatrícula</p>
+      {/* HEADER */}
+      <header className="dashboard-header">
+        <div className="header-text">
+          <h1>Olá, Administrador 👋</h1>
+          <p>Visão geral e controle do sistema escolar.</p>
+        </div>
+        <div className="header-actions">
+          <div className="search-bar">
+            <Search size={18} className="dashboard-search-icon" />
+            <input type="text" placeholder="Pesquisar..." />
+          </div>
+          <button className="btn-icon circle-btn">
+            <Bell size={20} />
+            <span className="notification-badge"></span>
+          </button>
+          <div className="user-profile">
+            <div className="avatar">AD</div>
+          </div>
+        </div>
       </header>
 
-      {/* Stats Cards */}
-      <div className="stats-grid">
-        {stats.map((stat, index) => (
-          <div key={index} className="stat-card">
-            <div className="stat-card-header">
-              <div className={`stat-icon card-${stat.type}`}>
-                {stat.icon}
-              </div>
-              <div className={`stat-badge ${stat.trend.startsWith('+') ? 'trend-up' : 'trend-down'}`}>
-                {stat.trend.startsWith('+') ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                {stat.trend}
-              </div>
-            </div>
-            <h3>{stat.label}</h3>
-            <div className="stat-value">{stat.value}</div>
+      {/* KPI GRID */}
+      <div className="kpi-grid">
+        {/* 1. ALUNOS */}
+        <div className="kpi-card card-premium-blue">
+          <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
+          <div className="kpi-content">
+            <h3>{kpiData.alunos.total}</h3>
+            <span className="kpi-label">Total Alunos</span>
           </div>
-        ))}
-      </div>
-
-      {/* Charts Grid */}
-      <div className="charts-grid">
-        <div className="chart-card">
-          <div className="chart-header">
-            <h2>Fluxo de Matrículas</h2>
-            <MoreVertical size={20} />
+          <div className="kpi-mini-stats">
+            <span className="mini-stat active">Ativos: {kpiData.alunos.ativos}</span>
+            <span className="mini-stat locked">Trancados: {kpiData.alunos.trancados}</span>
           </div>
-          <div className="chart-container-large">
-            <ResponsiveContainer debounce={100}>
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                />
-                <Bar dataKey="matriculas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="inscritos" fill="#93c5fd" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
         </div>
 
-        <div className="chart-card">
-          <div className="chart-header">
-            <h2>Status de Candidaturas</h2>
-            <MoreVertical size={20} />
+        {/* 2. TURMAS */}
+        <div className="kpi-card card-premium-purple">
+          <div className="kpi-icon-floating"><Users size={24} /></div>
+          <div className="kpi-content">
+            <h3>{kpiData.turmas.total}</h3>
+            <span className="kpi-label">Total Turmas</span>
           </div>
-          <div className="chart-container-large">
-            <ResponsiveContainer debounce={100}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pie-chart-legend">
-              {pieData.map((entry, index) => (
-                <div key={index} className="legend-item">
-                  <div className="legend-color-dot" style={{ backgroundColor: COLORS[index] }} />
-                  <span className="legend-text">{entry.name}</span>
-                </div>
-              ))}
-            </div>
+          <div className="kpi-mini-stats">
+            <span className="mini-stat">Concluídas: {kpiData.turmas.concluidas}</span>
           </div>
+        </div>
 
+        {/* 3. SALAS */}
+        <div className="kpi-card card-premium-orange">
+          <div className="kpi-icon-floating"><Home size={24} /></div>
+          <div className="kpi-content">
+            <h3>{kpiData.salas}</h3>
+            <span className="kpi-label">Salas</span>
+          </div>
+        </div>
+
+        {/* 4. CLASSES */}
+        <div className="kpi-card card-premium-teal">
+          <div className="kpi-icon-floating"><Layers size={24} /></div>
+          <div className="kpi-content">
+            <h3>{kpiData.classes}</h3>
+            <span className="kpi-label">Classes</span>
+          </div>
+        </div>
+
+        {/* 5. CURSOS */}
+        <div className="kpi-card card-premium-indigo">
+          <div className="kpi-icon-floating"><BookOpen size={24} /></div>
+          <div className="kpi-content">
+            <h3>{kpiData.cursos}</h3>
+            <span className="kpi-label">Cursos</span>
+          </div>
         </div>
       </div>
 
-      {/* Recent Activity Table */}
-      <div className="table-card">
-        <h2>Matrículas Recentes</h2>
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Estudante</th>
-                <th>Turma</th>
-                <th>Data</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentMatriculas.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <div className="student-info">
-                      <div className="student-avatar">
-                        {item.aluno.charAt(0)}
-                      </div>
-                      <span>{item.aluno}</span>
-                    </div>
-                  </td>
-                  <td className="turma-cell">{item.turma}</td>
-                  <td className="date-cell">{item.data}</td>
-                  <td>{getStatusBadge(item.status)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* GRID: CHARTS + CALENDAR */}
+      <div className="dashboard-content-grid">
+
+        {/* LEFT: Charts */}
+        <div className="charts-column">
+
+          {/* CHART 1: Enrollments Area Chart */}
+          <div className="chart-card-new">
+            <div className="chart-header">
+              <div>
+                <h2>Fluxo de Entrada</h2>
+                <p>Matrículas e Inscrições (Comparativo)</p>
+              </div>
+              <select
+                className="chart-filter-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                {Object.keys(historicalData).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div className="chart-body">
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorMat" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorIns" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                  <Legend />
+                  <Area type="monotone" dataKey="matriculas" name="Matrículas" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMat)" />
+                  <Area type="monotone" dataKey="inscritos" name="Inscrições" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorIns)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* CHART 2: Gender Pie Chart */}
+          <div className="chart-card-new">
+            <div className="chart-header">
+              <div>
+                <h2>Distribuição por Género</h2>
+                <p>Total de alunos Masculino vs Feminino</p>
+              </div>
+            </div>
+            <div className="chart-body row-body">
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={genderData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {genderData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
         </div>
+
+        {/* RIGHT: Calendar */}
+        <div className="calendar-column">
+          <div className="calendar-card-wrapper">
+            <div className="calendar-title-card">
+              <Megaphone size={20} className="shake-icon" />
+              <span>Agenda & Feriados</span>
+            </div>
+            <CalendarWidget />
+          </div>
+        </div>
+
       </div>
     </div>
   );
