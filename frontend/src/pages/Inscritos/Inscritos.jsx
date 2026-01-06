@@ -19,7 +19,8 @@ import {
   Search,
   Filter,
   RotateCcw,
-  ChevronLeft
+  ChevronLeft,
+  GraduationCap
 } from 'lucide-react';
 
 const Inscritos = () => {
@@ -29,6 +30,11 @@ const Inscritos = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  // Evaluation States
+  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
+  const [candidateToEvaluate, setCandidateToEvaluate] = useState(null);
+  const [examGrade, setExamGrade] = useState('');
 
   // Filters State
   const [filters, setFilters] = useState({
@@ -58,6 +64,7 @@ const Inscritos = () => {
       anoConclusao: '2023',
       anoInscricao: '2024',
       nota9: 18,
+      notaExame: null, // New field
       curso1: 'Informática',
       curso2: 'Gestão',
       turno: 'Manhã',
@@ -94,6 +101,7 @@ const Inscritos = () => {
       anoConclusao: '2023',
       anoInscricao: '2024',
       nota9: 15,
+      notaExame: null,
       curso1: 'Gestão',
       curso2: '',
       turno: 'Tarde',
@@ -125,6 +133,7 @@ const Inscritos = () => {
       anoConclusao: '2022',
       anoInscricao: '2024',
       nota9: 12,
+      notaExame: null,
       curso1: 'Direito',
       curso2: 'Informática',
       turno: 'Noite',
@@ -150,6 +159,7 @@ const Inscritos = () => {
       anoConclusao: '2022',
       anoInscricao: '2023',
       nota9: 17,
+      notaExame: 16,
       curso1: 'Informática',
       curso2: '',
       turno: 'Manhã',
@@ -171,14 +181,44 @@ const Inscritos = () => {
     return age;
   };
 
-  const handleEvaluate = (id) => {
+  const handleOpenEvaluation = (candidato) => {
+    setCandidateToEvaluate(candidato);
+    setExamGrade(''); // Reset grade
+    setShowEvaluationModal(true);
+  };
+
+  const handleCloseEvaluation = () => {
+    setShowEvaluationModal(false);
+    setCandidateToEvaluate(null);
+    setExamGrade('');
+  };
+
+  const handleSubmitEvaluation = () => {
+    if (!examGrade || isNaN(examGrade) || examGrade < 0 || examGrade > 20) {
+      alert("Por favor, insira uma nota válida (0-20).");
+      return;
+    }
+
+    const grade = parseFloat(examGrade);
+    const isApproved = grade >= 10; // Passing grade is 10
+
     setInscritos(prev => prev.map(i => {
-      if (i.id === id) {
-        const isApproved = i.nota9 >= 14;
-        return { ...i, status: isApproved ? 'Aprovado' : 'Não Admitido' };
+      if (i.id === candidateToEvaluate.id) {
+        return {
+          ...i,
+          notaExame: grade,
+          status: isApproved ? 'Aprovado' : 'Não Admitido'
+        };
       }
       return i;
     }));
+
+    handleCloseEvaluation();
+  };
+
+  const handleDownloadDoc = (docName) => {
+    // Simulation of download
+    alert(`Iniciando download do documento: ${docName}...\n(Funcionalidade simulada)`);
   };
 
   const handleGenerateRUP = () => {
@@ -294,6 +334,7 @@ const Inscritos = () => {
                 <th>Candidato</th>
                 <th>Curso</th>
                 <th>Nota 9ª</th>
+                <th>Exame</th>
                 <th>Ano</th>
                 <th>Estado</th>
                 <th style={{ textAlign: 'center' }}>Ações</th>
@@ -305,12 +346,19 @@ const Inscritos = () => {
                   <td onClick={() => setSelectedCandidato(i)}>{i.id}</td>
                   <td onClick={() => setSelectedCandidato(i)} style={{ fontWeight: 600 }}>{i.nome}</td>
                   <td onClick={() => setSelectedCandidato(i)}>{i.curso1}</td>
-                  <td onClick={() => setSelectedCandidato(i)} style={{ fontWeight: 800, color: '#1e40af' }}>{i.nota9}</td>
+                  <td onClick={() => setSelectedCandidato(i)}>{i.nota9}</td>
+                  <td onClick={() => setSelectedCandidato(i)}>
+                    {i.notaExame ? (
+                      <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
+                        {i.notaExame}
+                      </span>
+                    ) : '-'}
+                  </td>
                   <td onClick={() => setSelectedCandidato(i)}>{i.anoInscricao}</td>
                   <td onClick={() => setSelectedCandidato(i)}>
                     <span className={`status-badge ${i.status === 'Pendente' ? 'status-pending' :
-                        i.status === 'Em Análise' ? 'status-analysis' :
-                          i.status === 'Aprovado' ? 'status-approved' : 'status-rejected'
+                      i.status === 'Em Análise' ? 'status-analysis' :
+                        i.status === 'Aprovado' ? 'status-approved' : 'status-rejected'
                       }`}>
                       {i.status}
                     </span>
@@ -319,7 +367,7 @@ const Inscritos = () => {
                     <div className="actions-cell" style={{ justifyContent: 'center' }}>
                       <button
                         className="btn-action btn-evaluate"
-                        onClick={(e) => { e.stopPropagation(); handleEvaluate(i.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleOpenEvaluation(i); }}
                       >
                         Avaliar
                       </button>
@@ -335,7 +383,7 @@ const Inscritos = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                     Nenhum candidato encontrado com os filtros aplicados.
                   </td>
                 </tr>
@@ -367,6 +415,61 @@ const Inscritos = () => {
           </div>
         )}
       </div>
+
+      {/* EVALUATION MODAL */}
+      {showEvaluationModal && candidateToEvaluate && (
+        <div className="modal-overlay">
+          <div className="evaluation-modal-card">
+            <div className="evaluation-header">
+              <h3>
+                <GraduationCap size={20} color="#1e3a8a" /> Avaliação
+              </h3>
+              <button onClick={handleCloseEvaluation} className="btn-close-modal" style={{ position: 'static' }}>
+                <X size={20} color="#64748b" />
+              </button>
+            </div>
+
+            <div className="evaluation-body">
+              <p className="evaluation-info-text">
+                Atribuir nota do exame para: <strong>{candidateToEvaluate.nome}</strong>
+              </p>
+
+              <div className="evaluation-input-group">
+                <label className="evaluation-label">NOTA DO EXAME (0 - 20)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={examGrade}
+                  onChange={(e) => setExamGrade(e.target.value)}
+                  placeholder="0"
+                  className="evaluation-input"
+                  autoFocus
+                />
+              </div>
+
+              <p className="evaluation-hint">
+                Nota igual ou superior a 10 aprova o candidato.
+              </p>
+            </div>
+
+            <div className="evaluation-actions">
+              <button
+                onClick={handleCloseEvaluation}
+                className="btn-cancel"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmitEvaluation}
+                className="btn-confirm"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedCandidato && (
         <div className="modal-overlay">
@@ -422,7 +525,13 @@ const Inscritos = () => {
                     <div className="info-item"><label>Ano de Conclusão</label><p>{selectedCandidato.anoConclusao}</p></div>
                     <div className="info-item">
                       <label>Nota Final da 9ª Classe</label>
-                      <p style={{ fontSize: '24px', fontWeight: 900, color: '#1e40af' }}>{selectedCandidato.nota9}</p>
+                      <p style={{ fontSize: '18px', fontWeight: 600 }}>{selectedCandidato.nota9}</p>
+                    </div>
+                    <div className="info-item">
+                      <label>Nota do Exame</label>
+                      <p style={{ fontSize: '24px', fontWeight: 900, color: selectedCandidato.notaExame >= 10 ? '#166534' : '#dc2626' }}>
+                        {selectedCandidato.notaExame || 'N/A'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -486,7 +595,12 @@ const Inscritos = () => {
                         <label style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>DOC. IDENTIFICAÇÃO</label>
                         <p style={{ fontSize: '13px' }}>identificacao_candidato.pdf</p>
                       </div>
-                      <Download size={18} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#64748b' }} />
+                      <button
+                        onClick={() => handleDownloadDoc('identificacao_candidato.pdf')}
+                        className="btn-download"
+                      >
+                        <Download size={18} color="#64748b" />
+                      </button>
                     </div>
                     <div className="doc-item">
                       <User size={20} color="#2563eb" />
@@ -494,7 +608,12 @@ const Inscritos = () => {
                         <label style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>FOTO TIPO PASSE</label>
                         <p style={{ fontSize: '13px' }}>foto_perfil.jpg</p>
                       </div>
-                      <Download size={18} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#64748b' }} />
+                      <button
+                        onClick={() => handleDownloadDoc('foto_perfil.jpg')}
+                        className="btn-download"
+                      >
+                        <Download size={18} color="#64748b" />
+                      </button>
                     </div>
                     <div className="doc-item">
                       <ClipboardCheck size={20} color="#2563eb" />
@@ -502,7 +621,12 @@ const Inscritos = () => {
                         <label style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>CERTIFICADO 9ª CLASSE</label>
                         <p style={{ fontSize: '13px' }}>certificado_conclusao.pdf</p>
                       </div>
-                      <Download size={18} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#64748b' }} />
+                      <button
+                        onClick={() => handleDownloadDoc('certificado_conclusao.pdf')}
+                        className="btn-download"
+                      >
+                        <Download size={18} color="#64748b" />
+                      </button>
                     </div>
                   </div>
                 </div>
