@@ -204,7 +204,8 @@ const Dashboard = () => {
           <h1>Olá, Administrador 👋</h1>
           <p>Visão geral e controle do sistema escolar.</p>
         </div>
-        <div className="header-actions">
+        
+        {/*<div className="header-actions">
           <div className="search-bar">
             <Search size={18} className="dashboard-search-icon" />
             <input type="text" placeholder="Pesquisar..." />
@@ -216,7 +217,7 @@ const Dashboard = () => {
           <div className="user-profile">
             <div className="avatar">AD</div>
           </div>
-        </div>
+        </div>*/}
       </header>
 
       {/* KPI GRID */}
