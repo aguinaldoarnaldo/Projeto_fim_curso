@@ -218,7 +218,7 @@ const Inscritos = () => {
 
   const handleDownloadDoc = (docName) => {
     // Simulation of download
-    alert(`Iniciando download do documento: ${docName}...\n(Funcionalidade simulada)`);
+    alert(`Iniciando download do documento: ${docName}...\\n(Funcionalidade simulada)`);
   };
 
   const handleGenerateRUP = () => {
@@ -333,7 +333,6 @@ const Inscritos = () => {
                 <th>ID</th>
                 <th>Candidato</th>
                 <th>Curso</th>
-                <th>Nota 9ª</th>
                 <th>Exame</th>
                 <th>Ano</th>
                 <th>Estado</th>
@@ -346,7 +345,6 @@ const Inscritos = () => {
                   <td onClick={() => setSelectedCandidato(i)}>{i.id}</td>
                   <td onClick={() => setSelectedCandidato(i)} style={{ fontWeight: 600 }}>{i.nome}</td>
                   <td onClick={() => setSelectedCandidato(i)}>{i.curso1}</td>
-                  <td onClick={() => setSelectedCandidato(i)}>{i.nota9}</td>
                   <td onClick={() => setSelectedCandidato(i)}>
                     {i.notaExame ? (
                       <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
@@ -409,7 +407,7 @@ const Inscritos = () => {
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(currentPage + 1)}
               >
-                Próximo <ChevronRight size={18} />
+                <ChevronRight size={18} />
               </button>
             </div>
           </div>
