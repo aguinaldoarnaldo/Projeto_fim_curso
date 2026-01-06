@@ -113,6 +113,21 @@ const Matriculas = () => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
+    const filteredMatriculas = matriculasData.filter(matricula => {
+        const matchesSearch =
+            matricula.aluno.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            matricula.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesFilters =
+            (filters.ano === '' || matricula.anoLectivo === filters.ano) &&
+            (filters.classe === '' || matricula.classe === filters.classe) &&
+            (filters.curso === '' || matricula.curso === filters.curso) &&
+            (filters.sala === '' || matricula.sala === filters.sala) &&
+            (filters.turma === '' || matricula.turma === filters.turma);
+
+        return matchesSearch && matchesFilters;
+    });
+
     const clearFilters = () => {
         setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
     };
@@ -260,7 +275,7 @@ const Matriculas = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {matriculasData.map((m) => (
+                            {filteredMatriculas.map((m) => (
                                 <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row">
                                     <td className="student-id">{m.id}</td>
                                     <td>
