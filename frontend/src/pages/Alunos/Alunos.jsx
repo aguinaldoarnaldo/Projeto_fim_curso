@@ -153,6 +153,22 @@ const Alunos = () => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
+    const filteredStudents = studentsData.filter(student => {
+        const matchesSearch =
+            student.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (student.detalhes?.bi && student.detalhes.bi.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesFilters =
+            (filters.ano === '' || student.anoLectivo === filters.ano) &&
+            (filters.classe === '' || student.classe === filters.classe) &&
+            (filters.curso === '' || student.curso === filters.curso) &&
+            (filters.sala === '' || student.sala === filters.sala) &&
+            (filters.turma === '' || student.turma === filters.turma);
+
+        return matchesSearch && matchesFilters;
+    });
+
     const getStatusStyle = (status) => {
         switch (status) {
             case 'Ativo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
@@ -286,7 +302,7 @@ const Alunos = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {studentsData.map((s) => (
+                            {filteredStudents.map((s) => (
                                 <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
                                     <td className="student-id">{s.id}</td>
                                     <td>
