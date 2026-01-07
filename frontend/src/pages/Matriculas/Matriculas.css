@@ -390,3 +390,286 @@
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* --- NEW MATRICULA DETAILS MODAL --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.matricula-modal-card {
+    background: white;
+    width: 900px;
+    max-width: 95%;
+    max-height: 90vh;
+    border-radius: 20px;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.matricula-modal-header {
+    padding: 24px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+}
+
+.modal-header-info h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.modal-subtitle {
+    font-size: 13px;
+    color: #6b7280;
+    font-family: monospace;
+}
+
+.btn-close-modal {
+    background: #f3f4f6;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #4b5563;
+    transition: all 0.2s;
+}
+
+.btn-close-modal:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.matricula-modal-body {
+    padding: 24px;
+}
+
+/* Profile Section Top */
+.modal-profile-section {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.profile-large-avatar {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    font-size: 32px;
+    font-weight: 700;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.profile-texts h3 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.profile-badges {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.info-badge {
+    background: #f3f4f6;
+    color: #4b5563;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Grid Layout */
+.modal-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.info-group-card {
+    background: #f9fafb;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #f3f4f6;
+}
+
+.full-width-mobile {
+    grid-column: span 1;
+}
+
+@media (max-width: 768px) {
+    .modal-grid-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.info-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.info-group-header h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.info-item label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 3px;
+    font-weight: 500;
+}
+
+.info-item p {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.highlight-text {
+    font-family: monospace;
+    background: #e0e7ff;
+    color: #3730a3 !important;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.flex-row-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.grid-2-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 12px;
+}
+
+/* Financeiro Pill */
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-pill-green {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.docs-list {
+    margin-top: 10px;
+}
+.docs-list label {
+    font-size: 12px;
+    color: #6b7280;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.doc-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.doc-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+/* Footer Actions */
+.matricula-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid #f3f4f6;
+    background: #f9fafb;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    background: white;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+}
+
+.btn-primary-print {
+    padding: 10px 24px;
+    border-radius: 10px;
+    background: #1e3a8a;
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Utility Colors for Icons */
+.text-blue-600 { color: #2563eb; }
+.text-purple-600 { color: #9333ea; }
+.text-orange-600 { color: #ea580c; }
+.text-green-600 { color: #16a34a; }
+.text-gray-400 { color: #9ca3af; }
