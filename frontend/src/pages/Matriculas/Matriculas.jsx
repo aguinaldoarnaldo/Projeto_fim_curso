@@ -48,12 +48,14 @@ const Matriculas = () => {
             turma: 'INF10A',
             status: 'Confirmada',
             dataMatricula: '22 Dez 2024',
-            // Sensitive/Detail data
             detalhes: {
+                bi: '001234567LA042',
+                genero: 'Masculino',
                 nif: '123456789',
                 dataNascimento: '12/05/2008',
                 encarregado: 'João Silva',
-                telefone: '+244 923 000 000',
+                parentesco: 'Pai',
+                telefoneEncarregado: '+244 923 000 000',
                 email: 'antonio.silva@email.com',
                 endereco: 'Luanda, Cassequel',
                 pagamentoStatus: 'Pago',
@@ -73,10 +75,13 @@ const Matriculas = () => {
             status: 'Pendente',
             dataMatricula: '23 Dez 2024',
             detalhes: {
+                bi: '005556667LA021',
+                genero: 'Feminino',
                 nif: '987654321',
                 dataNascimento: '05/11/2006',
                 encarregado: 'Maria Bento',
-                telefone: '+244 931 111 222',
+                parentesco: 'Mãe',
+                telefoneEncarregado: '+244 931 111 222',
                 email: 'maria.jose@email.com',
                 endereco: 'Cazenga, Luanda',
                 pagamentoStatus: 'Pendente',
@@ -96,10 +101,13 @@ const Matriculas = () => {
             status: 'Em Análise',
             dataMatricula: '24 Dez 2024',
             detalhes: {
+                bi: '009887766LA011',
+                genero: 'Masculino',
                 nif: '456123789',
                 dataNascimento: '20/09/2005',
                 encarregado: 'Manuel Carlos',
-                telefone: '+244 944 333 444',
+                parentesco: 'Tio',
+                telefoneEncarregado: '+244 944 333 444',
                 email: 'carlos.manuel@email.com',
                 endereco: 'Viana, Luanda',
                 pagamentoStatus: 'Análise de Comprovativo',
@@ -159,23 +167,6 @@ const Matriculas = () => {
                 </div>
             </header>
 
-
-            {/* Stats Summary Tooltips (Optional visual flair) 
-            <div className="stats-grid" style={{ marginBottom: '24px' }}>
-                <div className="stat-card">
-                    <p className="info-label">Total Ano Corrente</p>
-                    <div className="stat-value">1,240</div>
-                </div>
-                <div className="stat-card">
-                    <p className="info-label">Confirmadas</p>
-                    <div className="stat-value" style={{ color: '#10b981' }}>1,150</div>
-                </div>
-                <div className="stat-card">
-                    <p className="info-label">Por Validar</p>
-                    <div className="stat-value" style={{ color: '#f59e0b' }}>90</div>
-                </div>
-            </div>*/}
-
             <div className="table-card">
                 {/* Search and Toggle Filter */}
                 <div className="search-filter-row">
@@ -198,7 +189,6 @@ const Matriculas = () => {
                         Filtros Avançados
                     </button>
                 </div>
-
 
                 {/* Filters Panel */}
                 {showFilters && (
@@ -255,7 +245,6 @@ const Matriculas = () => {
                     </div>
                 )}
 
-
                 {/* Detailed Table */}
                 <div className="table-wrapper">
                     <table className="data-table">
@@ -302,127 +291,166 @@ const Matriculas = () => {
                         </tbody>
                     </table>
                 </div>
-
             </div>
 
-            {/* Details Side Drawer/Modal */}
+            {/* DETAILS MODAL (REDESIGN) */}
             {selectedMatricula && (
-                <div className="side-drawer">
-                    <div className="drawer-header">
-                        <h2>Detalhes da Matrícula</h2>
-                        <button onClick={() => setSelectedMatricula(null)} className="btn-close-drawer">
-                            <X size={20} />
-                        </button>
-                    </div>
-
-                    <div className="drawer-content">
-                        {/* Profile Section */}
-                        <div className="profile-summary">
-                            <div className="profile-avatar-circle">
-                                {selectedMatricula.aluno.charAt(0)}
+                <div className="modal-overlay">
+                    <div className="matricula-modal-card">
+                        <div className="matricula-modal-header">
+                            <div className="modal-header-info">
+                                <h2>Detalhes da Matrícula</h2>
+                                <span className="modal-subtitle">ID: {selectedMatricula.id}</span>
                             </div>
-                            <h3>{selectedMatricula.aluno}</h3>
-                            <p>ID: {selectedMatricula.id}</p>
-                            <div style={{ marginTop: '12px' }}>{getStatusBadge(selectedMatricula.status)}</div>
+                            <button onClick={() => setSelectedMatricula(null)} className="btn-close-modal">
+                                <X size={24} />
+                            </button>
                         </div>
 
-                        {/* Academic Info */}
-                        <div className="academic-section">
-                            <h4 className="data-section-title">Informação Académica</h4>
-                            <div className="academic-grid">
-                                <div className="academic-item">
-                                    <div className="icon-blue"><BookOpen size={18} /></div>
-                                    <div>
-                                        <p className="item-label">Classe/Curso</p>
-                                        <p className="item-value">{selectedMatricula.classe} - {selectedMatricula.curso}</p>
-                                    </div>
+                        <div className="matricula-modal-body">
+
+                            {/* Top Profile Section */}
+                            <div className="modal-profile-section">
+                                <div className="profile-large-avatar">
+                                    {selectedMatricula.aluno.charAt(0)}
                                 </div>
-                                <div className="academic-item">
-                                    <div className="icon-blue"><Home size={18} /></div>
-                                    <div>
-                                        <p className="item-label">Sala/Turma</p>
-                                        <p className="item-value">{selectedMatricula.sala} / {selectedMatricula.turma}</p>
-                                    </div>
-                                </div>
-                                <div className="academic-item">
-                                    <div className="icon-blue"><Calendar size={18} /></div>
-                                    <div>
-                                        <p className="item-label">Ano Lectivo</p>
-                                        <p className="item-value">{selectedMatricula.anoLectivo}</p>
-                                    </div>
-                                </div>
-                                <div className="academic-item">
-                                    <div className="icon-blue"><Clock size={18} /></div>
-                                    <div>
-                                        <p className="item-label">Turno</p>
-                                        <p className="item-value">{selectedMatricula.turno}</p>
+                                <div className="profile-texts">
+                                    <h3>{selectedMatricula.aluno}</h3>
+                                    <div className="profile-badges">
+                                        {getStatusBadge(selectedMatricula.status)}
+                                        <span className="info-badge">{selectedMatricula.classe}</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Sensitive / Student Details */}
-                        <div className="academic-section">
-                            <h4 className="data-section-title">DADOS SENSÍVEIS & CONTACTOS</h4>
-                            <div className="sensitive-data-box">
-                                <div className="data-row">
-                                    <span style={{ fontSize: '13px', color: '#64748b' }}>NIF:</span>
-                                    <span style={{ fontSize: '13px', fontWeight: 600 }}>{selectedMatricula.detalhes.nif}</span>
+                            <div className="modal-grid-layout">
+
+                                {/* 1. DADOS PESSOAIS */}
+                                <div className="info-group-card">
+                                    <div className="info-group-header">
+                                        <User size={18} className="text-blue-600" />
+                                        <h4>Dados Pessoais</h4>
+                                    </div>
+                                    <div className="info-list">
+                                        <div className="info-item">
+                                            <label>Bilhete de Identidade (BI)</label>
+                                            <p className="highlight-text">{selectedMatricula.detalhes.bi}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Género</label>
+                                            <p>{selectedMatricula.detalhes.genero}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Data de Nascimento</label>
+                                            <p>{selectedMatricula.detalhes.dataNascimento}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>NIF</label>
+                                            <p>{selectedMatricula.detalhes.nif}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="data-row">
-                                    <span style={{ fontSize: '13px', color: '#64748b' }}>Data de Nascimento:</span>
-                                    <span style={{ fontSize: '13px', fontWeight: 600 }}>{selectedMatricula.detalhes.dataNascimento}</span>
+
+                                {/* 2. DADOS DO ENCARREGADO */}
+                                <div className="info-group-card">
+                                    <div className="info-group-header">
+                                        <User size={18} className="text-purple-600" />
+                                        <h4>Dados do Encarregado</h4>
+                                    </div>
+                                    <div className="info-list">
+                                        <div className="info-item">
+                                            <label>Nome Completo</label>
+                                            <p className="font-semibold">{selectedMatricula.detalhes.encarregado}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Grau de Parentesco</label>
+                                            <p>{selectedMatricula.detalhes.parentesco}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Telefone</label>
+                                            <div className="flex-row-center">
+                                                <Phone size={14} className="text-gray-400" />
+                                                <p>{selectedMatricula.detalhes.telefoneEncarregado}</p>
+                                            </div>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Morada / Endereço</label>
+                                            <div className="flex-row-center">
+                                                <MapPin size={14} className="text-gray-400" />
+                                                <p>{selectedMatricula.detalhes.endereco}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="data-row data-row-bordered">
-                                    <span style={{ fontSize: '13px', color: '#64748b' }}>Encarregado:</span>
-                                    <span style={{ fontSize: '13px', fontWeight: 600 }}>{selectedMatricula.detalhes.encarregado}</span>
+
+                                {/* 3. DADOS ACADÉMICOS */}
+                                <div className="info-group-card full-width-mobile">
+                                    <div className="info-group-header">
+                                        <BookOpen size={18} className="text-orange-600" />
+                                        <h4>Dados Académicos</h4>
+                                    </div>
+                                    <div className="grid-2-cols">
+                                        <div className="info-item">
+                                            <label>Curso</label>
+                                            <p>{selectedMatricula.curso}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Turma</label>
+                                            <p>{selectedMatricula.turma}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Sala</label>
+                                            <p>{selectedMatricula.sala}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Turno</label>
+                                            <p>{selectedMatricula.turno}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Ano Lectivo</label>
+                                            <p>{selectedMatricula.anoLectivo}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Data Matrícula</label>
+                                            <p>{selectedMatricula.dataMatricula}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="contact-row">
-                                    <Phone size={14} color="#64748b" />
-                                    <span style={{ fontSize: '13px', fontWeight: 500 }}>{selectedMatricula.detalhes.telefone}</span>
+
+                                {/* 4. FINANCEIRO & DOCUMENTOS */}
+                                <div className="info-group-card full-width-mobile">
+                                    <div className="info-group-header">
+                                        <CreditCard size={18} className="text-green-600" />
+                                        <h4>Financeiro & Documentos</h4>
+                                    </div>
+                                    <div className="info-list">
+                                        <div className="status-row">
+                                            <span>Estado Pagamento:</span>
+                                            <span className="status-pill-green">{selectedMatricula.detalhes.pagamentoStatus}</span>
+                                        </div>
+                                        <div className="docs-list">
+                                            <label>Documentos Entregues:</label>
+                                            <div className="doc-tags">
+                                                {selectedMatricula.detalhes.documentos.map((doc, i) => (
+                                                    <span key={i} className="doc-tag"><CheckCircle size={12} /> {doc}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="contact-row">
-                                    <Mail size={14} color="#64748b" />
-                                    <span style={{ fontSize: '13px', fontWeight: 500 }}>{selectedMatricula.detalhes.email}</span>
-                                </div>
-                                <div className="contact-row">
-                                    <MapPin size={14} color="#64748b" />
-                                    <span style={{ fontSize: '13px', fontWeight: 500 }}>{selectedMatricula.detalhes.endereco}</span>
-                                </div>
+
                             </div>
                         </div>
 
-                        {/* Payment and Docs */}
-                        <div>
-                            <h4 className="data-section-title">PAGAMENTO & DOCUMENTAÇÃO</h4>
-                            <div className="academic-item" style={{ marginBottom: '16px' }}>
-                                <div style={{ color: '#10b981' }}><CreditCard size={18} /></div>
-                                <div>
-                                    <p className="item-label">Estado do Pagamento</p>
-                                    <p className="item-value" style={{ color: '#10b981' }}>{selectedMatricula.detalhes.pagamentoStatus}</p>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                {selectedMatricula.detalhes.documentos.map((doc, idx) => (
-                                    <span key={idx} className="document-badge">{doc}</span>
-                                ))}
-                            </div>
+                        <div className="matricula-modal-footer">
+                            <button className="btn-secondary">Editar Dados</button>
+                            <button className="btn-primary-print">
+                                <FileText size={18} /> Imprimir Ficha
+                            </button>
                         </div>
 
-                        <button className="btn-print-matricula">
-                            <FileText size={18} />
-                            Imprimir Ficha de Matrícula
-                        </button>
                     </div>
                 </div>
-            )}
-
-            {/* Backdrop for side drawer */}
-            {selectedMatricula && (
-                <div
-                    onClick={() => setSelectedMatricula(null)}
-                    className="backdrop"
-                />
             )}
 
         </div>
