@@ -181,14 +181,14 @@ const Alunos = () => {
     return (
         <div className="page-container">
             <header className="page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="alunos-header-content">
                     <div>
                         <h1>Gestão de Estudantes</h1>
                         <p>Visualização e administração de todos os alunos registrados.</p>
                     </div>
                     <button
                         onClick={() => setShowNewStudentModal(true)}
-                        className="btn-new-student nav-item-active"
+                        className="btn-primary-action"
                     >
                         <Plus size={20} />
                         Novo Aluno
@@ -288,8 +288,8 @@ const Alunos = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '150px' }}>Nº Aluno</th>
-                                <th style={{ minWidth: '220px' }}>Nome Completo</th>
+                                <th>Nº Aluno</th>
+                                <th>Nome Completo</th>
                                 <th>Ano Lectivo</th>
                                 <th>Classe</th>
                                 <th>Curso</th>
