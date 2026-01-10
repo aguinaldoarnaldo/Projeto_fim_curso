@@ -3,12 +3,18 @@
 :root {
   --primary-color: #1e3a8a;
   --primary-hover: #1e40af;
-  --bg-color: #f3f4f6;
+  --bg-color: #f8fafc;
   --sidebar-bg: #1e3a8a;
   --text-color: #111827;
   --text-muted: #6b7280;
   --card-bg: #ffffff;
   --border-color: #e5e7eb;
+}
+
+[data-color="green"] {
+  --primary-color: #059669; /* Emerald 600 - Verde Premium */
+  --primary-hover: #047857; /* Emerald 700 */
+  --sidebar-bg: #064e3b;   /* Emerald 900 - Sidebar mais sóbria */
 }
 
 * {
@@ -117,12 +123,12 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: #f8fafc; /* Slightly better background tone */
+  background-color: var(--bg-color);
 }
 
 .content-wrapper {
   flex: 1;
-  padding: 30px;
+  padding: 0;
   overflow-y: auto;
   display: flex; /* Kept flex for potential future use, but removed center */
   flex-direction: column; /* Ensure vertical stacking if needed, though page-container handles it */
@@ -130,9 +136,9 @@ body {
 
 .page-container {
   width: 100%;
-  /* max-width removed to allow full width */
-  margin: 0;
-  padding: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 24px; /* Consistent vertical spacing */
