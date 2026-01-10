@@ -204,7 +204,7 @@ const Dashboard = () => {
           <h1>Olá, Administrador 👋</h1>
           <p>Visão geral e controle do sistema escolar.</p>
         </div>
-        
+
         {/*<div className="header-actions">
           <div className="search-bar">
             <Search size={18} className="dashboard-search-icon" />
@@ -323,34 +323,85 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* CHART 2: Gender Pie Chart */}
-          <div className="chart-card-new">
-            <div className="chart-header">
-              <div>
-                <h2>Distribuição por Género</h2>
-                <p>Total de alunos Masculino vs Feminino</p>
+          {/* CHARTS ROW: Gender & Course Distribution */}
+          <div className="dashboard-charts-row">
+
+            {/* CHART 2: Gender Donut Chart */}
+            <div className="chart-card-new">
+              <div className="chart-header">
+                <div>
+                  <h2>Distribuição por Género</h2>
+                  <p>Equilíbrio entre Masculino e Feminino</p>
+                </div>
+              </div>
+              <div className="chart-body gender-chart-body">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={genderData}
+                      cx="50%"
+                      cy="60%"
+                      innerRadius={70}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      startAngle={180}
+                      endAngle={0}
+                      dataKey="value"
+                    >
+                      {genderData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      align="center"
+                      layout="horizontal"
+                      iconType="circle"
+                      wrapperStyle={{ paddingTop: '20px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
-            <div className="chart-body row-body">
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={genderData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
+
+            {/* CHART 3: Bar Chart for Courses */}
+            <div className="chart-card-new">
+              <div className="chart-header">
+                <div>
+                  <h2>Popularidade dos Cursos</h2>
+                  <p>Inscrições por área de estudo</p>
+                </div>
+              </div>
+              <div className="chart-body course-chart-body">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    layout="vertical"
+                    data={[
+                      { name: 'Informática', qnty: 450 },
+                      { name: 'Contabilidade', qnty: 320 },
+                      { name: 'Enfermagem', qnty: 280 },
+                      { name: 'Mecânica', qnty: 200 }
+                    ]}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    {genderData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} />
+                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                    <Area
+                      type="monotone"
+                      dataKey="qnty"
+                      stroke="none"
+                      fill="#6366f1"
+                      fillOpacity={0.8}
+                      radius={[0, 10, 10, 0]}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
