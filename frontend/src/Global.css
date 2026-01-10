@@ -136,12 +136,19 @@ body {
 
 .page-container {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+  max-width: 100%;
+  margin: 0;
+  padding: 20px 16px; /* Reduced horizontal padding from 24px to 16px */
   display: flex;
   flex-direction: column;
-  gap: 24px; /* Consistent vertical spacing */
+  gap: 20px;
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 1600px) {
+  .page-container {
+    padding: 24px 40px;
+  }
 }
 
 .page-header {
@@ -178,6 +185,41 @@ body {
 /* Tables */
 .table-wrapper {
   overflow-x: auto;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--border-color) transparent;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.table-wrapper::-webkit-scrollbar {
+  height: 6px; /* Thin horizontal scrollbar */
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 10px;
+}
+
+/* Premium Scrollbar for the whole page */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .data-table {
@@ -187,20 +229,22 @@ body {
 
 .data-table th {
   text-align: left;
-  padding: 16px 24px;
-  background-color: var(--sidebar-bg); /* Blue header */
-  color: white; /* White text */
-  font-size: 12px;
+  padding: 12px 16px; /* Reduced from 16px 24px */
+  background-color: var(--sidebar-bg);
+  color: white;
+  font-size: 11px; /* Slightly smaller */
   text-transform: uppercase;
   font-weight: 700;
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .data-table td {
-  padding: 16px 24px;
+  padding: 12px 16px; /* Reduced from 16px 24px */
   border-bottom: 1px solid var(--border-color);
-  font-size: 14px;
+  font-size: 13px; /* Slightly smaller */
   color: #334155;
+  white-space: nowrap; /* Prevent messy wrapping */
 }
 
 .data-table tbody tr:last-child td {
@@ -224,6 +268,29 @@ body {
 .status-pending { background: #fef9c3; color: #854d0e; }
 .status-analysis { background: #dbeafe; color: #1e40af; }
 .status-default { background: #f3f4f6; color: #374151; }
+
+.btn-primary-action {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary-action:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary-action:active {
+  transform: translateY(0);
+}
 
 /* Dashboard Specific */
 .stats-grid {
