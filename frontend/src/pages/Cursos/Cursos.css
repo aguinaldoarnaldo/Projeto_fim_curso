@@ -15,7 +15,7 @@
     border: none;
     border-radius: 12px;
     cursor: pointer;
-    background-color: #1e3a8a;
+    background-color: var(--primary-color);
     color: white;
     font-weight: 600;
 }
@@ -50,7 +50,7 @@
 
 .course-id {
     font-weight: 600;
-    color: #1e3a8a;
+    color: var(--primary-color);
 }
 
 .course-info {
@@ -60,8 +60,8 @@
 }
 
 .course-icon-bg {
-    background: #eff6ff;
-    color: #1e3a8a;
+    color: var(--primary-color);
+    background: var(--bg-color);
     padding: 8px;
     border-radius: 8px;
 }
@@ -99,7 +99,7 @@
 .btn-edit-course {
     background: none;
     border: none;
-    color: #3b82f6;
+    color: var(--primary-color);
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
