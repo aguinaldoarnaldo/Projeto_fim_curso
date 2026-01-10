@@ -22,7 +22,7 @@
     border-radius: 10px;
 }
 
-.icon-bg-blue { background: #eff6ff; color: #1e3a8a; }
+.icon-bg-blue { background: var(--bg-color); color: var(--primary-color); }
 .icon-bg-green { background: #d1fae5; color: #065f46; }
 .icon-bg-amber { background: #fef3c7; color: #92400e; }
 
@@ -110,5 +110,5 @@
     padding: 5px;
 }
 
-.btn-view { color: #3b82f6; }
+.btn-view { color: var(--primary-color); }
 .btn-download { color: #10b981; }
