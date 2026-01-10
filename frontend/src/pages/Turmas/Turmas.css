@@ -4,6 +4,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .turmas-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .btn-primary-action {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .btn-config-turma {
@@ -24,6 +38,17 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .search-box-turma {
+        min-width: 100%;
+    }
+    
+    .btn-toggle-filters {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .search-box-turma {
@@ -286,4 +311,29 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.btn-modal-submit-turma:hover {
+    background: var(--primary-hover);
+}
+
+.btn-toggle-filters.btn-active {
+    background: #1e3a8a;
+    color: white;
+}
+
+.form-grid-turmas-modal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 640px) {
+    .form-grid-turmas-modal {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-grid-turmas-modal > div {
+        grid-column: span 1 !important;
+    }
 }
