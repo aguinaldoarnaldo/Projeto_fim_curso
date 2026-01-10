@@ -11,8 +11,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 20px;
-    border: none;
+    background-color: var(--primary-color);
+    color: white;
     border-radius: 12px;
     cursor: pointer;
 }
@@ -133,7 +133,7 @@
 .profile-avatar-circle {
     width: 80px;
     height: 80px;
-    background: #1e3a8a;
+    background: var(--primary-color);
     color: white;
     border-radius: 24px;
     display: flex;
