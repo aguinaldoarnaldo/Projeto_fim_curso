@@ -113,7 +113,7 @@ const Turmas = () => {
                     </div>
                     <button
                         onClick={handleAdd}
-                        className="nav-item-active btn-config-turma"
+                        className="btn-primary-action"
                     >
                         <Plus size={20} />
                         Configurar Turma
@@ -136,8 +136,7 @@ const Turmas = () => {
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="btn-toggle-filters"
-                        style={{ background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151' }}
+                        className={`btn-toggle-filters ${showFilters ? 'btn-active' : ''}`}
                     >
                         <Filter size={18} />
                         Filtros
@@ -203,15 +202,15 @@ const Turmas = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '120px' }}>ID Turma</th>
+                                <th>ID Turma</th>
                                 <th>Nome Turma</th>
                                 <th>Curso</th>
                                 <th>Sala</th>
                                 <th>Coordenador</th>
                                 <th>Ano</th>
                                 <th>Turno</th>
-                                <th style={{ textAlign: 'center' }}>Alunos (Capacidade)</th>
-                                <th style={{ textAlign: 'center' }}>Ações</th>
+                                <th>Alunos (Capacidade)</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -273,7 +272,7 @@ const Turmas = () => {
                         </div>
 
                         <form className="modal-form-turmas" onSubmit={(e) => e.preventDefault()}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <div className="form-grid-turmas-modal">
                                 <div style={{ gridColumn: 'span 2' }}>
                                     <label className="form-label-turmas">Nome da Turma</label>
                                     <input type="text" placeholder="Ex: INF10A" defaultValue={selectedTurma?.turma} className="form-input-turmas" />
