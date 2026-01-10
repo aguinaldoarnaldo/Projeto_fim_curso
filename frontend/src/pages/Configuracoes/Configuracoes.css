@@ -2,8 +2,36 @@
 
 .config-container-grid {
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 1fr 2.5fr;
     gap: 30px;
+}
+
+@media (max-width: 1024px) {
+    .config-container-grid {
+        grid-template-columns: 1fr 2fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .config-container-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .config-side-menu {
+        overflow-x: auto;
+    }
+    
+    .config-menu-list {
+        flex-direction: row;
+        gap: 10px;
+        padding-bottom: 5px;
+    }
+    
+    .config-menu-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
 }
 
 .config-side-menu {
@@ -119,6 +147,13 @@
 .config-actions-row {
     display: flex;
     gap: 15px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+    .btn-config-primary, .btn-config-secondary {
+        flex: 1 1 100%;
+    }
 }
 
 .btn-config-primary {
@@ -202,4 +237,29 @@
 .info-detail-value {
     font-weight: 600;
     font-size: 14px;
+}
+
+.security-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 25px;
+    margin-top: 10px;
+}
+
+.permissions-column {
+    border-left: 1px solid var(--border-color);
+    padding-left: 25px;
+}
+
+@media (max-width: 900px) {
+    .security-grid-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .permissions-column {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--border-color);
+        padding-top: 25px;
+    }
 }
