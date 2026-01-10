@@ -196,7 +196,7 @@ const Configuracoes = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '25px', marginTop: '10px' }}>
+                        <div className="security-grid-container">
                             {/* User List Column */}
                             <div>
                                 <h4 style={{ fontSize: '15px', marginBottom: '12px' }}>Usuários do Sistema</h4>
@@ -221,7 +221,7 @@ const Configuracoes = () => {
                             </div>
 
                             {/* Permissions Column */}
-                            <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '25px' }}>
+                            <div className="permissions-column">
                                 {selectedUser ? (
                                     <>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
