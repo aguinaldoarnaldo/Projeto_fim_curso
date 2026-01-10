@@ -213,8 +213,8 @@ const Alunos = () => {
                         onClick={() => setShowFilters(!showFilters)}
                         className="btn-toggle-filters"
                         style={{
-                            background: showFilters ? '#1e3a8a' : 'white',
-                            color: showFilters ? 'white' : '#374151'
+                            background: showFilters ? 'var(--primary-color)' : 'var(--card-bg)',
+                            color: showFilters ? 'white' : 'var(--text-color)'
                         }}
                     >
                         <Filter size={18} />
