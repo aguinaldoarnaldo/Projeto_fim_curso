@@ -87,11 +87,11 @@ const Cursos = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '120px' }}>ID do Curso</th>
+                                <th>ID do Curso</th>
                                 <th>Nome do Curso</th>
                                 <th>Duração</th>
                                 <th>Coordenador</th>
-                                <th style={{ textAlign: 'center' }}>Ações</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
