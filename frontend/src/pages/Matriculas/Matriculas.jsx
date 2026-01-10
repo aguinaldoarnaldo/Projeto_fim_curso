@@ -159,7 +159,7 @@ const Matriculas = () => {
                     </div>
                     <button
                         onClick={() => navigate('/matriculas/nova')}
-                        className="btn-new-matricula nav-item-active"
+                        className="btn-primary-action"
                     >
                         <Calendar size={18} />
                         Nova Matrícula
@@ -250,8 +250,8 @@ const Matriculas = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th style={{ width: '160px' }}>Nº Matrícula</th>
-                                <th style={{ minWidth: '200px' }}>Nome do Aluno</th>
+                                <th>Nº Matrícula</th>
+                                <th>Nome do Aluno</th>
                                 <th>Ano Lectivo</th>
                                 <th>Classe</th>
                                 <th>Curso</th>
