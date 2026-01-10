@@ -4,6 +4,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .matriculas-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .btn-new-matricula {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 24px;
+    }
 }
 
 .btn-new-matricula {
@@ -24,6 +39,17 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .search-box {
+        min-width: 100%;
+    }
+    
+    .btn-advanced-filters {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .search-box {
@@ -297,6 +323,24 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
+}
+
+@media (max-width: 640px) {
+    .form-grid-2col, .upload-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-full-width {
+        grid-column: span 1;
+    }
+    
+    .step-header-actions {
+        display: none; /* Hide step indicators on very small screens to save space */
+    }
+    
+    .step-container {
+        padding: 0 10px;
+    }
 }
 
 .form-full-width {
