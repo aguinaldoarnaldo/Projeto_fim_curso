@@ -79,8 +79,8 @@
 }
 
 .status-analysis {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: var(--bg-color);
+    color: var(--primary-color);
 }
 
 .status-approved {
