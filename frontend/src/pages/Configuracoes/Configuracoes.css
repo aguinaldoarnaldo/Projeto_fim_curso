@@ -26,18 +26,24 @@
     border-radius: 8px;
     cursor: pointer;
     text-align: left;
+    transition: all 0.2s ease;
 }
 
 .config-menu-btn-active {
-    background: #eff6ff;
-    color: #1e3a8a;
+    background: var(--bg-color);
+    color: var(--primary-color);
     font-weight: 600;
 }
 
 .config-menu-btn-inactive {
-    background: none;
+    background: transparent;
     color: #4b5563;
     font-weight: 500;
+}
+
+.config-menu-btn-inactive:hover {
+    background: #f3f4f6;
+    color: var(--primary-color);
 }
 
 .config-content-column {
@@ -54,8 +60,8 @@
 }
 
 .config-icon-box-blue {
-    background: #eff6ff;
-    color: #1e3a8a;
+    background: var(--bg-color);
+    color: var(--primary-color);
     padding: 12px;
     border-radius: 12px;
 }
@@ -118,7 +124,7 @@
 .btn-config-primary {
     flex: 1;
     padding: 14px 20px;
-    background: #1e3a8a;
+    background: var(--primary-color);
     color: white;
     border: none;
     border-radius: 10px;
