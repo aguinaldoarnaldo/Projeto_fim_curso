@@ -1,7 +1,68 @@
 /* Classe.css */
 
-.class-level-text {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #6b7280;
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.id-cell {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.class-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.class-icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.class-name {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.status-active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.btn-icon-action {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.btn-icon-action:hover {
+    background-color: #f1f5f9;
+    color: var(--primary-color);
+}
+
+@media (max-width: 640px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .btn-primary-action {
+        width: 100%;
+        justify-content: center;
+    }
 }

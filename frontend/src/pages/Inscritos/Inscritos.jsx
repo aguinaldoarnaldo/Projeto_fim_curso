@@ -266,43 +266,46 @@ const Inscritos = () => {
         {/* Search and Filters Header */}
         <div className="search-filter-header">
           <div className="search-input-container">
-            <Search className="search-input-icon" size={20} />
+            <Search className="search-input-icon" size={20} aria-hidden="true" />
             <input
               type="text"
               placeholder="Pesquisar por nome ou ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
+              aria-label="Pesquisar inscritos por nome ou ID"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="btn-toggle-filters"
+            className="btn-alternar-filtros"
+            aria-expanded={showFilters}
+            aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
             style={{
               background: showFilters ? '#1e3a8a' : 'white',
               color: showFilters ? 'white' : '#374151'
             }}
           >
-            <Filter size={18} />
+            <Filter size={18} aria-hidden="true" />
             Filtros
           </button>
         </div>
 
         {/* Dynamic Filters Panel */}
         {showFilters && (
-          <div className="filters-panel">
-            <div className="filters-grid">
-              <div className="filter-group">
-                <label>Ano de Inscrição</label>
-                <select name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select">
+          <div className="painel-filtros">
+            <div className="grade-filtros">
+              <div className="grupo-filtro">
+                <label htmlFor="filtro-ano-ins">Ano de Inscrição</label>
+                <select id="filtro-ano-ins" name="ano" value={filters.ano} onChange={handleFilterChange} className="selecao-filtro">
                   <option value="">Todos os Anos</option>
                   <option value="2024">2024</option>
                   <option value="2023">2023</option>
                 </select>
               </div>
-              <div className="filter-group">
-                <label>Estado/Status</label>
-                <select name="status" value={filters.status} onChange={handleFilterChange} className="filter-select">
+              <div className="grupo-filtro">
+                <label htmlFor="filtro-status-ins">Estado/Status</label>
+                <select id="filtro-status-ins" name="status" value={filters.status} onChange={handleFilterChange} className="selecao-filtro">
                   <option value="">Todos os Estados</option>
                   <option value="Pendente">Pendente</option>
                   <option value="Em Análise">Em Análise</option>
@@ -310,9 +313,9 @@ const Inscritos = () => {
                   <option value="Não Admitido">Não Admitido</option>
                 </select>
               </div>
-              <div className="filter-group">
-                <label>Curso</label>
-                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select">
+              <div className="grupo-filtro">
+                <label htmlFor="filtro-curso-ins">Curso</label>
+                <select id="filtro-curso-ins" name="curso" value={filters.curso} onChange={handleFilterChange} className="selecao-filtro">
                   <option value="">Todos os Cursos</option>
                   <option value="Informática">Informática</option>
                   <option value="Gestão">Gestão</option>
@@ -320,9 +323,11 @@ const Inscritos = () => {
                 </select>
               </div>
             </div>
-            <button onClick={resetFilters} className="btn-reset-filters">
-              <RotateCcw size={16} /> Resetar Filtros
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button onClick={resetFilters} className="btn-limpar-filtros">
+                <RotateCcw size={16} /> Limpar Filtros
+              </button>
+            </div>
           </div>
         )}
 

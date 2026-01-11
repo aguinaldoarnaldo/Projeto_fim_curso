@@ -66,7 +66,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       <div className="sidebar-footer">
         <button className="nav-item logout-btn">
-          <LogOut size={20} />
+          <LogOut size={22} />
           {isOpen && <span>Sair</span>}
         </button>
       </div>

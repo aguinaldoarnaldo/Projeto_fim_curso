@@ -200,24 +200,27 @@ const Alunos = () => {
                 {/* Search and Filters Header */}
                 <div className="search-filter-header">
                     <div className="search-input-container">
-                        <Search className="search-input-icon" size={20} />
+                        <Search className="search-input-icon" size={20} aria-hidden="true" />
                         <input
                             type="text"
                             placeholder="Pesquisar por nome ou ID do aluno..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
+                            aria-label="Pesquisar alunos por nome ou ID"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="btn-toggle-filters"
+                        className="btn-alternar-filtros"
+                        aria-expanded={showFilters}
+                        aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
                         style={{
                             background: showFilters ? 'var(--primary-color)' : 'var(--card-bg)',
                             color: showFilters ? 'white' : 'var(--text-color)'
                         }}
                     >
-                        <Filter size={18} />
+                        <Filter size={18} aria-hidden="true" />
                         Filtros
                     </button>
                 </div>
@@ -225,46 +228,52 @@ const Alunos = () => {
 
                 {/* Dynamic Filters */}
                 {showFilters && (
-                    <div className="filters-panel">
-                        <div className="filters-grid">
-                            <div className="filter-group">
-                                <label>Ano Lectivo</label>
-                                <select name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select">
+                    <div className="painel-filtros">
+                        <div className="grade-filtros">
+                            <div className="grupo-filtro">
+                                <label htmlFor="filtro-ano">Ano Lectivo</label>
+                                <select
+                                    id="filtro-ano"
+                                    name="ano"
+                                    value={filters.ano}
+                                    onChange={handleFilterChange}
+                                    className="selecao-filtro"
+                                >
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
                                 </select>
                             </div>
-                            <div className="filter-group">
+                            <div className="grupo-filtro">
                                 <label>Classe</label>
-                                <select name="classe" value={filters.classe} onChange={handleFilterChange} className="filter-select">
+                                <select name="classe" value={filters.classe} onChange={handleFilterChange} className="selecao-filtro">
                                     <option value="">Todas</option>
                                     <option value="10ª Classe">10ª Classe</option>
                                     <option value="11ª Classe">11ª Classe</option>
                                     <option value="12ª Classe">12ª Classe</option>
                                 </select>
                             </div>
-                            <div className="filter-group">
+                            <div className="grupo-filtro">
                                 <label>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select">
+                                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="selecao-filtro">
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
                                     <option value="Direito">Direito</option>
                                 </select>
                             </div>
-                            <div className="filter-group">
+                            <div className="grupo-filtro">
                                 <label>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange} className="filter-select">
+                                <select name="sala" value={filters.sala} onChange={handleFilterChange} className="selecao-filtro">
                                     <option value="">Todas</option>
                                     <option value="L-01">L-01</option>
                                     <option value="S-204">S-204</option>
                                     <option value="S-102">S-102</option>
                                 </select>
                             </div>
-                            <div className="filter-group">
+                            <div className="grupo-filtro">
                                 <label>Turma</label>
-                                <select name="turma" value={filters.turma} onChange={handleFilterChange} className="filter-select">
+                                <select name="turma" value={filters.turma} onChange={handleFilterChange} className="selecao-filtro">
                                     <option value="">Todas</option>
                                     <option value="INF10A">INF10A</option>
                                     <option value="GST12B">GST12B</option>
@@ -275,8 +284,8 @@ const Alunos = () => {
                         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
                             <button
                                 onClick={() => setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' })}
-                                className="btn-reset-filters">
-                                <X size={16} /> Resetar Filtros
+                                className="btn-limpar-filtros">
+                                <X size={16} /> Limpar Filtros
                             </button>
                         </div>
                     </div>

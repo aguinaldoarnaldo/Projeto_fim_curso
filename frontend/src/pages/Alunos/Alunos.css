@@ -78,7 +78,7 @@
     font-size: 15px;
 }
 
-.btn-toggle-filters {
+.btn-alternar-filtros {
     padding: 12px 20px;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
@@ -91,19 +91,19 @@
     transition: all 0.2s;
 }
 
-.filters-panel {
+.painel-filtros {
     padding: 24px;
     background: #f1f5f9;
     border-bottom: 1px solid #e2e8f0;
 }
 
-.filters-grid {
+.grade-filtros {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 20px;
 }
 
-.filter-group label {
+.grupo-filtro label {
     display: block;
     font-size: 13px;
     font-weight: 600;
@@ -111,7 +111,7 @@
     margin-bottom: 8px;
 }
 
-.filter-select {
+.selecao-filtro {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
@@ -121,7 +121,7 @@
     background: white;
 }
 
-.btn-reset-filters {
+.btn-limpar-filtros {
     background: none;
     border: none;
     color: #ef4444;

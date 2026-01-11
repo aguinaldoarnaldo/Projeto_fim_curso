@@ -125,20 +125,23 @@ const Turmas = () => {
             <div className="table-card" style={{ padding: '0' }}>
                 <div className="search-filters-header">
                     <div className="search-box-turma">
-                        <Search className="search-icon-turma" size={20} />
+                        <Search className="search-icon-turma" size={20} aria-hidden="true" />
                         <input
                             type="text"
                             placeholder="Pesquisar por ID, Turma ou Coordenador..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input-turma"
+                            aria-label="Pesquisar turmas por ID, nome ou coordenador"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`btn-toggle-filters ${showFilters ? 'btn-active' : ''}`}
+                        aria-expanded={showFilters}
+                        aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
                     >
-                        <Filter size={18} />
+                        <Filter size={18} aria-hidden="true" />
                         Filtros
                     </button>
                 </div>
@@ -149,16 +152,16 @@ const Turmas = () => {
                     <div className="filters-expanded-pane">
                         <div className="filters-grid-turmas">
                             <div>
-                                <label className="filter-label-turma">Ano Lectivo</label>
-                                <select name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select-turma">
+                                <label htmlFor="filtro-ano-tur" className="filter-label-turma">Ano Lectivo</label>
+                                <select id="filtro-ano-tur" name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="filter-label-turma">Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select-turma">
+                                <label htmlFor="filtro-curso-tur" className="filter-label-turma">Curso</label>
+                                <select id="filtro-curso-tur" name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
@@ -166,8 +169,8 @@ const Turmas = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="filter-label-turma">Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange} className="filter-select-turma">
+                                <label htmlFor="filtro-sala-tur" className="filter-label-turma">Sala</label>
+                                <select id="filtro-sala-tur" name="sala" value={filters.sala} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todas</option>
                                     <option value="Lab 01">Lab 01</option>
                                     <option value="Lab 02">Lab 02</option>
@@ -176,8 +179,8 @@ const Turmas = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="filter-label-turma">Turno</label>
-                                <select name="turno" value={filters.turno} onChange={handleFilterChange} className="filter-select-turma">
+                                <label htmlFor="filtro-turno-tur" className="filter-label-turma">Turno</label>
+                                <select id="filtro-turno-tur" name="turno" value={filters.turno} onChange={handleFilterChange} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="Manhã">Manhã</option>
                                     <option value="Tarde">Tarde</option>

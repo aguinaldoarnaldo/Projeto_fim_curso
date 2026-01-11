@@ -52,11 +52,11 @@ const historicalData = {
 };
 
 const genderData = [
-  { name: 'Masculino', value: 580 },
   { name: 'Feminino', value: 670 },
+  { name: 'Masculino', value: 580 },
 ];
 
-const COLORS_GENDER = ['#3b82f6', '#ec4899'];
+const COLORS_GENDER = ['#ec4899', '#3b82f6'];
 
 // --- ANGOLA CALENDAR LOGIC ---
 

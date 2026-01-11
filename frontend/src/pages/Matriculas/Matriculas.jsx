@@ -171,67 +171,70 @@ const Matriculas = () => {
                 {/* Search and Toggle Filter */}
                 <div className="search-filter-row">
                     <div className="search-box">
-                        <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} />
+                        <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} aria-hidden="true" />
                         <input
                             type="text"
                             placeholder="Buscar aluno ou número de matrícula..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-box-input"
+                            aria-label="Pesquisar matrículas por aluno ou número"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="btn-advanced-filters"
+                        className="btn-filtros-avancados"
+                        aria-expanded={showFilters}
+                        aria-label={showFilters ? "Esconder filtros avançados" : "Mostrar filtros avançados"}
                         style={{ background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151' }}
                     >
-                        <Filter size={18} />
+                        <Filter size={18} aria-hidden="true" />
                         Filtros Avançados
                     </button>
                 </div>
 
                 {/* Filters Panel */}
                 {showFilters && (
-                    <div className="filters-container">
-                        <div className="filters-row">
-                            <div className="filter-item">
-                                <label>Ano Lectivo</label>
-                                <select name="ano" value={filters.ano} onChange={handleFilterChange}>
+                    <div className="painel-filtros">
+                        <div className="grade-filtros">
+                            <div className="grupo-filtro">
+                                <label htmlFor="filtro-ano-mat">Ano Lectivo</label>
+                                <select id="filtro-ano-mat" name="ano" value={filters.ano} onChange={handleFilterChange}>
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
                                 </select>
                             </div>
-                            <div className="filter-item">
-                                <label>Classe</label>
-                                <select name="classe" value={filters.classe} onChange={handleFilterChange}>
+                            <div className="grupo-filtro">
+                                <label htmlFor="filtro-classe-mat">Classe</label>
+                                <select id="filtro-classe-mat" name="classe" value={filters.classe} onChange={handleFilterChange}>
                                     <option value="">Todas</option>
                                     <option value="10ª Classe">10ª Classe</option>
                                     <option value="11ª Classe">11ª Classe</option>
                                     <option value="12ª Classe">12ª Classe</option>
                                 </select>
                             </div>
-                            <div className="filter-item">
-                                <label>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange}>
+                            <div className="grupo-filtro">
+                                <label htmlFor="filtro-curso-mat">Curso</label>
+                                <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={handleFilterChange}>
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
                                     <option value="Direito">Direito</option>
                                 </select>
                             </div>
-                            <div className="filter-item">
-                                <label>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange}>
+                            <div className="grupo-filtro">
+                                <label htmlFor="filtro-sala-mat">Sala</label>
+                                <select id="filtro-sala-mat" name="sala" value={filters.sala} onChange={handleFilterChange}>
                                     <option value="">Todas</option>
                                     <option value="L-01">L-01</option>
                                     <option value="S-204">S-204</option>
                                     <option value="S-102">S-102</option>
                                 </select>
                             </div>
-                            <div className="filter-item">
-                                <label>Turma</label>
-                                <select name="turma" value={filters.turma} onChange={handleFilterChange}>
+                            <div className="grupo-filtro">
+                                <label htmlFor="filtro-turma-mat">Turma</label>
+                                <select id="filtro-turma-mat" name="turma" value={filters.turma} onChange={handleFilterChange}>
                                     <option value="">Todas</option>
                                     <option value="INF10A">INF10A</option>
                                     <option value="GST12B">GST12B</option>
@@ -240,7 +243,7 @@ const Matriculas = () => {
                             </div>
                         </div>
                         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button onClick={clearFilters} className="btn-clear-filters">Limpar Filtros</button>
+                            <button onClick={clearFilters} className="btn-limpar-filtros">Limpar Filtros</button>
                         </div>
                     </div>
                 )}

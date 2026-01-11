@@ -108,17 +108,18 @@ const Relatorios = () => {
             <div className="table-card">
                 <div className="search-filter-container">
                     <div className="search-relative-box">
-                        <Search className="search-icon-left" size={18} />
+                        <Search className="search-icon-left" size={18} aria-hidden="true" />
                         <input
                             type="text"
                             placeholder="Pesquisar por nome ou categoria de relatório..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input-field"
+                            aria-label="Pesquisar relatórios"
                         />
                     </div>
-                    <button className="btn-filter-reports">
-                        <Filter size={18} /> Filtros
+                    <button className="btn-filter-reports" aria-label="Filtros de relatórios">
+                        <Filter size={18} aria-hidden="true" /> Filtros
                     </button>
                 </div>
 

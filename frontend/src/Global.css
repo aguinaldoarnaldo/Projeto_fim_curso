@@ -108,6 +108,12 @@ body {
   flex: 1;
   padding: 20px 10px;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .nav-item {
@@ -141,6 +147,26 @@ body {
 .sidebar-footer {
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+  justify-content: flex-start;
+  padding-left: 15px !important; /* Força consistência */
+  transition: padding-left 0.1s ease; /* Suaviza o movimento */
+}
+
+/* Quando fechado, ajusta posição mais à esquerda */
+.sidebar-closed .logout-btn {
+  justify-content: flex-start;
+  padding-left: 12px !important;
+}
+
+/* Tamanho corrigido para 20px conforme solicitado */
+.sidebar-closed .logout-btn svg {
+  margin: 0;
+  min-width: 20px;
+  width: 20px;
+  height: 20px;
 }
 
 /* Main Content */

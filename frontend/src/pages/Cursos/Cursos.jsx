@@ -71,13 +71,14 @@ const Cursos = () => {
             <div className="table-card">
                 <div className="search-container">
                     <div className="search-wrapper">
-                        <Search className="cursos-search-icon" size={18} />
+                        <Search className="cursos-search-icon" size={18} aria-hidden="true" />
                         <input
                             type="text"
                             placeholder="Pesquisar curso..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
+                            aria-label="Pesquisar cursos"
                         />
                     </div>
                 </div>
