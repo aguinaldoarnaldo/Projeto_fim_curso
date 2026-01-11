@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import logo from '../../assets/img/logo_ipm2.png';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const menuItems = [
@@ -31,11 +32,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   return (
     <aside className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="sidebar-header">
-        {isOpen && (
-          <div className="sidebar-title">
-            <h1>Sistema Escolar</h1>
-            <p>Gestão Académica</p>
+        {isOpen ? (
+          <div className="sidebar-brand">
+            <img src={logo} alt="Logo" className="sidebar-logo" />
+            <div className="sidebar-title">
+              <h1>Sistema Escolar</h1>
+              <p>Gestão Académica</p>
+            </div>
           </div>
+        ) : (
+          <img src={logo} alt="Logo" className="sidebar-logo-small" />
         )}
         <button
           onClick={toggleSidebar}
