@@ -27,10 +27,14 @@
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     border: 1px solid #e2e8f0;
     overflow: hidden;
+    display: flex; /* Flex to separate header/footer from content */
+    flex-direction: column;
 }
 
 .table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 65vh; /* Enable vertical scroll */
 }
 
 .data-table {
@@ -44,7 +48,7 @@
     padding: 12px 16px;
     font-size: 11px;
     font-weight: 700;
-    color: #475569;
+    color: #334155; /* Darker grey */
     border-bottom: 2px solid #e2e8f0;
     text-transform: uppercase;
     letter-spacing: 0.025em;
@@ -53,7 +57,8 @@
 
 .data-table td {
     padding: 12px 16px;
-    font-size: 13px;
+    font-size: 14px; /* Slightly larger */
+    font-weight: 550; /* Thicker font */
     color: #1e293b;
     border-bottom: 1px solid #e2e8f0;
     white-space: nowrap;

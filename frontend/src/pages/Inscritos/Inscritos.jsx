@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import './Inscritos.css';
 import {
   User,
@@ -23,13 +23,26 @@ import {
   GraduationCap
 } from 'lucide-react';
 
+import Pagination from '../../components/Common/Pagination';
+
 const Inscritos = () => {
   const [selectedCandidato, setSelectedCandidato] = useState(null);
   const [rupGenerated, setRupGenerated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const tableRef = useRef(null);
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(24);
+
+  // Scroll to top on page change
+  useEffect(() => {
+    if (tableRef.current) {
+      tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const tableWrapper = tableRef.current.querySelector('.table-wrapper');
+      if (tableWrapper) tableWrapper.scrollTop = 0;
+    }
+  }, [currentPage]);
 
   // Evaluation States
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
@@ -43,131 +56,53 @@ const Inscritos = () => {
     curso: ''
   });
 
-  const [inscritos, setInscritos] = useState([
-    {
-      id: 'INS2024001',
-      nome: 'Eduarda Gomes',
-      genero: 'Feminino',
-      dataNascimento: '2008-05-12',
-      nacionalidade: 'Angolana',
-      bi: '001234567LA041',
-      dataEmissaoBI: '2022-10-15',
-      naturalidade: 'Luanda',
-      residencia: 'Luanda, Maianga, Cassequel',
-      telefone: '923000111',
-      email: 'eduarda.gomes@email.com',
-      deficiencia: 'Não',
-      tipoDeficiencia: '',
-      escola9: 'Pública',
-      nomeEscola: 'Escola Primária 123',
-      municipioEscola: 'Maianga',
-      anoConclusao: '2023',
-      anoInscricao: '2024',
-      nota9: 18,
-      notaExame: null, // New field
-      curso1: 'Informática',
-      curso2: 'Gestão',
-      turno: 'Manhã',
-      status: 'Pendente',
-      dataInscricao: '20 Dez 2024',
-      encarregado: {
-        nome: 'João Gomes',
-        parentesco: 'Pai',
-        bi: '001234567LA022',
-        telefone: '924000333',
-        telefoneAlt: '912000444',
-        email: 'joao.gomes@email.com',
-        profissao: 'Engenheiro',
-        residencia: 'Luanda, Maianga'
-      }
-    },
-    {
-      id: 'INS2024002',
-      nome: 'Filipe Luís',
-      genero: 'Masculino',
-      dataNascimento: '2007-11-20',
-      nacionalidade: 'Angolana',
-      bi: '005554443LA088',
-      dataEmissaoBI: '2021-03-10',
-      naturalidade: 'Benguela',
-      residencia: 'Cazenga, Luanda',
-      telefone: '931222333',
-      email: '',
-      deficiencia: 'Sim',
-      tipoDeficiencia: 'Visual parcial',
-      escola9: 'Privada',
-      nomeEscola: 'Colégio Esperança',
-      municipioEscola: 'Cazenga',
-      anoConclusao: '2023',
-      anoInscricao: '2024',
-      nota9: 15,
-      notaExame: null,
-      curso1: 'Gestão',
-      curso2: '',
-      turno: 'Tarde',
-      status: 'Em Análise',
-      dataInscricao: '21 Dez 2024',
-      encarregado: {
-        nome: 'Maria Luís',
-        parentesco: 'Mãe',
-        bi: '005554443LA011',
-        telefone: '933000222',
-        residencia: 'Cazenga, Luanda'
-      }
-    },
-    {
-      id: 'INS2024003',
-      nome: 'Gina Rocha',
-      genero: 'Feminino',
-      dataNascimento: '2005-09-15',
-      nacionalidade: 'Angolana',
-      bi: '009887766LA055',
-      dataEmissaoBI: '2020-07-20',
-      naturalidade: 'Huambo',
-      residencia: 'Viana, Luanda',
-      telefone: '944888999',
-      deficiencia: 'Não',
-      escola9: 'Pública',
-      nomeEscola: 'Magister',
-      municipioEscola: 'Viana',
-      anoConclusao: '2022',
-      anoInscricao: '2024',
-      nota9: 12,
-      notaExame: null,
-      curso1: 'Direito',
-      curso2: 'Informática',
-      turno: 'Noite',
-      status: 'Pendente',
-      dataInscricao: '22 Dez 2024',
-      encarregado: null
-    },
-    {
-      id: 'INS2023004',
-      nome: 'Arnaldo Silva',
-      genero: 'Masculino',
-      dataNascimento: '2006-01-10',
-      nacionalidade: 'Angolana',
-      bi: '001122334LA001',
-      dataEmissaoBI: '2020-01-15',
-      naturalidade: 'Luanda',
-      residencia: 'Viana, Luanda',
-      telefone: '923111222',
-      deficiencia: 'Não',
-      escola9: 'Pública',
-      nomeEscola: 'Escola 4040',
-      municipioEscola: 'Viana',
-      anoConclusao: '2022',
-      anoInscricao: '2023',
-      nota9: 17,
-      notaExame: 16,
-      curso1: 'Informática',
-      curso2: '',
-      turno: 'Manhã',
-      status: 'Aprovado',
-      dataInscricao: '15 Jan 2023',
-      encarregado: null
-    }
-  ]);
+  // Generate 50 mock candidates
+  const [inscritos, setInscritos] = useState(Array.from({ length: 150 }, (_, i) => {
+      const id = i + 1;
+      const padId = id.toString().padStart(3, '0');
+      const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem'];
+      const statusList = ['Pendente', 'Em Análise', 'Aprovado', 'Não Admitido'];
+      const status = statusList[i % statusList.length];
+
+      return {
+          id: `INS2024${padId}`,
+          nome: `Candidato Exemplo ${id}`,
+          genero: i % 2 === 0 ? 'Feminino' : 'Masculino',
+          dataNascimento: '2008-05-12',
+          nacionalidade: 'Angolana',
+          bi: `00${padId}567LA${padId.slice(-2)}`,
+          dataEmissaoBI: '2022-10-15',
+          naturalidade: 'Luanda',
+          residencia: 'Luanda, Angola',
+          telefone: `923${padId}${padId}`,
+          email: `candidato${id}@email.com`,
+          deficiencia: 'Não',
+          tipoDeficiencia: '',
+          escola9: 'Pública',
+          nomeEscola: 'Escola Primária 123',
+          municipioEscola: 'Maianga',
+          anoConclusao: '2023',
+          anoInscricao: '2024',
+          nota9: 14 + (i % 6),
+          notaExame: status === 'Aprovado' ? 10 + (i % 10) : null,
+          curso1: cursos[i % cursos.length],
+          curso2: cursos[(i + 1) % cursos.length],
+          turno: ['Manhã', 'Tarde', 'Noite'][i % 3],
+          status: status,
+          dataInscricao: '20 Dez 2024',
+          encarregado: {
+              nome: `Encarregado ${id}`,
+              parentesco: 'Pai',
+              bi: `00${padId}111LA22`,
+              telefone: '924000333',
+              telefoneAlt: '',
+              email: 'encarregado@email.com',
+              profissao: 'Engenheiro',
+              residencia: 'Luanda'
+          }
+      };
+  }));
+
 
   const calculateAge = (birthDate) => {
     if (!birthDate) return 0;
@@ -262,7 +197,7 @@ const Inscritos = () => {
         <p>Acompanhe, avalie e matricule os candidatos inscritos no sistema.</p>
       </header>
 
-      <div className="table-card">
+      <div className="table-card" ref={tableRef}>
         {/* Search and Filters Header */}
         <div className="search-filter-header">
           <div className="search-input-container">
@@ -396,27 +331,12 @@ const Inscritos = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <span className="page-indicator">Página {currentPage} de {totalPages}</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className="btn-page"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-              >
-                <ChevronLeft size={18} /> Anterior
-              </button>
-              <button
-                className="btn-page"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination 
+            totalItems={filteredInscritos.length} 
+            itemsPerPage={itemsPerPage} 
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* EVALUATION MODAL */}
