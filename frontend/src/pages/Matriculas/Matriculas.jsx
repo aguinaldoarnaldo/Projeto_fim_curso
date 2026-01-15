@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Matriculas.css';
 
 import {
@@ -21,11 +21,28 @@ import {
 
 import { useNavigate } from 'react-router-dom';
 
+import Pagination from '../../components/Common/Pagination';
+
 const Matriculas = () => {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [selectedMatricula, setSelectedMatricula] = useState(null);
+    const tableRef = useRef(null);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(24);
+
+    // Scroll to top on page change
+    useEffect(() => {
+        if (tableRef.current) {
+            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const tableWrapper = tableRef.current.querySelector('.table-wrapper');
+            if (tableWrapper) tableWrapper.scrollTop = 0;
+        }
+    }, [currentPage]);
+
 
     // Mock filter states
     const [filters, setFilters] = useState({
@@ -36,86 +53,46 @@ const Matriculas = () => {
         classe: ''
     });
 
-    const matriculasData = [
-        {
-            id: 'MAT-2024-001',
-            aluno: 'António J. Silva',
-            anoLectivo: '2024/2025',
-            classe: '10ª Classe',
-            curso: 'Informática',
-            sala: 'L-01',
-            turno: 'Manhã',
-            turma: 'INF10A',
-            status: 'Confirmada',
-            dataMatricula: '22 Dez 2024',
+    // Generate 50 mock entries for pagination testing
+    const matriculasData = Array.from({ length: 150 }, (_, i) => {
+        const id = i + 1;
+        const padId = id.toString().padStart(3, '0');
+        const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem', 'Engenharia Civil'];
+        const classes = ['10ª Classe', '11ª Classe', '12ª Classe', '13ª Classe'];
+        const turnos = ['Manhã', 'Tarde', 'Noite'];
+        const statusList = ['Confirmada', 'Pendente', 'Em Análise', 'Rejeitada'];
+        const salas = ['L-01', 'S-204', 'S-102', 'L-05', 'A-101'];
+        
+        const curso = cursos[i % cursos.length];
+        const status = statusList[i % statusList.length];
+        
+        return {
+            id: `MAT-2024-${padId}`,
+            aluno: `Aluno Exemplo ${id}`,
+            anoLectivo: i % 3 === 0 ? '2023/2024' : '2024/2025',
+            classe: classes[i % classes.length],
+            curso: curso,
+            sala: salas[i % salas.length],
+            turno: turnos[i % turnos.length],
+            turma: `${curso.substring(0, 3).toUpperCase()}${classes[i % classes.length].substring(0, 2)}${String.fromCharCode(65 + (i % 3))}`,
+            status: status,
+            dataMatricula: `${(i % 30) + 1} Dez 2024`,
             detalhes: {
-                bi: '001234567LA042',
-                genero: 'Masculino',
-                nif: '123456789',
-                dataNascimento: '12/05/2008',
-                encarregado: 'João Silva',
-                parentesco: 'Pai',
-                telefoneEncarregado: '+244 923 000 000',
-                email: 'antonio.silva@email.com',
-                endereco: 'Luanda, Cassequel',
-                pagamentoStatus: 'Pago',
-                documentos: ['BI', 'Certificado', 'Fotos'],
-                historico: 'Transferido da Escola Secundária nº 12'
+                bi: `00${padId}1234LA${padId.slice(-2)}`,
+                genero: i % 2 === 0 ? 'Masculino' : 'Feminino',
+                nif: `987654${padId}`,
+                dataNascimento: `${(i % 28) + 1}/05/${2005 + (i % 5)}`,
+                encarregado: `Encarregado do Aluno ${id}`,
+                parentesco: i % 2 === 0 ? 'Pai' : 'Mãe',
+                telefoneEncarregado: `+244 923 ${padId} ${padId}`,
+                email: `aluno${id}@escola.com`,
+                endereco: 'Luanda, Angola',
+                pagamentoStatus: status === 'Confirmada' ? 'Pago' : 'Pendente',
+                documentos: ['BI', 'Certificado'],
+                historico: 'Histórico gerado automaticamente para testes.'
             }
-        },
-        {
-            id: 'MAT-2024-002',
-            aluno: 'Maria José Bento',
-            anoLectivo: '2024/2025',
-            classe: '12ª Classe',
-            curso: 'Gestão',
-            sala: 'S-204',
-            turno: 'Tarde',
-            turma: 'GST12B',
-            status: 'Pendente',
-            dataMatricula: '23 Dez 2024',
-            detalhes: {
-                bi: '005556667LA021',
-                genero: 'Feminino',
-                nif: '987654321',
-                dataNascimento: '05/11/2006',
-                encarregado: 'Maria Bento',
-                parentesco: 'Mãe',
-                telefoneEncarregado: '+244 931 111 222',
-                email: 'maria.jose@email.com',
-                endereco: 'Cazenga, Luanda',
-                pagamentoStatus: 'Pendente',
-                documentos: ['BI', 'Fotos'],
-                historico: 'Excelente aproveitamento no ano anterior'
-            }
-        },
-        {
-            id: 'MAT-2024-003',
-            aluno: 'Carlos Manuel',
-            anoLectivo: '2023/2024',
-            classe: '11ª Classe',
-            curso: 'Direito',
-            sala: 'S-102',
-            turno: 'Noite',
-            turma: 'DIR11C',
-            status: 'Em Análise',
-            dataMatricula: '24 Dez 2024',
-            detalhes: {
-                bi: '009887766LA011',
-                genero: 'Masculino',
-                nif: '456123789',
-                dataNascimento: '20/09/2005',
-                encarregado: 'Manuel Carlos',
-                parentesco: 'Tio',
-                telefoneEncarregado: '+244 944 333 444',
-                email: 'carlos.manuel@email.com',
-                endereco: 'Viana, Luanda',
-                pagamentoStatus: 'Análise de Comprovativo',
-                documentos: ['Certificado'],
-                historico: 'Necessita reforço em Língua Portuguesa'
-            }
-        },
-    ];
+        };
+    });
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -138,6 +115,7 @@ const Matriculas = () => {
 
     const clearFilters = () => {
         setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
+        setCurrentPage(1); // Reset to page 1 on clear
     };
 
     const getStatusBadge = (status) => {
@@ -148,6 +126,11 @@ const Matriculas = () => {
             default: return <span className="status-badge status-default">{status}</span>;
         }
     };
+
+    // Get current items
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredMatriculas.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
         <div className="page-container">
@@ -167,7 +150,7 @@ const Matriculas = () => {
                 </div>
             </header>
 
-            <div className="table-card">
+            <div className="table-card" ref={tableRef}>
                 {/* Search and Toggle Filter */}
                 <div className="search-filter-row">
                     <div className="search-box">
@@ -176,7 +159,7 @@ const Matriculas = () => {
                             type="text"
                             placeholder="Buscar aluno ou número de matrícula..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-box-input"
                             aria-label="Pesquisar matrículas por aluno ou número"
                         />
@@ -199,7 +182,7 @@ const Matriculas = () => {
                         <div className="grade-filtros">
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-ano-mat">Ano Lectivo</label>
-                                <select id="filtro-ano-mat" name="ano" value={filters.ano} onChange={handleFilterChange}>
+                                <select id="filtro-ano-mat" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
@@ -207,7 +190,7 @@ const Matriculas = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-classe-mat">Classe</label>
-                                <select id="filtro-classe-mat" name="classe" value={filters.classe} onChange={handleFilterChange}>
+                                <select id="filtro-classe-mat" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todas</option>
                                     <option value="10ª Classe">10ª Classe</option>
                                     <option value="11ª Classe">11ª Classe</option>
@@ -216,7 +199,7 @@ const Matriculas = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-curso-mat">Curso</label>
-                                <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={handleFilterChange}>
+                                <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
@@ -225,7 +208,7 @@ const Matriculas = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-sala-mat">Sala</label>
-                                <select id="filtro-sala-mat" name="sala" value={filters.sala} onChange={handleFilterChange}>
+                                <select id="filtro-sala-mat" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todas</option>
                                     <option value="L-01">L-01</option>
                                     <option value="S-204">S-204</option>
@@ -234,7 +217,7 @@ const Matriculas = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-turma-mat">Turma</label>
-                                <select id="filtro-turma-mat" name="turma" value={filters.turma} onChange={handleFilterChange}>
+                                <select id="filtro-turma-mat" name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todas</option>
                                     <option value="INF10A">INF10A</option>
                                     <option value="GST12B">GST12B</option>
@@ -255,19 +238,19 @@ const Matriculas = () => {
                             <tr>
                                 <th>Nº Matrícula</th>
                                 <th>Nome do Aluno</th>
-                                <th>Ano Lectivo</th>
+                                <th className="col-ano">Ano Lectivo</th>
                                 <th>Classe</th>
                                 <th>Curso</th>
-                                <th>Sala</th>
-                                <th>Turno</th>
+                                <th className="col-sala">Sala</th>
+                                <th className="col-turno">Turno</th>
                                 <th>Turma</th>
                                 <th>Estado</th>
-                                <th>Data</th>
+                                <th className="col-data">Data</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredMatriculas.map((m) => (
+                            {currentItems.map((m) => (
                                 <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row">
                                     <td className="student-id">{m.id}</td>
                                     <td>
@@ -276,14 +259,14 @@ const Matriculas = () => {
                                             <span style={{ fontWeight: 500 }}>{m.aluno}</span>
                                         </div>
                                     </td>
-                                    <td>{m.anoLectivo}</td>
+                                    <td className="col-ano">{m.anoLectivo}</td>
                                     <td className="turma-cell">{m.classe}</td>
                                     <td>{m.curso}</td>
-                                    <td>{m.sala}</td>
-                                    <td>{m.turno}</td>
+                                    <td className="col-sala">{m.sala}</td>
+                                    <td className="col-turno">{m.turno}</td>
                                     <td>{m.turma}</td>
                                     <td>{getStatusBadge(m.status)}</td>
-                                    <td className="date-cell">{m.dataMatricula}</td>
+                                    <td className="date-cell col-data">{m.dataMatricula}</td>
                                     <td>
                                         <button className="btn-more-actions">
                                             <MoreVertical size={18} />
@@ -294,6 +277,13 @@ const Matriculas = () => {
                         </tbody>
                     </table>
                 </div>
+                
+                <Pagination 
+                    totalItems={filteredMatriculas.length} 
+                    itemsPerPage={itemsPerPage} 
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                />
             </div>
 
             {/* DETAILS MODAL (REDESIGN) */}

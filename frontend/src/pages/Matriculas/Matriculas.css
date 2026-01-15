@@ -591,6 +591,13 @@
     color: #374151;
 }
 
+
+.table-scroll-container {
+    max-height: 65vh;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
 .info-list {
     display: flex;
     flex-direction: column;
@@ -717,3 +724,35 @@
 .text-orange-600 { color: #ea580c; }
 .text-green-600 { color: #16a34a; }
 .text-gray-400 { color: #9ca3af; }
+
+/* Responsive Table Adjustments */
+@media (max-width: 1440px) {
+    .col-sala,
+    .col-turno {
+        display: none; /* Hide less critical columns on laptop screens */
+    }
+}
+
+@media (max-width: 1280px) {
+    .col-data,
+    .col-ano {
+        display: none; /* Hide date and year on smaller laptops */
+    }
+}
+
+@media (max-width: 1024px) {
+    .col-curso {
+        display: none; /* Hide course if needed on tablets */
+    }
+}
+/* Thicker table text */
+table td, .table td {
+    font-weight: 550;
+    font-size: 13.5px;
+    color: #1f2937;
+}
+
+table th, .table th {
+    font-weight: 700;
+    color: #111827;
+}
