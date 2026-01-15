@@ -139,6 +139,14 @@
     color: var(--primary-color);
 }
 
+
+/* Wrapper for scroll */
+.table-scroll-container {
+    max-height: 65vh;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
 .student-info {
     display: flex;
     align-items: center;
@@ -466,4 +474,10 @@
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+/* Thicker table text */
+table td, .table td {
+    font-weight: 550;
+    font-size: 13.5px;
+    color: #1f2937;
 }

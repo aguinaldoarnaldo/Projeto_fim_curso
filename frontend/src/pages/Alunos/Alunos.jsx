@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Alunos.css';
 
 import {
@@ -21,11 +21,27 @@ import {
     GraduationCap
 } from 'lucide-react';
 
+import Pagination from '../../components/Common/Pagination';
+
 const Alunos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [showNewStudentModal, setShowNewStudentModal] = useState(false);
+    const tableRef = useRef(null);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(24);
+
+    // Scroll to top on page change
+    useEffect(() => {
+        if (tableRef.current) {
+            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const tableWrapper = tableRef.current.querySelector('.table-wrapper');
+            if (tableWrapper) tableWrapper.scrollTop = 0;
+        }
+    }, [currentPage]);
 
     // Filters State
     const [filters, setFilters] = useState({
@@ -36,118 +52,43 @@ const Alunos = () => {
         classe: ''
     });
 
-    const studentsData = [
-        {
-            id: 'ALU-2024-001',
-            nome: 'Ana Paula Lourenço',
-            anoLectivo: '2024/2025',
-            classe: '10ª Classe',
-            curso: 'Informática',
-            sala: 'L-01',
-            turno: 'Manhã',
-            turma: 'INF10A',
-            status: 'Ativo',
-            dataMatricula: '05 Jan 2024',
+    // Generate 50 mock students
+    const studentsData = Array.from({ length: 150 }, (_, i) => {
+        const id = i + 1;
+        const padId = id.toString().padStart(3, '0');
+        const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem'];
+        const classes = ['10ª Classe', '11ª Classe', '12ª Classe'];
+        const turnos = ['Manhã', 'Tarde', 'Noite'];
+        const salas = ['L-01', 'S-204', 'S-102', 'L-05'];
+        const statusList = ['Ativo', 'Suspenso', 'Concluído'];
+        
+        const curso = cursos[i % cursos.length];
+        const status = statusList[i % statusList.length];
+
+        return {
+            id: `ALU-2024-${padId}`,
+            nome: `Aluno Exemplo ${id}`,
+            anoLectivo: i % 3 === 0 ? '2023/2024' : '2024/2025',
+            classe: classes[i % classes.length],
+            curso: curso,
+            sala: salas[i % salas.length],
+            turno: turnos[i % turnos.length],
+            turma: `${curso.substring(0, 3).toUpperCase()}${classes[i % classes.length].substring(0, 2)}${String.fromCharCode(65 + (i % 3))}`,
+            status: status,
+            dataMatricula: `${(i % 28) + 1} Jan 2024`,
             detalhes: {
-                nif: 'A00123456',
-                nascimento: '12/05/2008',
-                encarregado: 'João Lourenço',
-                telefone: '+244 923 000 111',
-                email: 'ana.paula@email.com',
-                endereco: 'Luanda, Maianga',
-                bi: '001234567LA041',
-                obs: 'A aluna possui alergia a amendoim.'
+                nif: `A${padId}123456`,
+                nascimento: `${(i % 28) + 1}/05/${2005 + (i % 4)}`,
+                encarregado: `Encarregado ${id}`,
+                telefone: `+244 923 ${padId} ${padId}`,
+                email: `aluno${id}@email.com`,
+                endereco: 'Luanda, Angola',
+                bi: `00${padId}12345LA${padId.slice(-2)}`,
+                obs: i % 5 === 0 ? 'Observação de teste.' : ''
             }
-        },
-        {
-            id: 'ALU-2024-002',
-            nome: 'Bruno Costa',
-            anoLectivo: '2024/2025',
-            classe: '12ª Classe',
-            curso: 'Gestão',
-            sala: 'S-204',
-            turno: 'Tarde',
-            turma: 'GST12B',
-            status: 'Suspenso',
-            dataMatricula: '10 Jan 2024',
-            detalhes: {
-                nif: 'B00987654',
-                nascimento: '03/11/2006',
-                encarregado: 'Carla Costa',
-                telefone: '+244 931 222 333',
-                email: 'bruno.costa@email.com',
-                endereco: 'Cazenga, Luanda',
-                bi: '009876543LA092',
-                obs: 'Aguardando regularização de mensalidade.'
-            }
-        },
-        {
-            id: 'ALU-2024-003',
-            nome: 'Carla dias Macaia',
-            anoLectivo: '2023/2024',
-            classe: '11ª Classe',
-            curso: 'Direito',
-            sala: 'S-102',
-            turno: 'Noite',
-            turma: 'DIR11C',
-            status: 'Concluído',
-            dataMatricula: '15 Jan 2023',
-            detalhes: {
-                nif: 'C00456123',
-                nascimento: '20/09/2005',
-                encarregado: 'Manuel Macaia',
-                telefone: '+244 944 444 555',
-                email: 'carla.macaia@email.com',
-                endereco: 'Viana, Luanda',
-                bi: '004561234LA011',
-                obs: 'Graduada com distinção.'
-            }
-        },
-        {
-            id: 'ALU-2024-004',
-            nome: 'Aguinaldo Arnaldo',
-            anoLectivo: '2024/2025',
-            classe: '10ª Classe',
-            curso: 'Informática',
-            sala: 'S-201',
-            turno: 'Manhã',
-            turma: 'INF10A',
-            status: 'Ativo',
-            dataMatricula: '20 Jan 2024',
-            detalhes: {
-                nif: 'D00123456',
-                nascimento: '07/07/2005',
-                encarregado: 'Julia Maria',
-                telefone: '+244 922 666 777',
-                email: 'aguinaldoarnaldo5@gmail.com',
-                endereco: 'Mombamba, Luanda',
-                bi: '001234567LA022',
-                obs: 'Regularização de mensalidade pendente.'
-            }
-        },
-        {
-            id: 'ALU-2024-005',
-            nome: 'Manuela Lisboa',
-            anoLectivo: '2023/2024',
-            classe: '11ª Classe',
-            curso: 'Direito',
-            sala: 'S-102',
-            turno: 'Manhã',
-            turma: 'DIR11C',
-            status: 'Concluído',
-            dataMatricula: '15 Jan 2023',
-            detalhes: {
-                nif: 'C00456123',
-                nascimento: '20/09/2005',
-                encarregado: 'Manuel Lisboa',
-                telefone: '+244 944 444 555',
-                email: 'manuelalisboa5@gmail.com',
-                endereco: 'Viana, Luanda',
-                bi: '004561234LA011',
-                obs: 'Graduada com distinção.'
-            }
-        },
-    ];
+        };
+    });
+
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -168,6 +109,11 @@ const Alunos = () => {
 
         return matchesSearch && matchesFilters;
     });
+
+    // Pagination Slicing
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentStudents = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -196,7 +142,7 @@ const Alunos = () => {
                 </div>
             </header>
 
-            <div className="table-card">
+            <div className="table-card" ref={tableRef}>
                 {/* Search and Filters Header */}
                 <div className="search-filter-header">
                     <div className="search-input-container">
@@ -205,7 +151,7 @@ const Alunos = () => {
                             type="text"
                             placeholder="Pesquisar por nome ou ID do aluno..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-input"
                             aria-label="Pesquisar alunos por nome ou ID"
                         />
@@ -236,7 +182,7 @@ const Alunos = () => {
                                     id="filtro-ano"
                                     name="ano"
                                     value={filters.ano}
-                                    onChange={handleFilterChange}
+                                    onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}
                                     className="selecao-filtro"
                                 >
                                     <option value="">Todos</option>
@@ -246,7 +192,7 @@ const Alunos = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label>Classe</label>
-                                <select name="classe" value={filters.classe} onChange={handleFilterChange} className="selecao-filtro">
+                                <select name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todas</option>
                                     <option value="10ª Classe">10ª Classe</option>
                                     <option value="11ª Classe">11ª Classe</option>
@@ -255,7 +201,7 @@ const Alunos = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={handleFilterChange} className="selecao-filtro">
+                                <select name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
@@ -264,7 +210,7 @@ const Alunos = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={handleFilterChange} className="selecao-filtro">
+                                <select name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todas</option>
                                     <option value="L-01">L-01</option>
                                     <option value="S-204">S-204</option>
@@ -273,7 +219,7 @@ const Alunos = () => {
                             </div>
                             <div className="grupo-filtro">
                                 <label>Turma</label>
-                                <select name="turma" value={filters.turma} onChange={handleFilterChange} className="selecao-filtro">
+                                <select name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todas</option>
                                     <option value="INF10A">INF10A</option>
                                     <option value="GST12B">GST12B</option>
@@ -283,7 +229,7 @@ const Alunos = () => {
                         </div>
                         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
                             <button
-                                onClick={() => setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' })}
+                                onClick={() => { setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' }); setCurrentPage(1); }}
                                 className="btn-limpar-filtros">
                                 <X size={16} /> Limpar Filtros
                             </button>
@@ -311,7 +257,7 @@ const Alunos = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredStudents.map((s) => (
+                            {currentStudents.map((s) => (
                                 <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
                                     <td className="student-id">{s.id}</td>
                                     <td>
@@ -352,6 +298,12 @@ const Alunos = () => {
                     </table>
                 </div>
 
+                <Pagination 
+                    totalItems={filteredStudents.length} 
+                    itemsPerPage={itemsPerPage} 
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                />
             </div>
 
             {/* Student Detail Central Modal */}
