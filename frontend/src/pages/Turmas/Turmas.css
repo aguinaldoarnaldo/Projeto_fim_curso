@@ -133,6 +133,13 @@
     font-size: 14px;
 }
 
+
+.table-scroll-container {
+    max-height: 65vh;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
 .turma-id-cell {
     font-weight: 700;
     color: #1e3a8a;
@@ -336,4 +343,10 @@
     .form-grid-turmas-modal > div {
         grid-column: span 1 !important;
     }
+}
+/* Thicker table text */
+table td, .table td {
+    font-weight: 550;
+    font-size: 13.5px;
+    color: #1f2937;
 }

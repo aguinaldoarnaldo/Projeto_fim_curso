@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Turmas.css';
 
 import {
@@ -17,12 +17,28 @@ import {
     AlertTriangle
 } from 'lucide-react';
 
+import Pagination from '../../components/Common/Pagination';
+
 const Turmas = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedTurma, setSelectedTurma] = useState(null);
+    const tableRef = useRef(null);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(24);
+
+    // Scroll to top on page change
+    useEffect(() => {
+        if (tableRef.current) {
+            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const tableWrapper = tableRef.current.querySelector('.table-wrapper');
+            if (tableWrapper) tableWrapper.scrollTop = 0;
+        }
+    }, [currentPage]);
 
     // Filters State
     const [filters, setFilters] = useState({
@@ -32,48 +48,27 @@ const Turmas = () => {
         turno: ''
     });
 
-    const turmasInitialData = [
-        {
-            id: 'T-2024-001',
-            turma: 'INF10A',
-            curso: 'Informática',
-            sala: 'Lab 01',
-            coordenador: 'Prof. Marcos André',
-            ano: '2024/2025',
-            turno: 'Manhã',
-            qtdAlunos: 48
-        },
-        {
-            id: 'T-2024-002',
-            turma: 'GST12B',
-            curso: 'Gestão',
-            sala: 'S-204',
-            coordenador: 'Profª. Maria Helena',
-            ano: '2024/2025',
-            turno: 'Tarde',
-            qtdAlunos: 46
-        },
-        {
-            id: 'T-2023-003',
-            turma: 'DIR11C',
-            curso: 'Direito',
-            sala: 'S-102',
-            coordenador: 'Dr. Lucas Bento',
-            ano: '2023/2024',
-            turno: 'Noite',
-            qtdAlunos: 50
-        },
-        {
-            id: 'T-2024-004',
-            turma: 'INF10B',
-            curso: 'Informática',
-            sala: 'Lab 02',
-            coordenador: 'Prof. João Paulo',
-            ano: '2024/2025',
-            turno: 'Manhã',
-            qtdAlunos: 45
-        },
-    ];
+    // Generate 50 mock turmas
+    const turmasInitialData = Array.from({ length: 150 }, (_, i) => {
+        const id = i + 1;
+        const padId = id.toString().padStart(3, '0');
+        const cursos = ['Informática', 'Gestão', 'Direito'];
+        const salas = ['Lab 01', 'Lab 02', 'S-102', 'S-204'];
+        const turnos = ['Manhã', 'Tarde', 'Noite'];
+        const curso = cursos[i % cursos.length];
+        const sala = salas[i % salas.length];
+        
+        return {
+            id: `T-2024-${padId}`,
+            turma: `${curso.substring(0,3).toUpperCase()}${10 + (i%3)}${String.fromCharCode(65 + (i % 3))}`,
+            curso: curso,
+            sala: sala,
+            coordenador: `Professor Exemplo ${id}`,
+            ano: i % 2 === 0 ? '2024/2025' : '2023/2024',
+            turno: turnos[i % turnos.length],
+            qtdAlunos: 30 + (i % 25)
+        };
+    });
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -103,6 +98,11 @@ const Turmas = () => {
         return matchesSearch && matchesAno && matchesCurso && matchesSala && matchesTurno;
     });
 
+    // Pagination Slicing
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentTurmas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
     return (
         <div className="page-container">
             <header className="page-header">
@@ -122,7 +122,7 @@ const Turmas = () => {
             </header>
 
 
-            <div className="table-card" style={{ padding: '0' }}>
+            <div className="table-card" style={{ padding: '0' }} ref={tableRef}>
                 <div className="search-filters-header">
                     <div className="search-box-turma">
                         <Search className="search-icon-turma" size={20} aria-hidden="true" />
@@ -130,7 +130,7 @@ const Turmas = () => {
                             type="text"
                             placeholder="Pesquisar por ID, Turma ou Coordenador..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-input-turma"
                             aria-label="Pesquisar turmas por ID, nome ou coordenador"
                         />
@@ -153,7 +153,7 @@ const Turmas = () => {
                         <div className="filters-grid-turmas">
                             <div>
                                 <label htmlFor="filtro-ano-tur" className="filter-label-turma">Ano Lectivo</label>
-                                <select id="filtro-ano-tur" name="ano" value={filters.ano} onChange={handleFilterChange} className="filter-select-turma">
+                                <select id="filtro-ano-tur" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="2024/2025">2024/2025</option>
                                     <option value="2023/2024">2023/2024</option>
@@ -161,7 +161,7 @@ const Turmas = () => {
                             </div>
                             <div>
                                 <label htmlFor="filtro-curso-tur" className="filter-label-turma">Curso</label>
-                                <select id="filtro-curso-tur" name="curso" value={filters.curso} onChange={handleFilterChange} className="filter-select-turma">
+                                <select id="filtro-curso-tur" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="Informática">Informática</option>
                                     <option value="Gestão">Gestão</option>
@@ -170,7 +170,7 @@ const Turmas = () => {
                             </div>
                             <div>
                                 <label htmlFor="filtro-sala-tur" className="filter-label-turma">Sala</label>
-                                <select id="filtro-sala-tur" name="sala" value={filters.sala} onChange={handleFilterChange} className="filter-select-turma">
+                                <select id="filtro-sala-tur" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todas</option>
                                     <option value="Lab 01">Lab 01</option>
                                     <option value="Lab 02">Lab 02</option>
@@ -180,7 +180,7 @@ const Turmas = () => {
                             </div>
                             <div>
                                 <label htmlFor="filtro-turno-tur" className="filter-label-turma">Turno</label>
-                                <select id="filtro-turno-tur" name="turno" value={filters.turno} onChange={handleFilterChange} className="filter-select-turma">
+                                <select id="filtro-turno-tur" name="turno" value={filters.turno} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todos</option>
                                     <option value="Manhã">Manhã</option>
                                     <option value="Tarde">Tarde</option>
@@ -190,7 +190,7 @@ const Turmas = () => {
                         </div>
                         <div className="clear-filters-box">
                             <button
-                                onClick={() => setFilters({ ano: '', curso: '', sala: '', turno: '' })}
+                                onClick={() => { setFilters({ ano: '', curso: '', sala: '', turno: '' }); setCurrentPage(1); }}
                                 className="btn-clear-filters"
                             >
                                 Limpar Filtros
@@ -217,7 +217,7 @@ const Turmas = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredData.map((t) => (
+                            {currentTurmas.map((t) => (
                                 <tr key={t.id}>
                                     <td className="turma-id-cell">{t.id}</td>
                                     <td className="turma-name-cell">{t.turma}</td>
@@ -256,6 +256,13 @@ const Turmas = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination 
+                    totalItems={filteredData.length} 
+                    itemsPerPage={itemsPerPage} 
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                />
             </div>
 
             {/* Add/Edit Modal */}
