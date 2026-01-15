@@ -299,6 +299,19 @@ body {
   white-space: nowrap; /* Prevent messy wrapping */
 }
 
+/* Responsive Table Padding Globally */
+@media (max-width: 1440px) {
+  .data-table th, .data-table td {
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .data-table th, .data-table td {
+    padding: 10px 8px;
+  }
+}
+
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
