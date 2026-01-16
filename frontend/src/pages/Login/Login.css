@@ -1,21 +1,41 @@
 /* Login.css - Premium Design */
-.login-container {
+.login-page-container {
     height: 100vh;
     width: 100vw;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #0f172a; /* Dark background for page */
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
     font-family: 'Inter', sans-serif;
     overflow: hidden;
 }
 
+/* The Central Card */
+.login-main-card {
+    display: flex;
+    width: 100%;
+    max-width: 1000px;
+    height: 600px;
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5), 
+                0 30px 60px -30px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 10;
+}
+
 /* --- Left Side: Decorative --- */
 .login-decoration {
-    flex: 1;
+    flex: 1.2; /* Give slightly more space to decoration if desired, or 1 */
     background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 80px;
+    padding: 60px;
     color: white;
     overflow: hidden;
 }
@@ -41,10 +61,10 @@
 }
 
 .decoration-content h1 {
-    font-size: 56px;
-    line-height: 1.1;
+    font-size: 42px; /* Reduced from 56px */
+    line-height: 1.2;
     font-weight: 800;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     background: linear-gradient(to right, #fff, #93c5fd);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
