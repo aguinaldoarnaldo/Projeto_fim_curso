@@ -237,7 +237,7 @@ const Turmas = () => {
                                         <div className="capacity-cell">
                                             <span style={{ fontWeight: 700, color: t.qtdAlunos >= 50 ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / 50</span>
                                             <div className="capacity-progress-container">
-                                                <div style={{ width: `${(t.qtdAlunos / 50) * 100}%`, background: t.qtdAlunos >= 50 ? '#ef4444' : '#1e3a8a' }} className="capacity-progress-bar" />
+                                                <div style={{ width: `${(t.qtdAlunos / 50) * 100}%`, background: t.qtdAlunos >= 50 ? '#ef4444' : 'var(--primary-color)' }} className="capacity-progress-bar" />
                                             </div>
                                         </div>
                                     </td>
