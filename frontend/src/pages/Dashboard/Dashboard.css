@@ -104,13 +104,19 @@
 
 .kpi-card {
     background: white;
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 24px;
     position: relative;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
     transition: transform 0.2s, box-shadow 0.2s;
     overflow: hidden;
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .kpi-card:hover {
@@ -120,40 +126,136 @@
 
 .kpi-icon-floating {
     position: absolute;
-    top: -10px;
-    right: -10px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.15;
-    transform: rotate(15deg);
+    opacity: 1; /* Made fully visible but with soft bg */
+    transform: none; /* Removed rotation for cleaner look */
+    transition: all 0.3s ease;
 }
 
-/* Color Themes for Cards */
-.card-premium-blue { border-left: 4px solid #3b82f6; }
-.card-premium-blue .kpi-icon-floating { background: #3b82f6; color: #3b82f6; }
+/* On hover icon effect */
+.kpi-card:hover .kpi-icon-floating {
+    transform: scale(1.1) rotate(5deg);
+}
 
-.card-premium-purple { border-left: 4px solid #8b5cf6; }
-.card-premium-purple .kpi-icon-floating { background: #8b5cf6; color: #8b5cf6; }
+/* Color Themes for Cards - PREMIUM UPGRADE */
+.card-premium-blue {
+    background: linear-gradient(135deg, #ffffff 50%, #eff6ff 100%);
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+}
+.card-premium-blue .kpi-icon-floating {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+.card-premium-blue:hover {
+    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.15), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
+    border-color: #3b82f6;
+    transform: translateY(-5px);
+}
+.card-premium-blue h3 {
+    background: linear-gradient(to right, #1e3a8a, #2563eb);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
-.card-premium-orange { border-left: 4px solid #f97316; }
-.card-premium-orange .kpi-icon-floating { background: #f97316; color: #f97316; }
+.card-premium-purple {
+    background: linear-gradient(135deg, #ffffff 50%, #f5f3ff 100%);
+    border: 1px solid #ddd6fe;
+    box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.1);
+}
+.card-premium-purple .kpi-icon-floating {
+    background: rgba(124, 58, 237, 0.1);
+    color: #7c3aed;
+}
+.card-premium-purple:hover {
+    box-shadow: 0 20px 25px -5px rgba(124, 58, 237, 0.15), 0 10px 10px -5px rgba(124, 58, 237, 0.04);
+    border-color: #8b5cf6;
+    transform: translateY(-5px);
+}
+.card-premium-purple h3 {
+    background: linear-gradient(to right, #5b21b6, #7c3aed);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
-.card-premium-teal { border-left: 4px solid #14b8a6; }
-.card-premium-teal .kpi-icon-floating { background: #14b8a6; color: #14b8a6; }
+.card-premium-orange {
+    background: linear-gradient(135deg, #ffffff 50%, #fff7ed 100%);
+    border: 1px solid #fed7aa;
+    box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.1);
+}
+.card-premium-orange .kpi-icon-floating {
+    background: rgba(234, 88, 12, 0.1);
+    color: #ea580c;
+}
+.card-premium-orange:hover {
+    box-shadow: 0 20px 25px -5px rgba(234, 88, 12, 0.15), 0 10px 10px -5px rgba(234, 88, 12, 0.04);
+    border-color: #f97316;
+    transform: translateY(-5px);
+}
+.card-premium-orange h3 {
+    background: linear-gradient(to right, #9a3412, #ea580c);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
-.card-premium-indigo { border-left: 4px solid #6366f1; }
-.card-premium-indigo .kpi-icon-floating { background: #6366f1; color: #6366f1; }
+.card-premium-teal {
+    background: linear-gradient(135deg, #ffffff 50%, #ccfbf1 100%);
+    border: 1px solid #99f6e4;
+    box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.1);
+}
+.card-premium-teal .kpi-icon-floating {
+    background: rgba(13, 148, 136, 0.1);
+    color: #0d9488;
+}
+.card-premium-teal:hover {
+    box-shadow: 0 20px 25px -5px rgba(13, 148, 136, 0.15), 0 10px 10px -5px rgba(13, 148, 136, 0.04);
+    border-color: #14b8a6;
+    transform: translateY(-5px);
+}
+.card-premium-teal h3 {
+    background: linear-gradient(to right, #115e59, #0d9488);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.card-premium-indigo {
+    background: linear-gradient(135deg, #ffffff 50%, #e0e7ff 100%);
+    border: 1px solid #c7d2fe;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+}
+.card-premium-indigo .kpi-icon-floating {
+    background: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+}
+.card-premium-indigo:hover {
+    box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.15), 0 10px 10px -5px rgba(79, 70, 229, 0.04);
+    border-color: #6366f1;
+    transform: translateY(-5px);
+}
+.card-premium-indigo h3 {
+    background: linear-gradient(to right, #3730a3, #4f46e5);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
 .kpi-content h3 {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 800;
-    color: #1e293b;
     margin-bottom: 4px;
-    letter-spacing: -1px;
+    letter-spacing: -0.03em;
+    /* Color is now handled by specific card themes via gradient text */
 }
 
 .kpi-label {
@@ -204,7 +306,7 @@
 
 .chart-card-new {
     background: white;
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 24px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
@@ -253,7 +355,7 @@
 
 .calendar-card-wrapper {
     background: white;
-    border-radius: 16px;
+    border-radius: 20px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
     overflow: hidden;
