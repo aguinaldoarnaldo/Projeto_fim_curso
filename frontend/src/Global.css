@@ -1,8 +1,14 @@
 /* SchoolManagementSystem.css */
 
 :root {
-  --primary-color: #1e3a8a;
+  --primary-color: #1e3a8a; /* Blue 900 */
   --primary-hover: #1e40af;
+  --primary-light: #3b82f6; /* Blue 500 */
+  --primary-light-bg: #eff6ff; /* Blue 50 */
+  --primary-gradient-start: #3b82f6;
+  --primary-gradient-end: #1d4ed8;
+  --primary-shadow: rgba(37, 99, 235, 0.2);
+  
   --bg-color: #f8fafc;
   --sidebar-bg: #1e3a8a;
   --text-color: #111827;
@@ -12,9 +18,15 @@
 }
 
 [data-color="green"] {
-  --primary-color: #059669; /* Emerald 600 - Verde Premium */
+  --primary-color: #059669; /* Emerald 600 */
   --primary-hover: #047857; /* Emerald 700 */
-  --sidebar-bg: #064e3b;   /* Emerald 900 - Sidebar mais sóbria */
+  --primary-light: #34d399; /* Emerald 400 */
+  --primary-light-bg: #ecfdf5; /* Emerald 50 */
+  --primary-gradient-start: #34d399;
+  --primary-gradient-end: #059669;
+  --primary-shadow: rgba(16, 185, 129, 0.2);
+
+  --sidebar-bg: #064e3b;   /* Emerald 900 */
 }
 
 * {
