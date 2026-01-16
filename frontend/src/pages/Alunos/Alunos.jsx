@@ -62,12 +62,27 @@ const Alunos = () => {
         const salas = ['L-01', 'S-204', 'S-102', 'L-05'];
         const statusList = ['Ativo', 'Suspenso', 'Concluído'];
         
+        // Mock Avatar URLs pool
+        const avatarImages = [
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
+        ];
+        
+        // Assign photo
+        let fotoUrl = avatarImages[i % avatarImages.length];
+
         const curso = cursos[i % cursos.length];
         const status = statusList[i % statusList.length];
 
         return {
             id: `ALU-2024-${padId}`,
             nome: `Aluno Exemplo ${id}`,
+            foto: fotoUrl,
             anoLectivo: i % 3 === 0 ? '2023/2024' : '2024/2025',
             classe: classes[i % classes.length],
             curso: curso,
@@ -262,8 +277,22 @@ const Alunos = () => {
                                     <td className="student-id">{s.id}</td>
                                     <td>
                                         <div className="student-info">
-                                            <div className="student-avatar">
-                                                {s.nome.charAt(0)}
+                                            <div className="student-avatar" style={{ 
+                                                width: '36px', 
+                                                height: '36px', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                flexShrink: 0,
+                                                overflow: 'hidden',
+                                                background: s.foto ? 'white' : '#e0e7ff',
+                                                border: s.foto ? '1px solid #e2e8f0' : 'none'
+                                            }}>
+                                                {s.foto ? (
+                                                    <img src={s.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <User size={16} />
+                                                )}
                                             </div>
                                             <span className="student-name">{s.nome}</span>
                                         </div>
@@ -319,8 +348,14 @@ const Alunos = () => {
                         <div className="detail-modal-grid">
                             {/* Left Profile Card */}
                             <div className="profile-sidebar">
-                                <div className="profile-avatar-large">
-                                    {selectedStudent.nome.charAt(0)}
+                                <div className="profile-avatar-large" style={{ overflow: 'hidden', padding: 0 }}>
+                                    {selectedStudent.foto ? (
+                                        <img src={selectedStudent.foto} alt={selectedStudent.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <User size={48} color="white" />
+                                        </div>
+                                    )}
                                 </div>
                                 <h2 className="profile-name">{selectedStudent.nome}</h2>
                                 <p className="profile-id">ID: {selectedStudent.id}</p>
