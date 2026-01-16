@@ -4,6 +4,7 @@ import Classe from "../pages/Classe/Classe"
 import Dashboard from "../pages/Dashboard/Dashboard"
 import Inscrito from '../pages/Inscritos/Inscritos'
 import Login from "../pages/Login/Login"
+import Candidatura from "../pages/Public/Candidatura/Candidatura"
 import Matriculas from '../pages/Matriculas/Matriculas'
 import Salas from '../pages/Salas/Salas'
 import Turma from '../pages/Turmas/Turmas'
@@ -19,6 +20,7 @@ export default function Routers(params) {
             <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/candidatura" element={<Candidatura />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
                 {/* Protected Routes (Wrapped in Layout) */}

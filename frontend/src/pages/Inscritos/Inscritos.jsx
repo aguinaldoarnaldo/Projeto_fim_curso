@@ -56,52 +56,61 @@ const Inscritos = () => {
     curso: ''
   });
 
-  // Generate 50 mock candidates
-  const [inscritos, setInscritos] = useState(Array.from({ length: 150 }, (_, i) => {
-      const id = i + 1;
-      const padId = id.toString().padStart(3, '0');
-      const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem'];
-      const statusList = ['Pendente', 'Em Análise', 'Aprovado', 'Não Admitido'];
-      const status = statusList[i % statusList.length];
+  // Generate 150 mock candidates
+  const [inscritos, setInscritos] = useState(() => {
+      const mockData = Array.from({ length: 150 }, (_, i) => {
+          const id = i + 1;
+          const padId = id.toString().padStart(3, '0');
+          const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem'];
+          const statusList = ['Pendente', 'Em Análise', 'Aprovado', 'Não Admitido'];
+          const status = statusList[i % statusList.length];
 
-      return {
-          id: `INS2024${padId}`,
-          nome: `Candidato Exemplo ${id}`,
-          genero: i % 2 === 0 ? 'Feminino' : 'Masculino',
-          dataNascimento: '2008-05-12',
-          nacionalidade: 'Angolana',
-          bi: `00${padId}567LA${padId.slice(-2)}`,
-          dataEmissaoBI: '2022-10-15',
-          naturalidade: 'Luanda',
-          residencia: 'Luanda, Angola',
-          telefone: `923${padId}${padId}`,
-          email: `candidato${id}@email.com`,
-          deficiencia: 'Não',
-          tipoDeficiencia: '',
-          escola9: 'Pública',
-          nomeEscola: 'Escola Primária 123',
-          municipioEscola: 'Maianga',
-          anoConclusao: '2023',
-          anoInscricao: '2024',
-          nota9: 14 + (i % 6),
-          notaExame: status === 'Aprovado' ? 10 + (i % 10) : null,
-          curso1: cursos[i % cursos.length],
-          curso2: cursos[(i + 1) % cursos.length],
-          turno: ['Manhã', 'Tarde', 'Noite'][i % 3],
-          status: status,
-          dataInscricao: '20 Dez 2024',
-          encarregado: {
-              nome: `Encarregado ${id}`,
-              parentesco: 'Pai',
-              bi: `00${padId}111LA22`,
-              telefone: '924000333',
-              telefoneAlt: '',
-              email: 'encarregado@email.com',
-              profissao: 'Engenheiro',
-              residencia: 'Luanda'
-          }
-      };
-  }));
+          return {
+              id: `INS2024${padId}`,
+              nome: `Candidato Exemplo ${id}`,
+              genero: i % 2 === 0 ? 'Feminino' : 'Masculino',
+              dataNascimento: '2008-05-12',
+              nacionalidade: 'Angolana',
+              bi: `00${padId}567LA${padId.slice(-2)}`,
+              dataEmissaoBI: '2022-10-15',
+              naturalidade: 'Luanda',
+              residencia: 'Luanda, Angola',
+              telefone: `923${padId}${padId}`,
+              email: `candidato${id}@email.com`,
+              deficiencia: 'Não',
+              tipoDeficiencia: '',
+              escola9: 'Pública',
+              nomeEscola: 'Escola Primária 123',
+              municipioEscola: 'Maianga',
+              anoConclusao: '2023',
+              anoInscricao: '2024',
+              nota9: 14 + (i % 6),
+              notaExame: status === 'Aprovado' ? 10 + (i % 10) : null,
+              curso1: cursos[i % cursos.length],
+              curso2: cursos[(i + 1) % cursos.length],
+              turno: ['Manhã', 'Tarde', 'Noite'][i % 3],
+              status: status,
+              dataInscricao: '20 Dez 2024',
+              encarregado: {
+                  nome: `Encarregado ${id}`,
+                  parentesco: 'Pai',
+                  bi: `00${padId}111LA22`,
+                  telefone: '924000333',
+                  telefoneAlt: '',
+                  email: 'encarregado@email.com',
+                  profissao: 'Engenheiro',
+                  localTrabalho: 'Empresa X'
+              }
+          };
+      });
+
+      // Load from LocalStorage
+      const localCandidates = JSON.parse(localStorage.getItem('registeredCandidates') || '[]');
+      
+      // Combine mock data and local candidates (Local candidates first to appear at top of list usually, or spread logic)
+      // If we want new ones to appear first, we should probably sort by date or ID later, but for now:
+      return [...localCandidates, ...mockData];
+  });
 
 
   const calculateAge = (birthDate) => {
