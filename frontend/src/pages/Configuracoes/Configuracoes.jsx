@@ -290,7 +290,7 @@ const Configuracoes = () => {
                         </div>
                         <div style={{ marginTop: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px', background: 'var(--bg-color)', borderRadius: '12px' }}>
-                                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: 'bold' }}>
+                                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: 'bold' }}>
                                     AA
                                 </div>
                                 <div>
@@ -334,10 +334,10 @@ const Configuracoes = () => {
 
                             <h4 style={{ fontSize: '16px', marginBottom: '15px' }}>Alertas Recentes</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ padding: '15px', borderLeft: '4px solid #3b82f6', background: '#eff6ff', borderRadius: '0 8px 8px 0' }}>
-                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: '#1e3a8a' }}>Nova Matrícula Realizada</p>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#1e40af' }}>O aluno João Silva foi matriculado com sucesso no 10º Ano.</p>
-                                    <span style={{ fontSize: '11px', color: '#60a5fa', marginTop: '8px', display: 'block' }}>Há 5 minutos</span>
+                                <div style={{ padding: '15px', borderLeft: '4px solid var(--primary-light)', background: 'var(--primary-light-bg)', borderRadius: '0 8px 8px 0' }}>
+                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: 'var(--primary-color)' }}>Nova Matrícula Realizada</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--primary-hover)' }}>O aluno João Silva foi matriculado com sucesso no 10º Ano.</p>
+                                    <span style={{ fontSize: '11px', color: 'var(--primary-light)', marginTop: '8px', display: 'block' }}>Há 5 minutos</span>
                                 </div>
                                 <div style={{ padding: '15px', borderLeft: '4px solid #f59e0b', background: '#fffbeb', borderRadius: '0 8px 8px 0' }}>
                                     <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: '#92400e' }}>Aviso de Backup Próximo</p>
