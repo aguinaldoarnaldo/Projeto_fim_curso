@@ -53,7 +53,7 @@ const Matriculas = () => {
         classe: ''
     });
 
-    // Generate 50 mock entries for pagination testing
+    // Generate 150 mock entries for pagination testing
     const matriculasData = Array.from({ length: 150 }, (_, i) => {
         const id = i + 1;
         const padId = id.toString().padStart(3, '0');
@@ -63,12 +63,39 @@ const Matriculas = () => {
         const statusList = ['Confirmada', 'Pendente', 'Em Análise', 'Rejeitada'];
         const salas = ['L-01', 'S-204', 'S-102', 'L-05', 'A-101'];
         
+        // Mock Avatar URLs pool
+        const avatarImages = [
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
+            "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
+        ];
+
         const curso = cursos[i % cursos.length];
         const status = statusList[i % statusList.length];
         
+        let nomeAluno = `Aluno Exemplo ${id}`;
+        // Assign a photo to EVERYONE based on index
+        let fotoUrl = avatarImages[i % avatarImages.length]; 
+        
+        // Inject Long Names for Testing (keep specific overrides if needed or merge)
+        if (i === 0) {
+            nomeAluno = "Sebastião Manuel António Francisco de Assis Xavier de Paula Miguel Rafael Gabriel Gonzaga";
+        }
+        if (i === 3) {
+            nomeAluno = "Maria da Conceição dos Santos Pereira Fernandes Rodrigues Alves de Souza";
+        }
+        if (i === 5) {
+            nomeAluno = "Pedro de Alcântara João Carlos Leopoldo Salvador Bibiano Francisco Xavier de Paula Leocádio";
+        }
+
         return {
             id: `MAT-2024-${padId}`,
-            aluno: `Aluno Exemplo ${id}`,
+            aluno: nomeAluno,
+            foto: fotoUrl,
             anoLectivo: i % 3 === 0 ? '2023/2024' : '2024/2025',
             classe: classes[i % classes.length],
             curso: curso,
@@ -169,7 +196,7 @@ const Matriculas = () => {
                         className="btn-filtros-avancados"
                         aria-expanded={showFilters}
                         aria-label={showFilters ? "Esconder filtros avançados" : "Mostrar filtros avançados"}
-                        style={{ background: showFilters ? '#1e3a8a' : 'white', color: showFilters ? 'white' : '#374151' }}
+                        style={{ background: showFilters ? 'var(--primary-color)' : 'white', color: showFilters ? 'white' : '#374151' }}
                     >
                         <Filter size={18} aria-hidden="true" />
                         Filtros Avançados
@@ -236,8 +263,8 @@ const Matriculas = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Nº Matrícula</th>
-                                <th>Nome do Aluno</th>
+                                <th>Matrícula</th>
+                                <th>Nome Completo</th>
                                 <th className="col-ano">Ano Lectivo</th>
                                 <th>Classe</th>
                                 <th>Curso</th>
@@ -252,10 +279,27 @@ const Matriculas = () => {
                         <tbody>
                             {currentItems.map((m) => (
                                 <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row">
-                                    <td className="student-id">{m.id}</td>
+                                    <td className="student-id">{m.id.replace('MAT-', '')}</td>
                                     <td>
                                         <div className="student-info">
-                                            <div className="student-avatar" style={{ width: '32px', height: '32px', fontSize: '14px' }}>{m.aluno.charAt(0)}</div>
+                                            {/* Foto ou Placeholder */}
+                                            <div className="student-avatar" style={{ 
+                                                width: '32px', 
+                                                height: '32px', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                flexShrink: 0, /* Ensure avatar doesn't shrink */
+                                                overflow: 'hidden',
+                                                background: m.foto ? 'white' : '#e0e7ff',
+                                                border: m.foto ? '1px solid #e2e8f0' : 'none'
+                                            }}>
+                                                {m.foto ? (
+                                                    <img src={m.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <User size={16} />
+                                                )}
+                                            </div>
                                             <span style={{ fontWeight: 500 }}>{m.aluno}</span>
                                         </div>
                                     </td>
@@ -264,7 +308,7 @@ const Matriculas = () => {
                                     <td>{m.curso}</td>
                                     <td className="col-sala">{m.sala}</td>
                                     <td className="col-turno">{m.turno}</td>
-                                    <td>{m.turma}</td>
+                                    <td>{m.turma.replace(/[A-Z]+/, '')}</td>
                                     <td>{getStatusBadge(m.status)}</td>
                                     <td className="date-cell col-data">{m.dataMatricula}</td>
                                     <td>
@@ -304,8 +348,15 @@ const Matriculas = () => {
 
                             {/* Top Profile Section */}
                             <div className="modal-profile-section">
-                                <div className="profile-large-avatar">
-                                    {selectedMatricula.aluno.charAt(0)}
+                                {/* Foto Grande ou Placeholder */}
+                                <div className="profile-large-avatar" style={{ overflow: 'hidden', padding: 0 }}>
+                                    {selectedMatricula.foto ? (
+                                        <img src={selectedMatricula.foto} alt={selectedMatricula.aluno} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <User size={40} />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="profile-texts">
                                     <h3>{selectedMatricula.aluno}</h3>
