@@ -17,7 +17,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
     queryset = Aluno.objects.select_related('id_turma').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status_aluno', 'id_turma', 'genero']
+    #filterset_fields = ['status_aluno', 'id_turma', 'genero']
     search_fields = ['nome_completo', 'email', 'numero_matricula']
     ordering_fields = ['nome_completo', 'numero_matricula', 'criado_em']
     ordering = ['nome_completo']
@@ -117,4 +117,4 @@ class AlunoEncarregadoViewSet(viewsets.ModelViewSet):
     serializer_class = AlunoEncarregadoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['id_aluno', 'id_encarregado']
+    #filterset_fields = ['id_aluno', 'id_encarregado']

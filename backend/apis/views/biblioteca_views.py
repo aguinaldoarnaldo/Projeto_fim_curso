@@ -24,9 +24,9 @@ class LivroViewSet(viewsets.ModelViewSet):
     queryset = Livro.objects.select_related(
         'id_categoria', 'id_responsavel'
     ).all()
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['id_categoria']
+    #filterset_fields = ['id_categoria']
     search_fields = ['titulo', 'editora']
     ordering_fields = ['titulo', 'data_upload']
     ordering = ['titulo']

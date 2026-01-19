@@ -214,10 +214,72 @@ def logout_view(request):
 @api_view(['GET'])
 def me_view(request):
     """
-    Retorna informações do usuário autenticado
+    Retorna informações do usuário autenticado baseado no Token JWT
     """
-    # Extrair informações do token JWT
-    # Implementação simplificada - ajustar conforme necessidade
-    return Response({
-        'message': 'Endpoint /me/ - implementar extração de dados do token JWT'
-    })
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    from rest_framework.exceptions import AuthenticationFailed
+    
+    try:
+        # Autenticar manualmente o token
+        jwt_auth = JWTAuthentication()
+        user_auth_tuple = jwt_auth.authenticate(request)
+        
+        if user_auth_tuple is None:
+            return Response(
+                {'error': 'Token inválido ou não fornecido'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
+        # O user retornado pelo JWTAuthentication já é o objeto do modelo (AuthUser ou Custom)
+        # Mas como não usamos o Auth User padrão do Django para tudo, precisamos verificar
+        # o payload do token para saber quem é (aluno, funcionario, etc)
+        
+        # O payload está no segundo elemento da tupla (token)
+        token = user_auth_tuple[1]
+        user_id = token.payload.get('user_id')
+        user_type = token.payload.get('user_type')
+        
+        user_data = {}
+        
+        if user_type == 'funcionario':
+            user = Funcionario.objects.get(id_funcionario=user_id)
+            user_data = {
+                'id': user.id_funcionario,
+                'tipo': 'funcionario',
+                'nome': user.nome_completo,
+                'email': user.email,
+                'cargo': user.id_cargo.nome_cargo if user.id_cargo else None,
+                'status': user.status_funcionario,
+                'is_online': True
+            }
+        elif user_type == 'aluno':
+            user = Aluno.objects.get(id_aluno=user_id)
+            user_data = {
+                'id': user.id_aluno,
+                'tipo': 'aluno',
+                'nome': user.nome_completo,
+                'email': user.email,
+                'numero_matricula': user.numero_matricula,
+                'turma': user.id_turma.codigo_turma if user.id_turma else None,
+                'status': user.status_aluno,
+                'is_online': True
+            }
+        elif user_type == 'encarregado':
+            user = Encarregado.objects.get(id_encarregado=user_id)
+            user_data = {
+                'id': user.id_encarregado,
+                'tipo': 'encarregado',
+                'nome': user.nome_completo,
+                'email': user.email,
+                'is_online': True
+            }
+            
+        return Response({
+            'user': user_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erro ao obter dados do usuário: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
+import api from '../../services/api';
+import { useCache } from '../../context/CacheContext';
 
 const Alunos = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -52,74 +54,86 @@ const Alunos = () => {
         classe: ''
     });
 
-    // Generate 50 mock students
-    const studentsData = Array.from({ length: 150 }, (_, i) => {
-        const id = i + 1;
-        const padId = id.toString().padStart(3, '0');
-        const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem'];
-        const classes = ['10ª Classe', '11ª Classe', '12ª Classe'];
-        const turnos = ['Manhã', 'Tarde', 'Noite'];
-        const salas = ['L-01', 'S-204', 'S-102', 'L-05'];
-        const statusList = ['Ativo', 'Suspenso', 'Concluído'];
-        
-        // Mock Avatar URLs pool
-        const avatarImages = [
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
-        ];
-        
-        // Assign photo
-        let fotoUrl = avatarImages[i % avatarImages.length];
+    // State for students data
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-        const curso = cursos[i % cursos.length];
-        const status = statusList[i % statusList.length];
+    // Fetch students from API
+    // Cache
+    const { getCache, setCache } = useCache();
 
-        return {
-            id: `ALU-2024-${padId}`,
-            nome: `Aluno Exemplo ${id}`,
-            foto: fotoUrl,
-            anoLectivo: i % 3 === 0 ? '2023/2024' : '2024/2025',
-            classe: classes[i % classes.length],
-            curso: curso,
-            sala: salas[i % salas.length],
-            turno: turnos[i % turnos.length],
-            turma: `${curso.substring(0, 3).toUpperCase()}${classes[i % classes.length].substring(0, 2)}${String.fromCharCode(65 + (i % 3))}`,
-            status: status,
-            dataMatricula: `${(i % 28) + 1} Jan 2024`,
-            detalhes: {
-                nif: `A${padId}123456`,
-                nascimento: `${(i % 28) + 1}/05/${2005 + (i % 4)}`,
-                encarregado: `Encarregado ${id}`,
-                telefone: `+244 923 ${padId} ${padId}`,
-                email: `aluno${id}@email.com`,
-                endereco: 'Luanda, Angola',
-                bi: `00${padId}12345LA${padId.slice(-2)}`,
-                obs: i % 5 === 0 ? 'Observação de teste.' : ''
+    // Fetch students from API
+    const fetchStudents = async (force = false) => {
+        if (!force) {
+            const cachedData = getCache('alunos');
+            if (cachedData) {
+                setStudents(cachedData);
+                setLoading(false);
+                return;
             }
-        };
-    });
+        }
+
+        try {
+            setLoading(true);
+            const response = await api.get('alunos/');
+            // Check if response.data is an array or paginated object (API defaults to pagination)
+            const data = response.data.results || response.data;
+            
+            const formattedStudents = data.map(student => ({
+                id: student.id_aluno,
+                matricula: student.numero_matricula,
+                nome: student.nome_completo,
+                foto: student.img_path,
+                anoLectivo: student.ano_lectivo || '2024/2025', // Fallback or from API
+                classe: student.classe_nivel ? `${student.classe_nivel}ª Classe` : 'N/A',
+                curso: student.curso_nome || 'N/A',
+                sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
+                turno: student.periodo_nome || 'N/A',
+                turma: student.turma_codigo,
+                status: student.status_aluno,
+                dataMatricula: new Date(student.criado_em).toLocaleDateString(),
+                detalhes: {
+                    nif: student.numero_bi, // Using BI as NIF placeholder if NIF not separate
+                    nascimento: 'N/A', // Data nascimento not in list serializer yet
+                    encarregado: 'Carregar...',
+                    telefone: student.telefone || 'N/A',
+                    email: student.email,
+                    endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
+                    bi: student.numero_bi,
+                    obs: ''
+                }
+            }));
+            setStudents(formattedStudents);
+            setCache('alunos', formattedStudents);
+            setLoading(false);
+        } catch (err) {
+            console.error("Erro ao buscar alunos:", err);
+            setError("Falha ao carregar lista de alunos.");
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStudents();
+    }, []);
 
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
-    const filteredStudents = studentsData.filter(student => {
+    const filteredStudents = students.filter(student => {
         const matchesSearch =
             student.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(student.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
             (student.detalhes?.bi && student.detalhes.bi.toLowerCase().includes(searchTerm.toLowerCase()));
 
         const matchesFilters =
             (filters.ano === '' || student.anoLectivo === filters.ano) &&
             (filters.classe === '' || student.classe === filters.classe) &&
             (filters.curso === '' || student.curso === filters.curso) &&
-            (filters.sala === '' || student.sala === filters.sala) &&
+            (filters.sala === '' || String(student.sala) === filters.sala) &&
             (filters.turma === '' || student.turma === filters.turma);
 
         return matchesSearch && matchesFilters;
@@ -132,7 +146,7 @@ const Alunos = () => {
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Ativo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
+            case 'Activo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
             case 'Suspenso': return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
             case 'Concluído': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
             default: return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
@@ -254,78 +268,99 @@ const Alunos = () => {
 
 
                 {/* Students Table */}
-                <div className="table-wrapper">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Nº Aluno</th>
-                                <th>Nome Completo</th>
-                                <th>Ano Lectivo</th>
-                                <th>Classe</th>
-                                <th>Curso</th>
-                                <th>Sala</th>
-                                <th>Turno</th>
-                                <th>Turma</th>
-                                <th>Estado</th>
-                                <th>Data Matrícula</th>
-                                <th style={{ textAlign: 'center' }}>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentStudents.map((s) => (
-                                <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
-                                    <td className="student-id">{s.id}</td>
-                                    <td>
-                                        <div className="student-info">
-                                            <div className="student-avatar" style={{ 
-                                                width: '36px', 
-                                                height: '36px', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center',
-                                                flexShrink: 0,
-                                                overflow: 'hidden',
-                                                background: s.foto ? 'white' : '#e0e7ff',
-                                                border: s.foto ? '1px solid #e2e8f0' : 'none'
-                                            }}>
-                                                {s.foto ? (
-                                                    <img src={s.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <User size={16} />
-                                                )}
-                                            </div>
-                                            <span className="student-name">{s.nome}</span>
-                                        </div>
-                                    </td>
-                                    <td>{s.anoLectivo}</td>
-                                    <td style={{ fontWeight: 700 }}>{s.classe}</td>
-                                    <td style={{ color: '#475569' }}>{s.curso}</td>
-                                    <td>{s.sala}</td>
-                                    <td>{s.turno}</td>
-                                    <td>{s.turma}</td>
-                                    <td>
-                                        <span
-                                            className="student-status-badge"
-                                            style={{
-                                                background: getStatusStyle(s.status).bg,
-                                                color: getStatusStyle(s.status).color,
-                                                border: `1px solid ${getStatusStyle(s.status).border}`
-                                            }}
-                                        >
-                                            {s.status}
-                                        </span>
-                                    </td>
-                                    <td className="student-date">{s.dataMatricula}</td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <button className="btn-more-actions">
-                                            <MoreVertical size={20} />
-                                        </button>
-                                    </td>
+                {loading ? (
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', color: '#64748b'}}>
+                        <div className="loading-spinner" style={{width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spinner 0.8s linear infinite'}}></div>
+                        <span style={{fontWeight: 500}}>A carregar alunos...</span>
+                    </div>
+                ) : (
+                    <div className="table-wrapper">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nº Aluno</th>
+                                    <th>Nome Completo</th>
+                                    <th>Ano Lectivo</th>
+                                    <th>Classe</th>
+                                    <th>Curso</th>
+                                    <th>Sala</th>
+                                    <th>Turno</th>
+                                    <th>Turma</th>
+                                    <th>Estado</th>
+                                    <th>Data Matrícula</th>
+                                    <th style={{ textAlign: 'center' }}>Ações</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {error ? (
+                                    <tr>
+                                        <td colSpan="11" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                            {error}
+                                        </td>
+                                    </tr>
+                                ) : currentStudents.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="11" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                            Nenhum aluno encontrado.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    currentStudents.map((s) => (
+                                        <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
+                                            <td className="student-id">{s.id}</td>
+                                            <td>
+                                                <div className="student-info">
+                                                    <div className="student-avatar" style={{ 
+                                                        width: '36px', 
+                                                        height: '36px', 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0,
+                                                        overflow: 'hidden',
+                                                        background: s.foto ? 'white' : '#e0e7ff',
+                                                        border: s.foto ? '1px solid #e2e8f0' : 'none'
+                                                    }}>
+                                                        {s.foto ? (
+                                                            <img src={s.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <User size={16} />
+                                                        )}
+                                                    </div>
+                                                    <span className="student-name">{s.nome}</span>
+                                                </div>
+                                            </td>
+                                            <td>{s.anoLectivo}</td>
+                                            <td style={{ fontWeight: 700 }}>{s.classe}</td>
+                                            <td style={{ color: '#475569' }}>{s.curso}</td>
+                                            <td>{s.sala}</td>
+                                            <td>{s.turno}</td>
+                                            <td>{s.turma}</td>
+                                            <td>
+                                                <span
+                                                    className="student-status-badge"
+                                                    style={{
+                                                        background: getStatusStyle(s.status).bg,
+                                                        color: getStatusStyle(s.status).color,
+                                                        border: `1px solid ${getStatusStyle(s.status).border}`
+                                                    }}
+                                                >
+                                                    {s.status}
+                                                </span>
+                                            </td>
+                                            <td className="student-date">{s.dataMatricula}</td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <button className="btn-more-actions">
+                                                    <MoreVertical size={20} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 <Pagination 
                     totalItems={filteredStudents.length} 

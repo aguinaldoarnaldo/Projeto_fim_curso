@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import { useCache } from '../../context/CacheContext';
 
 import Pagination from '../../components/Common/Pagination';
 
@@ -29,6 +31,11 @@ const Matriculas = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedMatricula, setSelectedMatricula] = useState(null);
     const tableRef = useRef(null);
+
+    // Data State
+    const [matriculas, setMatriculas] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -53,82 +60,86 @@ const Matriculas = () => {
         classe: ''
     });
 
-    // Generate 150 mock entries for pagination testing
-    const matriculasData = Array.from({ length: 150 }, (_, i) => {
-        const id = i + 1;
-        const padId = id.toString().padStart(3, '0');
-        const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem', 'Engenharia Civil'];
-        const classes = ['10ª Classe', '11ª Classe', '12ª Classe', '13ª Classe'];
-        const turnos = ['Manhã', 'Tarde', 'Noite'];
-        const statusList = ['Confirmada', 'Pendente', 'Em Análise', 'Rejeitada'];
-        const salas = ['L-01', 'S-204', 'S-102', 'L-05', 'A-101'];
-        
-        // Mock Avatar URLs pool
-        const avatarImages = [
-            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-            "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"
-        ];
+    // Cache
+    const { getCache, setCache } = useCache();
 
-        const curso = cursos[i % cursos.length];
-        const status = statusList[i % statusList.length];
-        
-        let nomeAluno = `Aluno Exemplo ${id}`;
-        // Assign a photo to EVERYONE based on index
-        let fotoUrl = avatarImages[i % avatarImages.length]; 
-        
-        // Inject Long Names for Testing (keep specific overrides if needed or merge)
-        if (i === 0) {
-            nomeAluno = "Sebastião Manuel António Francisco de Assis Xavier de Paula Miguel Rafael Gabriel Gonzaga";
-        }
-        if (i === 3) {
-            nomeAluno = "Maria da Conceição dos Santos Pereira Fernandes Rodrigues Alves de Souza";
-        }
-        if (i === 5) {
-            nomeAluno = "Pedro de Alcântara João Carlos Leopoldo Salvador Bibiano Francisco Xavier de Paula Leocádio";
-        }
+    // Fetch Data from API
+    const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
 
-        return {
-            id: `MAT-2024-${padId}`,
-            aluno: nomeAluno,
-            foto: fotoUrl,
-            anoLectivo: i % 3 === 0 ? '2023/2024' : '2024/2025',
-            classe: classes[i % classes.length],
-            curso: curso,
-            sala: salas[i % salas.length],
-            turno: turnos[i % turnos.length],
-            turma: `${curso.substring(0, 3).toUpperCase()}${classes[i % classes.length].substring(0, 2)}${String.fromCharCode(65 + (i % 3))}`,
-            status: status,
-            dataMatricula: `${(i % 30) + 1} Dez 2024`,
-            detalhes: {
-                bi: `00${padId}1234LA${padId.slice(-2)}`,
-                genero: i % 2 === 0 ? 'Masculino' : 'Feminino',
-                nif: `987654${padId}`,
-                dataNascimento: `${(i % 28) + 1}/05/${2005 + (i % 5)}`,
-                encarregado: `Encarregado do Aluno ${id}`,
-                parentesco: i % 2 === 0 ? 'Pai' : 'Mãe',
-                telefoneEncarregado: `+244 923 ${padId} ${padId}`,
-                email: `aluno${id}@escola.com`,
-                endereco: 'Luanda, Angola',
-                pagamentoStatus: status === 'Confirmada' ? 'Pago' : 'Pendente',
-                documentos: ['BI', 'Certificado'],
-                historico: 'Histórico gerado automaticamente para testes.'
+    // Fetch Data from API
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                // Parallel fetch for matriculas and filter options (courses)
+                const [matriculasRes, cursosRes] = await Promise.all([
+                    api.get('matriculas/'),
+                    api.get('cursos/')
+                ]);
+
+                // Handle Matriculas Data
+                const formattedData = matriculasRes.data.results ? matriculasRes.data.results.map(item => ({
+                    id: `MAT-${item.id_matricula || '000'}`,
+                    aluno: item.aluno_nome || 'Desconhecido',
+                    foto: item.aluno_foto || null,
+                    anoLectivo: item.ano_lectivo || 'N/A',
+                    classe: item.classe_nome || 'N/A',
+                    curso: item.curso_nome || 'N/A',
+                    sala: item.sala_numero || 'N/A',
+                    turno: item.periodo_nome || 'N/A',
+                    turma: item.turma_codigo || 'Sem Turma',
+                    status: item.ativo ? 'Confirmada' : 'Pendente',
+                    dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
+                    detalhes: {
+                        bi: 'N/A', 
+                        genero: 'N/A',
+                        nif: 'N/A',
+                        dataNascimento: 'N/A',
+                        encarregado: 'N/A', 
+                        parentesco: 'N/A',
+                        telefoneEncarregado: 'N/A',
+                        email: 'N/A',
+                        endereco: 'N/A',
+                        pagamentoStatus: 'Analise',
+                        documentos: [],
+                        historico: ''
+                    }
+                })) : [];
+                
+                if (formattedData.length > 0) {
+                     setMatriculas(formattedData);
+                     setCache('matriculas', formattedData);
+                } else {
+                    setMatriculas([]);
+                }
+
+                // Handle Courses Data for Filters
+                const cursosData = cursosRes.data.results || cursosRes.data;
+                if (Array.isArray(cursosData)) {
+                    setCursosDisponiveis(cursosData);
+                }
+
+            } catch (err) {
+                console.error("Error fetching data:", err);
+                setError("Falha ao carregar dados. Verifique a conexão.");
+            } finally {
+                setLoading(false);
             }
         };
-    });
+
+        fetchInitialData();
+    }, []);
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
-    const filteredMatriculas = matriculasData.filter(matricula => {
+    const filteredMatriculas = matriculas.filter(matricula => {
+        if (!matricula) return false;
+        
+        const search = searchTerm.toLowerCase();
         const matchesSearch =
-            matricula.aluno.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            matricula.id.toLowerCase().includes(searchTerm.toLowerCase());
+            (matricula.aluno && String(matricula.aluno).toLowerCase().includes(search)) ||
+            (matricula.id && String(matricula.id).toLowerCase().includes(search));
 
         const matchesFilters =
             (filters.ano === '' || matricula.anoLectivo === filters.ano) &&
@@ -228,9 +239,9 @@ const Matriculas = () => {
                                 <label htmlFor="filtro-curso-mat">Curso</label>
                                 <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todos</option>
-                                    <option value="Informática">Informática</option>
-                                    <option value="Gestão">Gestão</option>
-                                    <option value="Direito">Direito</option>
+                                    {cursosDisponiveis.map(curso => (
+                                        <option key={curso.id_curso} value={curso.nome_curso}>{curso.nome_curso}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
@@ -278,40 +289,65 @@ const Matriculas = () => {
                         </thead>
                         <tbody>
                             {currentItems.map((m) => (
-                                <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row">
-                                    <td className="student-id">{m.id.replace('MAT-', '')}</td>
+                                <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row animate-fade-in">
+                                    <td className="student-id" style={{fontFamily: 'monospace', fontSize: '13px'}}>
+                                        {m.id}
+                                    </td>
                                     <td>
                                         <div className="student-info">
                                             {/* Foto ou Placeholder */}
                                             <div className="student-avatar" style={{ 
-                                                width: '32px', 
-                                                height: '32px', 
+                                                width: '36px', 
+                                                height: '36px', 
                                                 display: 'flex', 
                                                 alignItems: 'center', 
                                                 justifyContent: 'center',
-                                                flexShrink: 0, /* Ensure avatar doesn't shrink */
+                                                flexShrink: 0,
                                                 overflow: 'hidden',
                                                 background: m.foto ? 'white' : '#e0e7ff',
-                                                border: m.foto ? '1px solid #e2e8f0' : 'none'
+                                                border: m.foto ? '1px solid #e2e8f0' : 'none',
+                                                borderRadius: '10px'
                                             }}>
                                                 {m.foto ? (
                                                     <img src={m.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <User size={16} />
+                                                    <User size={18} color="var(--primary-color)" />
                                                 )}
                                             </div>
-                                            <span style={{ fontWeight: 500 }}>{m.aluno}</span>
+                                            <div style={{display: 'flex', flexDirection: 'column'}}>
+                                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{m.aluno}</span>
+                                            </div>
                                         </div>
                                     </td>
-                                    <td className="col-ano">{m.anoLectivo}</td>
-                                    <td className="turma-cell">{m.classe}</td>
-                                    <td>{m.curso}</td>
-                                    <td className="col-sala">{m.sala}</td>
+                                    <td className="col-ano" style={{color: '#64748b'}}>{m.anoLectivo}</td>
+                                    <td style={{fontWeight: 600, color: '#334155'}}>{m.classe}</td>
+                                    <td style={{color: '#475569'}}>{m.curso}</td>
+                                    <td className="col-sala" style={{textAlign: 'center'}}>
+                                        {m.sala === 'N/A' ? <span style={{color: '#cbd5e1'}}>-</span> : <span style={{fontWeight: 600}}>{m.sala}</span>}
+                                    </td>
                                     <td className="col-turno">{m.turno}</td>
-                                    <td>{m.turma.replace(/[A-Z]+/, '')}</td>
-                                    <td>{getStatusBadge(m.status)}</td>
-                                    <td className="date-cell col-data">{m.dataMatricula}</td>
                                     <td>
+                                        {(m.turma === 'Sem Turma' || m.turma === 'N/A' || m.turma.includes('N/A')) ? (
+                                             <span style={{
+                                                 background: '#fff7ed', 
+                                                 color: '#c2410c', 
+                                                 padding: '4px 8px', 
+                                                 borderRadius: '6px', 
+                                                 fontSize: '11px', 
+                                                 fontWeight: 600,
+                                                 border: '1px solid #ffedd5'
+                                             }}>
+                                                Pendente
+                                             </span>
+                                        ) : (
+                                            <span style={{fontWeight: 700, color: '#1e293b', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '12px'}}>
+                                                {m.turma}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td>{getStatusBadge(m.status)}</td>
+                                    <td className="date-cell col-data" style={{color: '#64748b', fontSize: '12px'}}>{m.dataMatricula}</td>
+                                    <td style={{textAlign: 'center'}}>
                                         <button className="btn-more-actions">
                                             <MoreVertical size={18} />
                                         </button>

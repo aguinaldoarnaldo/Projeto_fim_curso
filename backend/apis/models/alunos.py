@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password
 from .base import BaseModel
 from .academico import Turma
 
@@ -10,7 +11,7 @@ class Aluno(BaseModel):
         ('F', 'Feminino'),
         ('M', 'Masculino'),
     ]
-    
+     
     STATUS_CHOICES = [
         ('Activo', 'Activo'),
         ('Expulso', 'Expulso'),
@@ -19,21 +20,21 @@ class Aluno(BaseModel):
     ]
     
     id_aluno = models.AutoField(primary_key=True)
-    numero_bi = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name='Número do BI')
+    numero_bi = models.CharField(max_length=14, unique=True, null=True, blank=True, verbose_name='Número do BI')
     nome_completo = models.CharField(max_length=150, verbose_name='Nome Completo')
-    email = models.EmailField(max_length=150, unique=True, null=True, blank=True)
+    email = models.EmailField(max_length=250, unique=True, null=True, blank=True)
     numero_matricula = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name='Número de Matrícula')
-    telefone = models.JSONField(default=list, verbose_name='Telefones')
+    telefone = models.CharField(max_length=10, verbose_name='Telefone')
     provincia_residencia = models.CharField(max_length=100, null=True, blank=True)
     municipio_residencia = models.CharField(max_length=100, null=True, blank=True)
     bairro_residencia = models.CharField(max_length=100, null=True, blank=True)
     numero_casa = models.CharField(max_length=100, null=True, blank=True)
-    senha_hash = models.CharField(max_length=255, verbose_name='Senha')
+    senha_hash = models.CharField(max_length=255, verbose_name='Senha', null=True, blank=True)
     genero = models.CharField(max_length=1, choices=GENERO_CHOICES, null=True, blank=True)
-    status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Activo', verbose_name='Status')
+    status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Activo', verbose_name='Estado')
     modo_user = models.CharField(max_length=20, default='Inativo', verbose_name='Modo Usuário')
     id_turma = models.ForeignKey(Turma, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Turma')
-    img_path = models.TextField(null=True, blank=True, verbose_name='Foto')
+    img_path = models.ImageField(upload_to="image/alunos/", verbose_name="Foto do Aluno", null=True, blank=True)
     is_online = models.BooleanField(default=False)
     
     class Meta:
@@ -49,6 +50,12 @@ class Aluno(BaseModel):
     
     def __str__(self):
         return f"{self.nome_completo} - {self.numero_matricula}"
+
+    def save(self, *args, **kwargs):
+        # Se a senha não estiver criptografada
+        if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
+            self.senha_hash = make_password(self.senha_hash)
+        super(Aluno, self).save(*args, **kwargs)
 
 
 class AlunoEncarregado(models.Model):

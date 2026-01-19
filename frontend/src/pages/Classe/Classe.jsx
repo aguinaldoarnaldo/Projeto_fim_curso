@@ -41,7 +41,7 @@ const Classe = () => {
             </thead>
             <tbody>
               {classes.map((c) => (
-                <tr key={c.id}>
+                <tr key={c.id} className="animate-fade-in">
                   <td className="id-cell">{c.id}</td>
                   <td>
                     <div className="class-info">

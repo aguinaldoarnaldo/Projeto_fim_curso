@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BarChart2,
@@ -14,12 +14,26 @@ import {
   ChevronRight
 } from 'lucide-react';
 import logo from '../../assets/img/logo_ipm2.png';
+import { useAuth } from '../../context/AuthContext';
+import './Sidebar.css';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
+  const { signOut } = useAuth();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
+  const handleLogoutClick = () => {
+      setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+      signOut();
+      setShowLogoutModal(false);
+  };
+
   const menuItems = [
     { name: 'Dashboard', icon: <BarChart2 size={20} />, path: '/dashboard' },
-    { name: 'Matrículas', icon: <FileText size={20} />, path: '/matriculas' },
     { name: 'Inscritos', icon: <Users size={20} />, path: '/inscrito' },
+    { name: 'Matrículas', icon: <FileText size={20} />, path: '/matriculas' },
     { name: 'Alunos', icon: <GraduationCap size={20} />, path: '/alunos' },
     { name: 'Turmas', icon: <TurmasIcon size={20} />, path: '/turma' },
     { name: 'Salas', icon: <Home size={20} />, path: '/salas' },
@@ -30,6 +44,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   ];
 
   return (
+    <>
     <aside className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="sidebar-header">
         {isOpen ? (
@@ -65,12 +80,34 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="nav-item logout-btn">
+        <button className="nav-item logout-btn" onClick={handleLogoutClick}>
           <LogOut size={22} />
           {isOpen && <span>Sair</span>}
         </button>
       </div>
     </aside>
+
+    {/* Logout Confirmation Modal */}
+    {showLogoutModal && (
+        <div className="sidebar-modal-overlay">
+            <div className="sidebar-modal-card">
+                <div className="modal-icon-wrapper">
+                    <LogOut size={32} />
+                </div>
+                <h3 className="sidebar-modal-title">Tem certeza que deseja sair?</h3>
+                <p className="sidebar-modal-text">Você precisará fazer login novamente para acessar o sistema.</p>
+                <div className="sidebar-modal-actions">
+                    <button className="btn-modal-cancel" onClick={() => setShowLogoutModal(false)}>
+                        Cancelar
+                    </button>
+                    <button className="btn-modal-confirm" onClick={confirmLogout}>
+                        Sim, Sair
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+    </>
   );
 };
 

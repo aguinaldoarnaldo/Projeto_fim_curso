@@ -15,6 +15,7 @@ from .avaliacao_views import (
 from .documento_views import DocumentoViewSet, SolicitacaoDocumentoViewSet
 from .biblioteca_views import CategoriaViewSet, LivroViewSet
 from .financeiro_views import FaturaViewSet, PagamentoViewSet
+from .candidatura_views import CandidaturaViewSet
 
 __all__ = [
     # Auth

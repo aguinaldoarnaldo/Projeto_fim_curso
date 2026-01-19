@@ -1,41 +1,95 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import Alunos from "../pages/Alunos/Alunos"
-import Classe from "../pages/Classe/Classe"
-import Dashboard from "../pages/Dashboard/Dashboard"
-import Inscrito from '../pages/Inscritos/Inscritos'
-import Login from "../pages/Login/Login"
-import Candidatura from "../pages/Public/Candidatura/Candidatura"
-import Matriculas from '../pages/Matriculas/Matriculas'
-import Salas from '../pages/Salas/Salas'
-import Turma from '../pages/Turmas/Turmas'
-import Cursos from '../pages/Cursos/Cursos'
-import Configuracoes from "../pages/Configuracoes/Configuracoes"
-import NovaMatricula from "../pages/Matriculas/NovaMatricula"
-import Relatorios from "../pages/Relatorios/Relatorios"
-import Layout from "../components/Layout/Layout"
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import Layout from "../components/Layout/Layout";
+
+// Wrapper for Lazy Loading with 500ms delay to prevent flashing
+const lazyLoad = (importFunc) => {
+  return lazy(() => {
+    return Promise.all([
+      importFunc(),
+      new Promise(resolve => setTimeout(resolve, 300)) // Minimal delay for smoother transition
+    ]).then(([moduleExports]) => moduleExports);
+  });
+};
+
+// Lazy Loaded Pages
+const Alunos = lazy(() => import("../pages/Alunos/Alunos"));
+const Classe = lazy(() => import("../pages/Classe/Classe"));
+const Dashboard = lazy(() => import("../pages/Dashboard/Dashboard"));
+const Inscrito = lazy(() => import("../pages/Inscritos/Inscritos"));
+const Login = lazy(() => import("../pages/Login/Login"));
+const Candidatura = lazy(() => import("../pages/Public/Candidatura/Candidatura"));
+const Matriculas = lazy(() => import("../pages/Matriculas/Matriculas"));
+const Salas = lazy(() => import("../pages/Salas/Salas"));
+const Turma = lazy(() => import("../pages/Turmas/Turmas"));
+const Cursos = lazy(() => import("../pages/Cursos/Cursos"));
+const Configuracoes = lazy(() => import("../pages/Configuracoes/Configuracoes"));
+const NovaMatricula = lazy(() => import("../pages/Matriculas/NovaMatricula"));
+const Relatorios = lazy(() => import("../pages/Relatorios/Relatorios"));
+
+// Loading Component
+const PageLoader = () => (
+  <div style={{
+    height: '100vh', 
+    width: '100%', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    background: '#f8fafc',
+    color: 'var(--primary-color)'
+  }}>
+    <div className="loading-spinner" style={{
+      width: '40px', 
+      height: '40px', 
+      border: '4px solid #e2e8f0', 
+      borderTopColor: 'currentColor', 
+      borderRadius: '50%', 
+      animation: 'spinner 0.8s linear infinite'
+    }}></div>
+  </div>
+);
+
+const PrivateRoute = ({ children }) => {
+    const { signed, loading } = useAuth();
+
+    if (loading) {
+        return <PageLoader />;
+    }
+
+    if (!signed) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children;
+};
 
 export default function Routers(params) {
     return (
         <BrowserRouter>
-            <Routes>
-                {/* Public Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/candidatura" element={<Candidatura />} />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Suspense fallback={<PageLoader />}>
+                <Routes>
+                    {/* Public Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/candidatura" element={<Candidatura />} />
+                    
+                    {/* Redirect root to dashboard (will be handled by PrivateRoute) */}
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                {/* Protected Routes (Wrapped in Layout) */}
-                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-                <Route path="/alunos" element={<Layout><Alunos /></Layout>} />
-                <Route path="/classe" element={<Layout><Classe /></Layout>} />
-                <Route path="/inscrito" element={<Layout><Inscrito /></Layout>} />
-                <Route path="/matriculas" element={<Layout><Matriculas /></Layout>} />
-                <Route path="/salas" element={<Layout><Salas /></Layout>} />
-                <Route path="/turma" element={<Layout><Turma /></Layout>} />
-                <Route path="/cursos" element={<Layout><Cursos /></Layout>} />
-                <Route path="/configuracoes" element={<Layout><Configuracoes /></Layout>} />
-                <Route path="/matriculas/nova" element={<Layout><NovaMatricula /></Layout>} />
-                <Route path="/relatorios" element={<Layout><Relatorios /></Layout>} />
-            </Routes>
+                    {/* Protected Routes (Wrapped in Layout and PrivateRoute) */}
+                    <Route path="/dashboard" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
+                    <Route path="/alunos" element={<PrivateRoute><Layout><Alunos /></Layout></PrivateRoute>} />
+                    <Route path="/classe" element={<PrivateRoute><Layout><Classe /></Layout></PrivateRoute>} />
+                    <Route path="/inscrito" element={<PrivateRoute><Layout><Inscrito /></Layout></PrivateRoute>} />
+                    <Route path="/matriculas" element={<PrivateRoute><Layout><Matriculas /></Layout></PrivateRoute>} />
+                    <Route path="/salas" element={<PrivateRoute><Layout><Salas /></Layout></PrivateRoute>} />
+                    <Route path="/turma" element={<PrivateRoute><Layout><Turma /></Layout></PrivateRoute>} />
+                    <Route path="/cursos" element={<PrivateRoute><Layout><Cursos /></Layout></PrivateRoute>} />
+                    <Route path="/configuracoes" element={<PrivateRoute><Layout><Configuracoes /></Layout></PrivateRoute>} />
+                    <Route path="/matriculas/nova" element={<PrivateRoute><Layout><NovaMatricula /></Layout></PrivateRoute>} />
+                    <Route path="/relatorios" element={<PrivateRoute><Layout><Relatorios /></Layout></PrivateRoute>} />
+                </Routes>
+            </Suspense>
         </BrowserRouter>
     )
 }

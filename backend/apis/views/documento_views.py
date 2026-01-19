@@ -23,7 +23,7 @@ class DocumentoViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['id_aluno', 'tipo_documento']
+#    filterset_fields = ['id_aluno', 'tipo_documento']
     search_fields = ['tipo_documento', 'uuid_documento']
     ordering_fields = ['data_emissao']
     ordering = ['-data_emissao']
@@ -52,7 +52,7 @@ class SolicitacaoDocumentoViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status_solicitacao', 'tipo_documento', 'id_aluno']
+    #filterset_fields = ['status_solicitacao', 'tipo_documento', 'id_aluno']
     search_fields = ['tipo_documento']
     ordering_fields = ['data_solicitacao']
     ordering = ['-data_solicitacao']

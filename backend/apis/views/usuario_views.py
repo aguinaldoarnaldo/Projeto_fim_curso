@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+# from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -13,11 +13,14 @@ from apis.serializers import (
 )
 
 
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 class CargoViewSet(viewsets.ModelViewSet):
     """ViewSet para Cargo"""
     queryset = Cargo.objects.all()
     serializer_class = CargoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
+    authentication_classes = []
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ['nome_cargo']
     ordering_fields = ['nome_cargo', 'criado_em']
@@ -29,7 +32,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
     queryset = Funcionario.objects.select_related('id_cargo').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status_funcionario', 'id_cargo', 'genero']
+    #filterset_fields = ['status_funcionario', 'id_cargo', 'genero']
     search_fields = ['nome_completo', 'email', 'codigo_identificacao']
     ordering_fields = ['nome_completo', 'data_admissao', 'criado_em']
     ordering = ['nome_completo']
@@ -101,6 +104,6 @@ class CargoFuncionarioViewSet(viewsets.ModelViewSet):
     serializer_class = CargoFuncionarioSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['id_funcionario', 'id_cargo']
+    #filterset_fields = ['id_funcionario', 'id_cargo']
     ordering_fields = ['data_inicio', 'data_fim']
     ordering = ['-data_inicio']

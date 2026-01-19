@@ -3,12 +3,12 @@ import './Inscritos.css';
 import {
   User,
   BookOpen,
-  MapPin,
-  Phone,
-  Mail,
+  MapPin, // kept for potential usage or remove if unused, but removing might break if used in css/other
+  Phone, // kept
+  Mail, // kept
   FileText,
   CheckCircle2,
-  Calendar,
+  Calendar, // kept
   ShieldAlert,
   Download,
   Printer,
@@ -19,21 +19,26 @@ import {
   Search,
   Filter,
   RotateCcw,
-  ChevronLeft,
+  ChevronLeft, // kept
   GraduationCap
 } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Common/Pagination';
+import api from '../../services/api';
+import { useCache } from '../../context/CacheContext';
 
 const Inscritos = () => {
+  const navigate = useNavigate();
   const [selectedCandidato, setSelectedCandidato] = useState(null);
   const [rupGenerated, setRupGenerated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const tableRef = useRef(null);
-    // Pagination State
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(24);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(24);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -56,61 +61,85 @@ const Inscritos = () => {
     curso: ''
   });
 
-  // Generate 150 mock candidates
-  const [inscritos, setInscritos] = useState(() => {
-      const mockData = Array.from({ length: 150 }, (_, i) => {
-          const id = i + 1;
-          const padId = id.toString().padStart(3, '0');
-          const cursos = ['Informática', 'Gestão', 'Direito', 'Enfermagem'];
-          const statusList = ['Pendente', 'Em Análise', 'Aprovado', 'Não Admitido'];
-          const status = statusList[i % statusList.length];
+  // Fetch candidates from API
+  const [inscritos, setInscritos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-          return {
-              id: `INS2024${padId}`,
-              nome: `Candidato Exemplo ${id}`,
-              genero: i % 2 === 0 ? 'Feminino' : 'Masculino',
-              dataNascimento: '2008-05-12',
-              nacionalidade: 'Angolana',
-              bi: `00${padId}567LA${padId.slice(-2)}`,
-              dataEmissaoBI: '2022-10-15',
-              naturalidade: 'Luanda',
-              residencia: 'Luanda, Angola',
-              telefone: `923${padId}${padId}`,
-              email: `candidato${id}@email.com`,
-              deficiencia: 'Não',
-              tipoDeficiencia: '',
+  // Cache
+  const { getCache, setCache } = useCache();
+
+  useEffect(() => {
+    fetchCandidates();
+  }, []);
+
+  const fetchCandidates = async (force = false) => {
+      if (!force) {
+        const cachedData = getCache('inscritos');
+        if (cachedData) {
+            setInscritos(cachedData);
+            setIsLoading(false);
+            return;
+        }
+      }
+
+      try {
+          setIsLoading(true);
+          const response = await api.get('candidaturas/');
+          const data = response.data.results || response.data;
+          
+          if (!Array.isArray(data)) {
+             console.error("Dados inválidos recebidos:", data);
+             setInscritos([]);
+             return;
+          }
+
+          const formatted = data.map(c => ({
+              id: c.numero_inscricao || `INS-${c.id_candidato}`,
+              real_id: c.id_candidato,
+              nome: c.nome_completo,
+              genero: c.genero === 'M' ? 'Masculino' : 'Feminino',
+              dataNascimento: c.data_nascimento,
+              nacionalidade: c.nacionalidade,
+              bi: c.numero_bi,
+              dataEmissaoBI: 'N/A', 
+              naturalidade: 'N/A', 
+              residencia: c.residencia,
+              telefone: c.telefone,
+              email: c.email,
+              deficiencia: 'Não', 
               escola9: 'Pública',
-              nomeEscola: 'Escola Primária 123',
-              municipioEscola: 'Maianga',
-              anoConclusao: '2023',
-              anoInscricao: '2024',
-              nota9: 14 + (i % 6),
-              notaExame: status === 'Aprovado' ? 10 + (i % 10) : null,
-              curso1: cursos[i % cursos.length],
-              curso2: cursos[(i + 1) % cursos.length],
-              turno: ['Manhã', 'Tarde', 'Noite'][i % 3],
-              status: status,
-              dataInscricao: '20 Dez 2024',
+              nomeEscola: c.escola_proveniencia,
+              municipioEscola: c.municipio_escola,
+              anoConclusao: c.ano_conclusao,
+              anoInscricao: c.criado_em ? new Date(c.criado_em).getFullYear().toString() : '2026',
+              nota9: c.media_final,
+              notaExame: c.nota_exame,
+              curso1: c.curso1_nome,
+              curso2: c.curso2_nome,
+              turno: c.turno_preferencial,
+              status: c.status,
+              dataInscricao: c.criado_em ? new Date(c.criado_em).toLocaleDateString() : 'N/A',
               encarregado: {
-                  nome: `Encarregado ${id}`,
-                  parentesco: 'Pai',
-                  bi: `00${padId}111LA22`,
-                  telefone: '924000333',
-                  telefoneAlt: '',
-                  email: 'encarregado@email.com',
-                  profissao: 'Engenheiro',
-                  localTrabalho: 'Empresa X'
+                  nome: c.nome_encarregado,
+                  parentesco: c.parentesco_encarregado,
+                  telefone: c.telefone_encarregado,
+                  email: '',
+                  profissao: 'N/A'
+              },
+              files: {
+                  foto: c.foto_passe,
+                  bi: c.comprovativo_bi,
+                  certificado: c.certificado
               }
-          };
-      });
-
-      // Load from LocalStorage
-      const localCandidates = JSON.parse(localStorage.getItem('registeredCandidates') || '[]');
-      
-      // Combine mock data and local candidates (Local candidates first to appear at top of list usually, or spread logic)
-      // If we want new ones to appear first, we should probably sort by date or ID later, but for now:
-      return [...localCandidates, ...mockData];
-  });
+          }));
+          setInscritos(formatted);
+          setCache('inscritos', formatted);
+      } catch (err) {
+          console.error("Erro ao buscar inscritos:", err);
+      } finally {
+          setIsLoading(false);
+      }
+  };
 
 
   const calculateAge = (birthDate) => {
@@ -137,32 +166,35 @@ const Inscritos = () => {
     setExamGrade('');
   };
 
-  const handleSubmitEvaluation = () => {
+  const handleSubmitEvaluation = async () => {
     if (!examGrade || isNaN(examGrade) || examGrade < 0 || examGrade > 20) {
       alert("Por favor, insira uma nota válida (0-20).");
       return;
     }
 
-    const grade = parseFloat(examGrade);
-    const isApproved = grade >= 10; // Passing grade is 10
-
-    setInscritos(prev => prev.map(i => {
-      if (i.id === candidateToEvaluate.id) {
-        return {
-          ...i,
-          notaExame: grade,
-          status: isApproved ? 'Aprovado' : 'Não Admitido'
-        };
-      }
-      return i;
-    }));
+    try {
+        const grade = parseFloat(examGrade);
+        const response = await api.post(`candidaturas/${candidateToEvaluate.real_id}/avaliar/`, { nota: grade });
+        const { status, nota } = response.data;
+        
+        setInscritos(prev => prev.map(i => {
+          if (i.id === candidateToEvaluate.id) {
+            return {
+              ...i,
+              notaExame: nota,
+              status: status
+            };
+          }
+          return i;
+        }));
+        
+        alert(`Avaliação registrada com sucesso! Candidato ${status}.`);
+    } catch (err) {
+        console.error("Erro ao avaliar:", err);
+        alert("Erro ao salvar avaliação.");
+    }
 
     handleCloseEvaluation();
-  };
-
-  const handleDownloadDoc = (docName) => {
-    // Simulation of download
-    alert(`Iniciando download do documento: ${docName}...\\n(Funcionalidade simulada)`);
   };
 
   const handleGenerateRUP = () => {
@@ -176,7 +208,7 @@ const Inscritos = () => {
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
-    setCurrentPage(1); // Reset to first page on filter change
+    setCurrentPage(1); 
   };
 
   const resetFilters = () => {
@@ -196,14 +228,21 @@ const Inscritos = () => {
     }).sort((a, b) => b.nota9 - a.nota9);
   }, [inscritos, searchTerm, filters]);
 
-  const totalPages = Math.ceil(filteredInscritos.length / itemsPerPage);
-  const currentData = filteredInscritos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Ensure itemsPerPage is a number
+  const currentData = filteredInscritos.slice((currentPage - 1) * 24, currentPage * 24);
 
   return (
     <div className="page-container">
       <header className="page-header">
-        <h1>Gestão de Inscrições</h1>
-        <p>Acompanhe, avalie e matricule os candidatos inscritos no sistema.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+                <h1>Gestão de Inscrições</h1>
+                <p>Acompanhe, avalie e matricule os candidatos inscritos no sistema.</p>
+            </div>
+            <button onClick={() => fetchCandidates(true)} className="btn-action" style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RotateCcw size={16} /> Atualizar Lista
+            </button>
+        </div>
       </header>
 
       <div className="table-card" ref={tableRef}>
@@ -255,6 +294,7 @@ const Inscritos = () => {
                   <option value="Em Análise">Em Análise</option>
                   <option value="Aprovado">Aprovado</option>
                   <option value="Não Admitido">Não Admitido</option>
+                  <option value="Matriculado">Matriculado</option>
                 </select>
               </div>
               <div className="grupo-filtro">
@@ -275,74 +315,85 @@ const Inscritos = () => {
           </div>
         )}
 
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Candidato</th>
-                <th>Curso</th>
-                <th>Exame</th>
-                <th>Ano</th>
-                <th>Estado</th>
-                <th style={{ textAlign: 'center' }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentData.length > 0 ? currentData.map((i) => (
-                <tr key={i.id} className="clickable-row">
-                  <td onClick={() => setSelectedCandidato(i)}>{i.id}</td>
-                  <td onClick={() => setSelectedCandidato(i)} style={{ fontWeight: 600 }}>{i.nome}</td>
-                  <td onClick={() => setSelectedCandidato(i)}>{i.curso1}</td>
-                  <td onClick={() => setSelectedCandidato(i)}>
-                    {i.notaExame ? (
-                      <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
-                        {i.notaExame}
-                      </span>
-                    ) : '-'}
-                  </td>
-                  <td onClick={() => setSelectedCandidato(i)}>{i.anoInscricao}</td>
-                  <td onClick={() => setSelectedCandidato(i)}>
-                    <span className={`status-badge ${i.status === 'Pendente' ? 'status-pending' :
-                      i.status === 'Em Análise' ? 'status-analysis' :
-                        i.status === 'Aprovado' ? 'status-approved' : 'status-rejected'
-                      }`}>
-                      {i.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="actions-cell" style={{ justifyContent: 'center' }}>
-                      <button
-                        className="btn-action btn-evaluate"
-                        onClick={(e) => { e.stopPropagation(); handleOpenEvaluation(i); }}
-                      >
-                        Avaliar
-                      </button>
-                      <button
-                        className="btn-action btn-enroll"
-                        disabled={i.status !== 'Aprovado'}
-                        onClick={(e) => { e.stopPropagation(); alert(`Iniciando processo de matrícula para ${i.nome}`); }}
-                      >
-                        Matricular
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                    Nenhum candidato encontrado com os filtros aplicados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {isLoading ? (
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', color: '#64748b'}}>
+                <div className="loading-spinner" style={{width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spinner 0.8s linear infinite'}}></div>
+                <span style={{fontWeight: 500}}>A carregar inscritos...</span>
+            </div>
+        ) : (
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Candidato</th>
+                    <th>Curso</th>
+                    <th>Exame</th>
+                    <th>Ano</th>
+                    <th>Estado</th>
+                    <th style={{ textAlign: 'center' }}>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentData.length > 0 ? currentData.map((i) => (
+                    <tr key={i.id} className="clickable-row animate-fade-in">
+                      <td onClick={() => setSelectedCandidato(i)}>{i.id}</td>
+                      <td onClick={() => setSelectedCandidato(i)} style={{ fontWeight: 600 }}>{i.nome}</td>
+                      <td onClick={() => setSelectedCandidato(i)}>{i.curso1}</td>
+                      <td onClick={() => setSelectedCandidato(i)}>
+                        {i.notaExame ? (
+                          <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
+                            {i.notaExame}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td onClick={() => setSelectedCandidato(i)}>{i.anoInscricao}</td>
+                      <td onClick={() => setSelectedCandidato(i)}>
+                        <span className={`status-badge ${i.status === 'Pendente' ? 'status-pending' :
+                          i.status === 'Em Análise' ? 'status-analysis' :
+                            i.status === 'Aprovado' ? 'status-approved' : 
+                            i.status === 'Matriculado' ? 'status-confirmed' : 'status-rejected'
+                          }`}>
+                          {i.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="actions-cell" style={{ justifyContent: 'center' }}>
+                          <button
+                            className="btn-action btn-evaluate"
+                            onClick={(e) => { e.stopPropagation(); handleOpenEvaluation(i); }}
+                          >
+                            Avaliar
+                          </button>
+                          <button
+                            className="btn-action btn-enroll"
+                            disabled={i.status !== 'Aprovado'}
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                navigate('/matriculas/nova', { state: { candidato: i } });
+                            }}
+                          >
+                            Matricular
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                        Nenhum candidato encontrado com os filtros aplicados.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+        )}
 
         {/* Pagination */}
         <Pagination 
             totalItems={filteredInscritos.length} 
-            itemsPerPage={itemsPerPage} 
+            itemsPerPage={24} 
             currentPage={currentPage}
             onPageChange={setCurrentPage}
         />
@@ -525,40 +576,37 @@ const Inscritos = () => {
                       <FileText size={20} color="#2563eb" />
                       <div>
                         <label style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>DOC. IDENTIFICAÇÃO</label>
-                        <p style={{ fontSize: '13px' }}>identificacao_candidato.pdf</p>
+                        <p style={{ fontSize: '13px' }}>{selectedCandidato.files?.bi ? 'BI Enviado' : 'Pendente'}</p>
                       </div>
-                      <button
-                        onClick={() => handleDownloadDoc('identificacao_candidato.pdf')}
-                        className="btn-download"
-                      >
-                        <Download size={18} color="#64748b" />
-                      </button>
+                      {selectedCandidato.files?.bi && (
+                          <a href={selectedCandidato.files.bi} target="_blank" rel="noopener noreferrer" className="btn-download">
+                             <Download size={18} color="#64748b" />
+                          </a>
+                      )}
                     </div>
                     <div className="doc-item">
                       <User size={20} color="#2563eb" />
                       <div>
                         <label style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>FOTO TIPO PASSE</label>
-                        <p style={{ fontSize: '13px' }}>foto_perfil.jpg</p>
+                        <p style={{ fontSize: '13px' }}>{selectedCandidato.files?.foto ? 'Foto Enviada' : 'Pendente'}</p>
                       </div>
-                      <button
-                        onClick={() => handleDownloadDoc('foto_perfil.jpg')}
-                        className="btn-download"
-                      >
-                        <Download size={18} color="#64748b" />
-                      </button>
+                       {selectedCandidato.files?.foto && (
+                          <a href={selectedCandidato.files.foto} target="_blank" rel="noopener noreferrer" className="btn-download">
+                             <Download size={18} color="#64748b" />
+                          </a>
+                      )}
                     </div>
                     <div className="doc-item">
                       <ClipboardCheck size={20} color="#2563eb" />
                       <div>
                         <label style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>CERTIFICADO 9ª CLASSE</label>
-                        <p style={{ fontSize: '13px' }}>certificado_conclusao.pdf</p>
+                        <p style={{ fontSize: '13px' }}>{selectedCandidato.files?.certificado ? 'Certificado Enviado' : 'Pendente'}</p>
                       </div>
-                      <button
-                        onClick={() => handleDownloadDoc('certificado_conclusao.pdf')}
-                        className="btn-download"
-                      >
-                        <Download size={18} color="#64748b" />
-                      </button>
+                       {selectedCandidato.files?.certificado && (
+                          <a href={selectedCandidato.files.certificado} target="_blank" rel="noopener noreferrer" className="btn-download">
+                             <Download size={18} color="#64748b" />
+                          </a>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -17,6 +17,7 @@ from apis.views import (
     DocumentoViewSet, SolicitacaoDocumentoViewSet,
     CategoriaViewSet, LivroViewSet,
     FaturaViewSet, PagamentoViewSet,
+    CandidaturaViewSet,
 )
 
 # Criar router e registrar ViewSets
@@ -61,6 +62,13 @@ router.register(r'livros', LivroViewSet, basename='livro')
 # Financeiro
 router.register(r'faturas', FaturaViewSet, basename='fatura')
 router.register(r'pagamentos', PagamentoViewSet, basename='pagamento')
+
+# Candidatura
+router.register(r'candidaturas', CandidaturaViewSet, basename='candidatura')
+
+# Matriculas
+from apis.views.matricula_views import MatriculaViewSet
+router.register(r'matriculas', MatriculaViewSet, basename='matricula')
 
 # URLs
 urlpatterns = [

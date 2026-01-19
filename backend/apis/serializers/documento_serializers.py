@@ -11,7 +11,7 @@ class DocumentoSerializer(serializers.ModelSerializer):
         model = Documento
         fields = [
             'id_documento', 'id_aluno', 'aluno_nome', 'tipo_documento',
-            'caminho_pdf', 'imagem_carimbo', 'uuid_documento',
+            'caminho_pdf', 'uuid_documento',
             'criado_por', 'criado_por_nome', 'data_emissao'
         ]
         read_only_fields = ['id_documento', 'uuid_documento', 'data_emissao']

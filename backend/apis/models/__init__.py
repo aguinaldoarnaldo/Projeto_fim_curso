@@ -12,6 +12,7 @@ from .biblioteca import Categoria, Livro
 from .financeiro import Fatura, Pagamento
 from .matriculas import Inscricao, Matricula
 from .auditoria import Historico, HistoricoLogin
+from .candidatura import Candidato, RupeCandidato, ExameAdmissao
 
 __all__ = [
     'BaseModel',
@@ -24,4 +25,6 @@ __all__ = [
     'Fatura', 'Pagamento',
     'Inscricao', 'Matricula',
     'Historico', 'HistoricoLogin',
+    # Candidatura
+    'Candidato', 'RupeCandidato', 'ExameAdmissao',
 ]

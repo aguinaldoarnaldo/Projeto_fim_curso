@@ -13,7 +13,7 @@ class CargoSerializer(serializers.ModelSerializer):
 
 class FuncionarioSerializer(serializers.ModelSerializer):
     """Serializer para Funcionario"""
-    cargo_nome = serializers.CharField(source='id_cargo.nome_cargo', read_only=True)
+    cargo_nome = serializers.SerializerMethodField()
     
     class Meta:
         model = Funcionario
@@ -29,10 +29,13 @@ class FuncionarioSerializer(serializers.ModelSerializer):
             'senha_hash': {'write_only': True}
         }
 
+    def get_cargo_nome(self, obj):
+        return obj.id_cargo.nome_cargo if obj.id_cargo else None
+
 
 class FuncionarioListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem de Funcionarios"""
-    cargo_nome = serializers.CharField(source='id_cargo.nome_cargo', read_only=True)
+    cargo_nome = serializers.SerializerMethodField()
     
     class Meta:
         model = Funcionario
@@ -40,6 +43,9 @@ class FuncionarioListSerializer(serializers.ModelSerializer):
             'id_funcionario', 'codigo_identificacao', 'nome_completo',
             'cargo_nome', 'email', 'status_funcionario', 'is_online'
         ]
+
+    def get_cargo_nome(self, obj):
+        return obj.id_cargo.nome_cargo if obj.id_cargo else None
 
 
 class EncarregadoSerializer(serializers.ModelSerializer):

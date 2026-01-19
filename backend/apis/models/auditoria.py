@@ -11,19 +11,19 @@ class Historico(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Funcionário'
+        verbose_name='Funcionário',editable=False
     )
     id_aluno = models.ForeignKey(
         Aluno,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Aluno'
+        verbose_name='Aluno',editable=False
     )
-    tipo_accao = models.CharField(max_length=50, verbose_name='Tipo de Ação')
-    dados_anteriores = models.JSONField(null=True, blank=True, verbose_name='Dados Anteriores')
-    dados_novos = models.JSONField(null=True, blank=True, verbose_name='Dados Novos')
-    data_hora = models.DateTimeField(auto_now_add=True, verbose_name='Data/Hora')
+    tipo_accao = models.CharField(max_length=50, verbose_name='Tipo de Ação',editable=False)
+    dados_anteriores = models.JSONField(null=True, blank=True, verbose_name='Dados Anteriores',editable=False)
+    dados_novos = models.JSONField(null=True, blank=True, verbose_name='Dados Novos',editable=False)
+    data_hora = models.DateTimeField(auto_now_add=True, verbose_name='Data/Hora',editable=False)
     
     class Meta:
         db_table = 'historico'
@@ -46,27 +46,27 @@ class HistoricoLogin(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Funcionário'
+        verbose_name='Funcionário',editable=False
     )
     id_aluno = models.ForeignKey(
         Aluno,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Aluno'
+        verbose_name='Aluno',editable=False
     )
     id_encarregado = models.ForeignKey(
         Encarregado,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='Encarregado'
+        verbose_name='Encarregado',editable=False
     )
-    ip_usuario = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP')
-    dispositivo = models.CharField(max_length=150, null=True, blank=True, verbose_name='Dispositivo')
-    navegador = models.CharField(max_length=150, null=True, blank=True, verbose_name='Navegador')
-    hora_entrada = models.DateTimeField(auto_now_add=True, verbose_name='Hora de Entrada')
-    hora_saida = models.DateTimeField(null=True, blank=True, verbose_name='Hora de Saída')
+    ip_usuario = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP',editable=False)
+    dispositivo = models.CharField(max_length=150, null=True, blank=True, verbose_name='Dispositivo',editable=False)
+    navegador = models.CharField(max_length=150, null=True, blank=True, verbose_name='Navegador',editable=False)
+    hora_entrada = models.DateTimeField(auto_now_add=True, verbose_name='Hora de Entrada',editable=False)
+    hora_saida = models.DateTimeField(null=True, blank=True, verbose_name='Hora de Saída',editable=False)
     
     class Meta:
         db_table = 'historico_login'

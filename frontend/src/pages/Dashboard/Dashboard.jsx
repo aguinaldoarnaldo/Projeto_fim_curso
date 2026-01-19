@@ -201,7 +201,7 @@ const Dashboard = () => {
       {/* HEADER */}
       <header className="dashboard-header">
         <div className="header-text">
-          <h1>Olá, Administrador 👋</h1>
+          <h1>Olá, Administrador</h1>
           <p>Visão geral e controle do sistema escolar.</p>
         </div>
 

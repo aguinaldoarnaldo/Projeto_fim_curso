@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -20,10 +20,10 @@ class SalaViewSet(viewsets.ModelViewSet):
     """ViewSet para Sala"""
     queryset = Sala.objects.all()
     serializer_class = SalaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields = ['numero_sala']
-    ordering_fields = ['numero_sala', 'capacidade_alunos']
+    search_fields = ['numero_sala', 'bloco']
+    ordering_fields = ['numero_sala', 'capacidade_alunos', 'bloco']
     ordering = ['numero_sala']
 
 
@@ -51,7 +51,7 @@ class SeccaoViewSet(viewsets.ModelViewSet):
     serializer_class = SeccaoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['id_departamento']
+    #filterset_fields = ['id_departamento']
     search_fields = ['nome_seccao']
 
 
@@ -70,12 +70,18 @@ class CursoViewSet(viewsets.ModelViewSet):
     queryset = Curso.objects.select_related(
         'id_area_formacao', 'id_responsavel'
     ).all()
-    permission_classes = [IsAuthenticated]
+    authentication_classes = [] 
+    # permission_classes = [IsAuthenticated] - Managed by get_permissions
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['id_area_formacao']
+    #filterset_fields = ['id_area_formacao']
     search_fields = ['nome_curso']
-    ordering_fields = ['nome_curso', 'duracao_meses']
+    ordering_fields = ['nome_curso', 'duracao']
     ordering = ['nome_curso']
+    
+    def get_permissions(self):
+        if self.action == 'list':
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -111,7 +117,7 @@ class PeriodoViewSet(viewsets.ModelViewSet):
     """ViewSet para Periodo"""
     queryset = Periodo.objects.select_related('id_responsavel').all()
     serializer_class = PeriodoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class TurmaViewSet(viewsets.ModelViewSet):
@@ -119,9 +125,9 @@ class TurmaViewSet(viewsets.ModelViewSet):
     queryset = Turma.objects.select_related(
         'id_sala', 'id_curso', 'id_classe', 'id_periodo', 'id_responsavel'
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['id_curso', 'id_classe', 'id_periodo', 'ano']
+    #filterset_fields = ['id_curso', 'id_classe', 'id_periodo', 'ano']
     search_fields = ['codigo_turma']
     ordering_fields = ['codigo_turma', 'ano']
     ordering = ['codigo_turma']
@@ -163,3 +169,4 @@ class TurmaViewSet(viewsets.ModelViewSet):
             'alunos_por_status': list(alunos_por_status),
             'alunos_por_genero': list(alunos_por_genero)
         })
+        

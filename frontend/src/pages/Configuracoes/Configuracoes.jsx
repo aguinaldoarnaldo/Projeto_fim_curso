@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Configuracoes.css';
 
 import {
@@ -11,31 +11,158 @@ import {
     Info,
     CheckCircle,
     AlertTriangle,
-    Palette
+    Palette,
+    Plus,
+    X,
+    Save,
+    Lock
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext'; // Assuming AuthContext exists
+import api from '../../services/api';
 
 const Configuracoes = () => {
     const { themeColor, changeColor } = useTheme();
+    // Try to get auth context, fallback to mock if not available
+    const auth = useAuth() || {}; 
+    const { user } = auth;
+    
+    // Check if current user is Admin (adapt based on your real Auth logic)
+    // For now, assuming if role contains 'Admin' or 'Director'
+    const isAdmin = user?.role?.toLowerCase().includes('admin') || user?.role?.toLowerCase().includes('director') || true; // Default true for dev
+
     const [activeTab, setActiveTab] = useState('manutencao');
     const [selectedUser, setSelectedUser] = useState(null);
-    const [backupStatus, setBackupStatus] = useState('idle'); // idle, processing, completed
+    const [backupStatus, setBackupStatus] = useState('idle');
 
-    const users = [
-        { id: 1, name: 'Ana Paula', role: 'Secretária', email: 'ana.paula@escola.com' },
-        { id: 2, name: 'Carlos Santos', role: 'Professor', email: 'carlos.santos@escola.com' },
-        { id: 3, name: 'Maria José', role: 'Financeiro', email: 'maria.jose@escola.com' },
-        { id: 4, name: 'João Manuel', role: 'Secretário', email: 'joao.manuel@escola.com' },
-        { id: 5, name: 'Isabel Silva', role: 'Coordenadora', email: 'isabel.silva@escola.com' },
-    ];
+    // Real Data States
+    const [funcionarios, setFuncionarios] = useState([]);
+    const [cargos, setCargos] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [cargosLoading, setCargosLoading] = useState(false);
+    
+    // Modal State
+    const [showUserModal, setShowUserModal] = useState(false);
+    const [cargoError, setCargoError] = useState(null);
+    const [newUserEncoded, setNewUserEncoded] = useState({
+        nome_completo: '',
+        numero_bi: '',
+        email: '',
+        id_cargo: '',
+        senha_hash: '123456', // Default password
+        status_funcionario: 'Activo'
+    });
+
+    // Fetch Cargos on Mount (Global for the page)
+    useEffect(() => {
+        fetchCargos();
+    }, []);
+
+    // Fetch Data when entering tab
+    useEffect(() => {
+        if (activeTab === 'seguranca') {
+            fetchSecurityData();
+            // Ensure cargos are loaded if not already
+            if (cargos.length === 0) {
+                fetchCargos();
+            }
+        }
+    }, [activeTab]);
+
+    const fetchCargos = async () => {
+        try {
+            setCargoError(null);
+            if (!cargosLoading) setCargosLoading(true);
+            const response = await api.get('cargos/');
+            console.log("API Cargos Response:", response.data);
+            
+            let data = [];
+            if (Array.isArray(response.data)) {
+                data = response.data;
+            } else if (response.data && Array.isArray(response.data.results)) {
+                data = response.data.results;
+            }
+            
+            if (data.length > 0) {
+                setCargos(data);
+            } else {
+                console.warn("API retornou lista vazia de cargos");
+            }
+        } catch (error) {
+            console.error("Erro ao buscar cargos:", error);
+            setCargoError("Erro ao carregar. Verifique a conexão.");
+        } finally {
+            setCargosLoading(false);
+        }
+    };
+
+    const fetchSecurityData = async () => {
+        try {
+            setLoading(true);
+            const funcRes = await api.get('funcionarios/');
+            setFuncionarios(funcRes.data.results || funcRes.data || []);
+        } catch (error) {
+            console.error("Erro ao buscar funcionários:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleBackup = () => {
         setBackupStatus('processing');
-        // Simulate backup process
         setTimeout(() => {
             setBackupStatus('completed');
             setTimeout(() => setBackupStatus('idle'), 5000);
         }, 3000);
+    };
+
+    const handleCreateUser = async () => {
+        if (!newUserEncoded.nome_completo || !newUserEncoded.email || !newUserEncoded.id_cargo) {
+            alert("Por favor preencha os campos obrigatórios.");
+            return;
+        }
+
+        try {
+            await api.post('funcionarios/', newUserEncoded);
+            alert("Usuário criado com sucesso!");
+            setShowUserModal(false);
+            setNewUserEncoded({
+                nome_completo: '',
+                numero_bi: '',
+                email: '',
+                id_cargo: '',
+                senha_hash: '123456',
+                status_funcionario: 'Activo'
+            });
+            fetchSecurityData();
+        } catch (error) {
+            console.error("Erro ao criar usuário:", error);
+            alert("Erro ao criar usuário. Verifique os dados.");
+        }
+    };
+
+    const handleUpdateStatus = async (status) => {
+        if (!selectedUser) return;
+        try {
+            await api.patch(`funcionarios/${selectedUser.id_funcionario}/`, { 
+                status_funcionario: status 
+            });
+            
+            // Update local state
+            setFuncionarios(prev => prev.map(f => 
+                f.id_funcionario === selectedUser.id_funcionario 
+                ? { ...f, status_funcionario: status } 
+                : f
+            ));
+            
+            // Update selected user view
+            setSelectedUser(prev => ({ ...prev, status_funcionario: status }));
+            
+            alert(`Status atualizado para ${status}`);
+        } catch (error) {
+            console.error("Erro ao atualizar status:", error);
+            alert("Erro ao atualizar status.");
+        }
     };
 
     const renderContent = () => {
@@ -117,10 +244,6 @@ const Configuracoes = () => {
                                     <span className="info-detail-label">Licença</span>
                                     <span className="info-detail-value">Institucional - Ilimitada</span>
                                 </div>
-                                <div className="info-detail-item">
-                                    <span className="info-detail-label">Espaço em Disco (Anexos)</span>
-                                    <span className="info-detail-value">14.2 GB / 50 GB</span>
-                                </div>
                             </div>
                         </div>
                     </>
@@ -185,95 +308,314 @@ const Configuracoes = () => {
                 );
             case 'seguranca':
                 return (
-                    <div className="table-card" style={{ padding: '30px' }}>
-                        <div className="config-section-header">
-                            <div className="config-icon-box-blue">
-                                <Shield size={24} />
-                            </div>
-                            <div>
-                                <h3 className="config-section-title">Segurança e Controlo de Acesso</h3>
-                                <p className="config-section-subtitle">Selecione um usuário para gerir suas permissões individuais.</p>
-                            </div>
-                        </div>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+                        
+                        {/* VIEW: CREATE USER FORM (INLINE) */}
+                        {showUserModal ? (
+                            <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0'}}>
+                                    <div style={{background: '#f1f5f9', padding: '10px', borderRadius: '10px', color: '#334155'}}>
+                                        <User size={24} />
+                                    </div>
+                                    <div>
+                                        <h2 style={{fontSize: '20px', fontWeight: '700', margin: 0, color: '#0f172a'}}>Novo Usuário</h2>
+                                        <p style={{fontSize: '13px', margin: '4px 0 0 0', color: '#64748b'}}>
+                                            Preencha os dados abaixo para cadastrar um novo funcionário.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowUserModal(false)}
+                                        className="btn-config-secondary"
+                                        style={{marginLeft: 'auto', width: 'auto', minWidth: 'auto', padding: '10px 20px'}}
+                                    >
+                                        Voltar para Lista
+                                    </button>
+                                </div>
 
-                        <div className="security-grid-container">
-                            {/* User List Column */}
-                            <div>
-                                <h4 style={{ fontSize: '15px', marginBottom: '12px' }}>Usuários do Sistema</h4>
-                                <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden', maxHeight: '400px', overflowY: 'auto' }}>
-                                    {users.map(u => (
-                                        <div
-                                            key={u.id}
-                                            onClick={() => setSelectedUser(u)}
-                                            style={{
-                                                padding: '12px 15px',
-                                                borderBottom: '1px solid var(--border-color)',
-                                                cursor: 'pointer',
-                                                background: selectedUser?.id === u.id ? 'var(--bg-color)' : 'transparent',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            <p style={{ margin: 0, fontWeight: '600', fontSize: '13px', color: selectedUser?.id === u.id ? 'var(--primary-color)' : 'inherit' }}>{u.name}</p>
-                                            <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>{u.role}</p>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px'}}>
+                                    <div style={{gridColumn: 'span 2'}}>
+                                        <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
+                                            Nome Completo <span style={{color: '#ef4444'}}>*</span>
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            className="form-input-salas" 
+                                            style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', color: '#1e293b', outline: 'none', transition: 'border 0.2s'}}
+                                            placeholder="Ex: João Baptista Manuel"
+                                            value={newUserEncoded.nome_completo}
+                                            onChange={e => setNewUserEncoded({...newUserEncoded, nome_completo: e.target.value})}
+                                            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
+                                            Email Institucional <span style={{color: '#ef4444'}}>*</span>
+                                        </label>
+                                        <input 
+                                            type="email" 
+                                            className="form-input-salas" 
+                                            style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', color: '#1e293b', outline: 'none'}}
+                                            placeholder="usuario@escola.com"
+                                            value={newUserEncoded.email}
+                                            onChange={e => setNewUserEncoded({...newUserEncoded, email: e.target.value})}
+                                            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
+                                            Número do BI
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            className="form-input-salas" 
+                                            style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', color: '#1e293b', outline: 'none'}}
+                                            placeholder="000000000LA000"
+                                            value={newUserEncoded.numero_bi}
+                                            onChange={e => setNewUserEncoded({...newUserEncoded, numero_bi: e.target.value})}
+                                            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
+                                            Cargo / Função <span style={{color: '#ef4444'}}>*</span>
+                                        </label>
+                                        <div style={{position: 'relative'}}>
+                                            <select 
+                                                className="form-input-salas"
+                                                style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', color: '#1e293b', appearance: 'none', background: 'white', outline: 'none'}}
+                                                value={newUserEncoded.id_cargo}
+                                                onChange={e => {
+                                                    setNewUserEncoded({...newUserEncoded, id_cargo: e.target.value});
+                                                    // Retry trigger
+                                                    if (e.target.value === 'retry') {
+                                                        fetchCargos();
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    e.target.style.borderColor = '#3b82f6';
+                                                    if (cargos.length === 0) fetchCargos();
+                                                }}
+                                                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                            >
+                                                <option value="">Selecione um cargo...</option>
+                                                {cargosLoading ? (
+                                                    <option disabled>Carregando cargos...</option>
+                                                ) : cargoError ? (
+                                                    <option value="retry">❌ Erro (Clique para tentar novamente)</option>
+                                                ) : cargos.length > 0 ? (
+                                                    cargos.map(c => (
+                                                        <option key={c.id_cargo} value={c.id_cargo}>{c.nome_cargo}</option>
+                                                    ))
+                                                ) : (
+                                                    <option value="retry">⚠️ Nenhum cargo encontrado (Clique p/ atualizar)</option>
+                                                )}
+                                            </select>
+                                            <div style={{position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b'}}>
+                                                <Settings size={16} />
+                                            </div>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    <div>
+                                        <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
+                                            Senha Inicial
+                                        </label>
+                                        <div style={{position: 'relative'}}>
+                                            <input 
+                                                type="text" 
+                                                className="form-input-salas" 
+                                                value={newUserEncoded.senha_hash}
+                                                onChange={e => setNewUserEncoded({...newUserEncoded, senha_hash: e.target.value})}
+                                                style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', color: '#1e293b', background: '#f8fafc', fontFamily: 'monospace', letterSpacing: '1px', outline: 'none'}}
+                                                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                                                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                            />
+                                            <div style={{position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b'}}>
+                                                <Lock size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
+                                    <button 
+                                        onClick={() => setShowUserModal(false)}
+                                        className="btn-config-secondary"
+                                        style={{width: 'auto', minWidth: '150px'}}
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button 
+                                        onClick={handleCreateUser}
+                                        style={{padding: '12px 24px', borderRadius: '10px', background: '#0f172a', color: 'white', border: 'none', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'all 0.2s'}}
+                                        onMouseOver={(e) => {e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
+                                        onMouseOut={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
+                                    >
+                                        <Save size={18} />
+                                        <span>Salvar e Criar Usuário</span>
+                                    </button>
                                 </div>
                             </div>
+                        ) : (
+                            /* VIEW: LIST & DETAILS (STANDARD) */
+                            <div className="table-card" style={{ padding: '30px' }}>
+                                <div className="config-section-header" style={{marginBottom: '20px'}}>
+                                    <div className="config-icon-box-blue">
+                                        <Shield size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="config-section-title">Gestão de Usuários (Funcionários)</h3>
+                                        <p className="config-section-subtitle">Gerencie quem tem acesso ao sistema e seus status.</p>
+                                    </div>
+                                    
+                                    {/* Create User Button - Only for Admin */}
+                                    {isAdmin && (
+                                        <button 
+                                            className="btn-config-primary" 
+                                            style={{marginLeft: 'auto'}}
+                                            onClick={() => setShowUserModal(true)}
+                                        >
+                                            <Plus size={18} />
+                                            Criar Novo Usuário
+                                        </button>
+                                    )}
+                                </div>
 
-                            {/* Permissions Column */}
-                            <div className="permissions-column">
-                                {selectedUser ? (
-                                    <>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }}>
-                                                {selectedUser.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <h4 style={{ fontSize: '16px', margin: 0 }}>{selectedUser.name}</h4>
-                                                <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{selectedUser.role} • {selectedUser.email}</p>
-                                            </div>
-                                        </div>
-
-                                        <h4 style={{ fontSize: '14px', marginBottom: '15px', color: 'var(--text-color)' }}>Definir Permissões de Acesso</h4>
-                                        <div className="permissions-grid">
-                                            {[
-                                                { id: 'al', label: 'Gerir Alunos', desc: 'Cadastrar e editar dados' },
-                                                { id: 'mt', label: 'Efectuar Matrículas', desc: 'Realizar novas inscrições' },
-                                                { id: 'nt', label: 'Lançar Notas', desc: 'Inserir avaliações' },
-                                                { id: 'rl', label: 'Relatórios', desc: 'Ver estatísticas' },
-                                                { id: 'fn', label: 'Financeiro', desc: 'Gestão de pagamentos' }
-                                            ].map(perm => (
-                                                <div key={perm.id} style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    padding: '12px 15px',
-                                                    background: 'var(--bg-color)',
-                                                    borderRadius: '10px',
-                                                    marginBottom: '10px'
-                                                }}>
+                                <div className="security-grid-container">
+                                    {/* User List Column */}
+                                    <div>
+                                        <h4 style={{ fontSize: '15px', marginBottom: '12px' }}>Funcionários Registrados</h4>
+                                        <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden', maxHeight: '450px', overflowY: 'auto' }}>
+                                            {loading ? (
+                                                <div style={{padding: '20px', textAlign: 'center'}}>Carregando...</div>
+                                            ) : funcionarios.map(u => (
+                                                <div
+                                                    key={u.id_funcionario}
+                                                    onClick={() => setSelectedUser(u)}
+                                                    style={{
+                                                        padding: '12px 15px',
+                                                        borderBottom: '1px solid var(--border-color)',
+                                                        cursor: 'pointer',
+                                                        background: selectedUser?.id_funcionario === u.id_funcionario ? 'var(--bg-color)' : 'transparent',
+                                                        transition: 'all 0.2s',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}
+                                                >
                                                     <div>
-                                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '13px' }}>{perm.label}</p>
-                                                        <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>{perm.desc}</p>
+                                                        <p style={{ margin: 0, fontWeight: '600', fontSize: '13px', color: selectedUser?.id_funcionario === u.id_funcionario ? 'var(--primary-color)' : 'inherit' }}>
+                                                            {u.nome_completo}
+                                                        </p>
+                                                        <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>
+                                                            {u.cargo_nome || 'Sem Cargo'}
+                                                        </p>
                                                     </div>
-                                                    <div className="permission-toggle">
-                                                        <input type="checkbox" id={`perm-${perm.id}-${selectedUser.id}`} defaultChecked={perm.id !== 'fn'} />
+                                                    <div>
+                                                        {u.status_funcionario === 'Activo' ? (
+                                                            <span style={{fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px'}}>Ativo</span>
+                                                        ) : (
+                                                            <span style={{fontSize: '10px', background: '#fef2f2', color: '#b91c1c', padding: '2px 6px', borderRadius: '4px'}}>Inativo</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                        <button className="btn-config-primary" style={{ marginTop: '15px', width: '100%', padding: '12px' }}>
-                                            Atualizar Acessos de {selectedUser.name.split(' ')[0]}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#64748b', textAlign: 'center', opacity: 0.6 }}>
-                                        <Shield size={48} style={{ marginBottom: '15px' }} />
-                                        <p style={{ fontSize: '14px' }}>Selecione um usuário à esquerda para gerir o nível de acesso ao sistema.</p>
                                     </div>
-                                )}
+
+                                    {/* Permissions Column */}
+                                    <div className="permissions-column">
+                                        {selectedUser ? (
+                                            <>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                                                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 'bold' }}>
+                                                        {selectedUser.nome_completo.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 style={{ fontSize: '16px', margin: 0 }}>{selectedUser.nome_completo}</h4>
+                                                        <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+                                                            {selectedUser.cargo_nome} • {selectedUser.email || 'Sem Email'}
+                                                        </p>
+                                                        <p style={{ margin: '4px 0 0 0', fontSize: '11px', fontWeight: 600, color: selectedUser.status_funcionario === 'Activo' ? 'green' : 'red' }}>
+                                                            Status Atual: {selectedUser.status_funcionario}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
+                                                    <h4 style={{ fontSize: '14px', marginBottom: '15px', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Lock size={16} /> Controle de Acesso
+                                                    </h4>
+                                                    
+                                                    <p style={{fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: '1.5'}}>
+                                                        Para que este funcionário possa acessar o sistema como um usuário, o status deve estar definido como <strong>Activo</strong>.
+                                                        Funcionários inativos não conseguem fazer login.
+                                                    </p>
+
+                                                    <div style={{display: 'flex', gap: '12px'}}>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus('Activo')}
+                                                            style={{
+                                                                flex: 1, 
+                                                                padding: '10px', 
+                                                                borderRadius: '8px', 
+                                                                border: selectedUser.status_funcionario === 'Activo' ? '2px solid #22c55e' : '1px solid #cbd5e1',
+                                                                background: selectedUser.status_funcionario === 'Activo' ? '#dcfce7' : 'white',
+                                                                color: selectedUser.status_funcionario === 'Activo' ? '#15803d' : '#64748b',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Acesso Permitido (Ativo)
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateStatus('Inactivo')}
+                                                            style={{
+                                                                flex: 1, 
+                                                                padding: '10px', 
+                                                                borderRadius: '8px', 
+                                                                border: selectedUser.status_funcionario !== 'Activo' ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                                                                background: selectedUser.status_funcionario !== 'Activo' ? '#fee2e2' : 'white',
+                                                                color: selectedUser.status_funcionario !== 'Activo' ? '#b91c1c' : '#64748b',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Bloquear Acesso (Inativo)
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{marginTop: '20px'}}>
+                                                    <h4 style={{fontSize: '13px', marginBottom: '10px'}}>Detalhes do Cadastro</h4>
+                                                    <div style={{fontSize: '13px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                                                        <div>
+                                                            <span style={{color: '#94a3b8', display: 'block', fontSize: '11px'}}>Código ID</span>
+                                                            <span>{selectedUser.codigo_identificacao || '-'}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span style={{color: '#94a3b8', display: 'block', fontSize: '11px'}}>BI</span>
+                                                            <span>{selectedUser.numero_bi || '-'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#64748b', textAlign: 'center', opacity: 0.6 }}>
+                                                <Shield size={48} style={{ marginBottom: '15px' }} />
+                                                <p style={{ fontSize: '14px' }}>Selecione um funcionário à esquerda para gerir o acesso.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 );
             case 'perfil':
@@ -284,18 +626,18 @@ const Configuracoes = () => {
                                 <User size={24} />
                             </div>
                             <div>
-                                <h3 className="config-section-title">Perfil do Administrador</h3>
-                                <p className="config-section-subtitle">Gerencie suas informações de conta e preferências.</p>
+                                <h3 className="config-section-title">Perfil do Usuário</h3>
+                                <p className="config-section-subtitle">Informações da sua conta.</p>
                             </div>
                         </div>
                         <div style={{ marginTop: '20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px', background: 'var(--bg-color)', borderRadius: '12px' }}>
                                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: 'bold' }}>
-                                    AA
+                                    {user?.name ? user.name.charAt(0) : 'U'}
                                 </div>
                                 <div>
-                                    <h4 style={{ margin: 0, fontSize: '18px' }}>Aguinaldo Arnaldo</h4>
-                                    <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>Administrador Geral</p>
+                                    <h4 style={{ margin: 0, fontSize: '18px' }}>{user?.name || 'Comvidado'}</h4>
+                                    <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>{user?.role || 'Visitante'}</p>
                                 </div>
                             </div>
                         </div>
@@ -328,22 +670,6 @@ const Configuracoes = () => {
                                         <span style={{ fontSize: '14px', color: 'var(--text-color)' }}>{pref}</span>
                                     </label>
                                 ))}
-                            </div>
-
-                            <hr style={{ margin: '30px 0', border: '0', borderTop: '1px solid var(--border-color)' }} />
-
-                            <h4 style={{ fontSize: '16px', marginBottom: '15px' }}>Alertas Recentes</h4>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ padding: '15px', borderLeft: '4px solid var(--primary-light)', background: 'var(--primary-light-bg)', borderRadius: '0 8px 8px 0' }}>
-                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: 'var(--primary-color)' }}>Nova Matrícula Realizada</p>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--primary-hover)' }}>O aluno João Silva foi matriculado com sucesso no 10º Ano.</p>
-                                    <span style={{ fontSize: '11px', color: 'var(--primary-light)', marginTop: '8px', display: 'block' }}>Há 5 minutos</span>
-                                </div>
-                                <div style={{ padding: '15px', borderLeft: '4px solid #f59e0b', background: '#fffbeb', borderRadius: '0 8px 8px 0' }}>
-                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '14px', color: '#92400e' }}>Aviso de Backup Próximo</p>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#b45309' }}>O sistema recomenda realizar um backup completo hoje.</p>
-                                    <span style={{ fontSize: '11px', color: '#f59e0b', marginTop: '8px', display: 'block' }}>Há 2 horas</span>
-                                </div>
                             </div>
                         </div>
                     </div>

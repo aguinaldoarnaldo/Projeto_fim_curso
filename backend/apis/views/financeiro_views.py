@@ -15,7 +15,7 @@ class FaturaViewSet(viewsets.ModelViewSet):
     queryset = Fatura.objects.select_related('id_aluno').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['status', 'id_aluno']
+    #filterset_fields = ['status', 'id_aluno']
     ordering_fields = ['data_vencimento', 'total', 'criado_em']
     ordering = ['-criado_em']
     
@@ -32,7 +32,7 @@ class PagamentoViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['id_fatura', 'metodo_pagamento']
+    #filterset_fields = ['id_fatura', 'metodo_pagamento']
     ordering_fields = ['criado_em', 'valor_pago']
     ordering = ['-criado_em']
     

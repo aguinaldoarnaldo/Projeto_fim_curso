@@ -185,8 +185,16 @@
 .btn-more-actions {
     background: none;
     border: none;
-    color: #cbd5e1;
+    color: #64748b;
     cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.btn-more-actions:hover {
+    background: #f1f5f9;
+    color: var(--primary-color);
 }
 
 /* Modal styles */
@@ -261,36 +269,7 @@
 /* ... existing styles ... */
 
 /* Header Styling - Sticky & Adaptive */
-.data-table thead {
-    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-}
-
-.data-table thead th {
-    background: var(--primary-color);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    padding: 20px 24px; /* Matches Matriculas premium feel */
-    border: none;
-    white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.data-table thead th:first-child {
-    border-top-left-radius: 12px;
-}
-.data-table thead th:last-child {
-    border-top-right-radius: 12px;
-}
+/* Table Header Styles Moved to Global.css for consistency across all pages */
 
 /* Thicker table text override */
 table td, .table td {
@@ -518,9 +497,45 @@ table td, .table td {
     from { opacity: 0; }
     to { opacity: 1; }
 }
-/* Thicker table text */
-table td, .table td {
-    font-weight: 550;
-    font-size: 13.5px;
-    color: #1f2937;
+
+/* Animations */
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    opacity: 0;
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered delay for table rows */
+tr.animate-fade-in:nth-child(1) { animation-delay: 0.05s; }
+tr.animate-fade-in:nth-child(2) { animation-delay: 0.1s; }
+tr.animate-fade-in:nth-child(3) { animation-delay: 0.15s; }
+tr.animate-fade-in:nth-child(4) { animation-delay: 0.2s; }
+tr.animate-fade-in:nth-child(5) { animation-delay: 0.25s; }
+tr.animate-fade-in:nth-child(6) { animation-delay: 0.3s; }
+tr.animate-fade-in:nth-child(7) { animation-delay: 0.35s; }
+tr.animate-fade-in:nth-child(8) { animation-delay: 0.4s; }
+tr.animate-fade-in:nth-child(9) { animation-delay: 0.45s; }
+tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
+
+@keyframes spinner {
+    to {transform: rotate(360deg);}
+}
+
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e2e8f0;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spinner 0.8s linear infinite;
 }

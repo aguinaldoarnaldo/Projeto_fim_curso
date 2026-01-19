@@ -31,4 +31,4 @@ class LivroListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Livro
-        fields = ['id_livro', 'titulo', 'editora', 'categoria_nome', 'data_upload']
+        fields = ['id_livro', 'titulo', 'editora', 'categoria_nome', 'data_upload','caminho_arquivo']

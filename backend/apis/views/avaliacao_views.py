@@ -33,7 +33,7 @@ class DisciplinaViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['id_tipo_disciplina']
+    #filterset_fields = ['id_tipo_disciplina']
     search_fields = ['nome']
     ordering_fields = ['nome', 'carga_horaria']
     ordering = ['nome']
@@ -52,7 +52,7 @@ class DisciplinaCursoViewSet(viewsets.ModelViewSet):
     serializer_class = DisciplinaCursoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['id_curso', 'id_disciplina']
+    #filterset_fields = ['id_curso', 'id_disciplina']
 
 
 class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
@@ -63,7 +63,7 @@ class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
     serializer_class = ProfessorDisciplinaSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['id_funcionario', 'id_disciplina', 'id_turma']
+    #filterset_fields = ['id_funcionario', 'id_disciplina', 'id_turma']
 
 
 class NotaViewSet(viewsets.ModelViewSet):
@@ -73,7 +73,7 @@ class NotaViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['id_aluno', 'id_disciplina', 'id_turma', 'tipo_avaliacao']
+    #filterset_fields = ['id_aluno', 'id_disciplina', 'id_turma', 'tipo_avaliacao']
     ordering_fields = ['data_lancamento', 'valor']
     ordering = ['-data_lancamento']
     
@@ -134,7 +134,7 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['id_aluno', 'id_disciplina', 'id_turma', 'justificada']
+    #filterset_fields = ['id_aluno', 'id_disciplina', 'id_turma', 'justificada']
     ordering_fields = ['data_falta']
     ordering = ['-data_falta']
     

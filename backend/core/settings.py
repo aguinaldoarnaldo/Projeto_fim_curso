@@ -4,7 +4,7 @@ Django settings for core project.
 
 from pathlib import Path
 from datetime import timedelta
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3573',
+    'http://localhost:5173',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -133,6 +134,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS=[
+    os.path.join(BASE_DIR,STATIC_URL)
+]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files
@@ -166,7 +170,7 @@ REST_FRAMEWORK = {
 
 # JWT Configuration
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -177,24 +181,23 @@ SIMPLE_JWT = {
 }
 
 
-from django.templatetags.static import static
-
 # =============================================================================
 # DJANGO UNFOLD CONFIGURATION - Tema Verde Sofisticado
 # =============================================================================
 
 UNFOLD = {
+ 
     "SITE_TITLE": "Sistema de Gestão de Declarações",
     "SITE_HEADER": "Gestão de Declarações",
-    "SITE_URL": "/",
+    "SITE_URL": "localhost:5173",
     "SITE_SYMBOL": "school", # Símbolo do Material Symbols
     "SHOW_HISTORY": True, # Mostra botão de histórico
     "SHOW_VIEW_ON_SITE": True, # Mostra botão ver no site
-    "THEME": "dark", # Tema padrão dark
+    #"THEME": "dark", # Tema padrão dark
     
     "SITE_ICON": {
-        "light": lambda request: static("icon-light.svg"),
-        "dark": lambda request: static("icon-dark.svg"),
+        "light": lambda request: static("image/favicon.ico"),
+        "dark": lambda request: static("image/favicon.ico"),
     },
     
     # SIDEBAR
@@ -207,9 +210,14 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
+                        "title": "Dashboards",
+                        "icon": "dashboard",
+                        "link": lambda request: "/dashboard-academico/",
+                    },
+                    {
                         "title": "Visão Geral",
                         "icon": "dashboard",
-                        "link": lambda request: "/admin/",
+                        "link": lambda request: "/admin",
                     },
                 ],
             },
@@ -386,7 +394,7 @@ UNFOLD = {
             ],
         },
     ],
-    
+
     # EXTENSIONS
     "EXTENSIONS": {
         "modeltranslation": {
@@ -398,8 +406,11 @@ UNFOLD = {
     },
     
     # THEME
-    "THEME": "auto",  # light, dark, auto
-    
+    #"THEME": "auto",  # light, dark, auto
     # DASHBOARD
-    "DASHBOARD_CALLBACK": "apis.admin.dashboard_callback",
+    "DASHBOARD_CALLBACK": "apis.dashboard.dashboard_callback",
+   
 }
+
+# Import static helper
+from django.templatetags.static import static

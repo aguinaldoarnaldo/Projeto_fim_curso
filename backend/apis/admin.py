@@ -23,80 +23,49 @@ from apis.models import (
     Inscricao, Matricula,
     # Auditoria
     Historico, HistoricoLogin,
+    # Candidatura
+    Candidato, ExameAdmissao, RupeCandidato
 )
 
 
-# =============================================================================
-# DASHBOARD CALLBACK - Gráficos e Estatísticas
-# =============================================================================
-
-def dashboard_callback(request, context):
-    """
-    Callback para adicionar dados ao dashboard com visual premium
-    """
-    # Estatísticas gerais
-    total_alunos = Aluno.objects.filter(status_aluno='Activo').count()
-    total_funcionarios = Funcionario.objects.filter(status_funcionario='Activo').count()
-    total_turmas = Turma.objects.count()
-    total_cursos = Curso.objects.count()
-    
-    # Solicitações pendentes
-    solicitacoes_pendentes = SolicitacaoDocumento.objects.filter(
-        status_solicitacao='pendente'
-    ).count()
-    
-    # Faturas pendentes
-    faturas_pendentes = Fatura.objects.filter(status='pendente').count()
-    total_pendente = Fatura.objects.filter(status='pendente').aggregate(
-        total=Sum('total')
-    )['total'] or 0
-    
-    # Média geral de notas
-    media_geral = Nota.objects.aggregate(media=Avg('valor'))['media'] or 0
-    
-    # Online stats
-    alunos_online = Aluno.objects.filter(is_online=True).count()
-    func_online = Funcionario.objects.filter(is_online=True).count()
-    
-    context.update({
-        'kpis': [
-            {
-                'title': 'Comunidade Escolar',
-                'metric': f"{total_alunos + total_funcionarios}",
-                'footer': f'<strong>{alunos_online + func_online}</strong> usuários online no momento',
-                'icon': 'diversity_3',
-                'color': 'primary',
-            },
-            {
-                'title': 'Desempenho Académico',
-                'metric': f"{media_geral:.1f}",
-                'footer': 'Média global baseada em todas as avaliações',
-                'icon': 'trending_up',
-                'color': 'success' if media_geral >= 10 else 'danger',
-            },
-            {
-                'title': 'Pendências de Documentação',
-                'metric': solicitacoes_pendentes,
-                'footer': 'Solicitações aguardando revisão da diretoria',
-                'icon': 'description',
-                'color': 'warning' if solicitacoes_pendentes > 0 else 'success',
-            },
-            {
-                'title': 'Saúde Financeira',
-                'metric': f"{total_pendente:,.2f} Kz",
-                'footer': f'{faturas_pendentes} faturas pendentes de liquidação',
-                'icon': 'account_balance_wallet',
-                'color': 'info',
-            },
-        ],
-    })
-    
-    return context
 
 
 # =============================================================================
 # ADMIN CLASSES PERSONALIZADAS
 # =============================================================================
+
+@admin.register(Candidato)
+class CandidatoAdmin(ModelAdmin):
+    list_display = ['numero_inscricao', 'nome_completo', 'numero_bi', 'curso1_nome', 'status_badge', 'criado_em']
+    list_filter = ['status', 'genero', 'curso_primeira_opcao']
+    search_fields = ['nome_completo', 'numero_bi', 'numero_inscricao']
+    list_per_page = 20
+    
+    @display(description='Curso', ordering='curso_primeira_opcao__nome_curso')
+    def curso1_nome(self, obj):
+        return obj.curso_primeira_opcao.nome_curso if obj.curso_primeira_opcao else '-'
+
+    @display(description='Status', ordering='status')
+    def status_badge(self, obj):
+        colors = {
+            'Pendente': 'warning',
+            'Aprovado': 'success',
+            'Reprovado': 'danger',
+            'Matriculado': 'info'
+        }
+        color = colors.get(obj.status, 'secondary')
+        return format_html('<span class="badge badge-{}">{}</span>', color, obj.status)
+
+@admin.register(ExameAdmissao)
+class ExameAdmissaoAdmin(ModelAdmin):
+    list_display = ['candidato', 'data_exame', 'sala', 'nota', 'realizado']
+    list_filter = ['realizado']
+
+@admin.register(RupeCandidato)
+class RupeCandidatoAdmin(ModelAdmin):
+    list_display = ['candidato', 'referencia', 'valor', 'status', 'data_pagamento']
+    list_filter = ['status']
+    search_fields = ['referencia', 'candidato__nome_completo']
 
 @admin.register(Cargo)
 class CargoAdmin(ModelAdmin):
@@ -270,7 +239,7 @@ class TurmaAdmin(ModelAdmin):
 
 @admin.register(Curso)
 class CursoAdmin(ModelAdmin):
-    list_display = ['id_curso', 'nome_curso', 'area_badge', 'duracao_meses', 'total_turmas']
+    list_display = ['id_curso', 'nome_curso', 'area_badge', 'duracao', 'total_turmas']
     list_filter = ['id_area_formacao']
     search_fields = ['nome_curso']
     
@@ -381,7 +350,14 @@ class FaturaAdmin(ModelAdmin):
 # Registrar outros models sem customização
 admin.site.register(CargoFuncionario, ModelAdmin)
 admin.site.register(AlunoEncarregado, ModelAdmin)
-admin.site.register(Sala, ModelAdmin)
+@admin.register(Sala)
+class SalaAdmin(ModelAdmin):
+    list_display = ['id_sala', 'sala_nome', 'bloco', 'capacidade_alunos']
+    search_fields = ['numero_sala', 'bloco']
+
+    @display(description='Sala', ordering='numero_sala')
+    def sala_nome(self, obj):
+        return f"Sala {obj.numero_sala}"
 admin.site.register(Classe, ModelAdmin)
 admin.site.register(Departamento, ModelAdmin)
 admin.site.register(Seccao, ModelAdmin)
@@ -396,6 +372,59 @@ admin.site.register(Categoria, ModelAdmin)
 admin.site.register(Livro, ModelAdmin)
 admin.site.register(Pagamento, ModelAdmin)
 admin.site.register(Inscricao, ModelAdmin)
-admin.site.register(Matricula, ModelAdmin)
+@admin.register(Matricula)
+class MatriculaAdmin(ModelAdmin):
+    list_display = [
+        'id_display', 'aluno_nome', 'ano_lectivo', 'classe_nome', 
+        'curso_nome', 'sala_nome', 'turno_nome', 'turma_codigo', 
+        'status_badge', 'data_display'
+    ]
+    list_filter = ['ativo', 'id_turma__ano', 'id_turma__id_classe', 'id_turma__id_curso']
+    search_fields = ['id_aluno__nome_completo', 'id_matricula']
+    list_per_page = 20
+
+    @display(description='Matrícula', ordering='id_matricula')
+    def id_display(self, obj):
+        return f"MAT-{obj.id_matricula}"
+
+    @display(description='Nome Completo', ordering='id_aluno__nome_completo')
+    def aluno_nome(self, obj):
+        return obj.id_aluno.nome_completo
+
+    @display(description='Ano Lectivo', ordering='id_turma__ano')
+    def ano_lectivo(self, obj):
+        return obj.id_turma.ano if obj.id_turma else "N/A"
+
+    @display(description='Classe', ordering='id_turma__id_classe__nivel')
+    def classe_nome(self, obj):
+        if obj.id_turma and obj.id_turma.id_classe:
+            return obj.id_turma.id_classe.descricao or f"{obj.id_turma.id_classe.nivel}ª Classe"
+        return "N/A"
+
+    @display(description='Curso', ordering='id_turma__id_curso__nome_curso')
+    def curso_nome(self, obj):
+        return obj.id_turma.id_curso.nome_curso if obj.id_turma and obj.id_turma.id_curso else "N/A"
+
+    @display(description='Sala', ordering='id_turma__id_sala__numero_sala')
+    def sala_nome(self, obj):
+        return f"{obj.id_turma.id_sala.numero_sala}" if obj.id_turma and obj.id_turma.id_sala else "N/A"
+
+    @display(description='Turno', ordering='id_turma__id_periodo__periodo')
+    def turno_nome(self, obj):
+        return obj.id_turma.id_periodo.periodo if obj.id_turma and obj.id_turma.id_periodo else "N/A"
+
+    @display(description='Turma', ordering='id_turma__codigo_turma')
+    def turma_codigo(self, obj):
+        return obj.id_turma.codigo_turma if obj.id_turma else "Sem Turma"
+
+    @display(description='Estado', ordering='ativo')
+    def status_badge(self, obj):
+        if obj.ativo:
+            return format_html('<span class="badge badge-success">Confirmada</span>')
+        return format_html('<span class="badge badge-warning">Pendente</span>')
+
+    @display(description='Data', ordering='data_matricula')
+    def data_display(self, obj):
+        return obj.data_matricula.strftime("%d/%m/%Y")
 admin.site.register(Historico, ModelAdmin)
 admin.site.register(HistoricoLogin, ModelAdmin)

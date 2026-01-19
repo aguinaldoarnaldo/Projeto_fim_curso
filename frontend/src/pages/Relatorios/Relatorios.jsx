@@ -137,7 +137,7 @@ const Relatorios = () => {
                         </thead>
                         <tbody>
                             {filteredReports.map((report) => (
-                                <tr key={report.id}>
+                                <tr key={report.id} className="animate-fade-in">
                                     <td>
                                         <div className="report-title-cell">
                                             <div className="report-icon-box">

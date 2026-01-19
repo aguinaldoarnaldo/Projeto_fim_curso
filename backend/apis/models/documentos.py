@@ -6,6 +6,11 @@ from .usuarios import Encarregado
 
 
 class Documento(models.Model):
+    TIPO_DOCUMENTO_CHOICES=[
+        ('DECLARAÇÃO','DECLARAÇÃO'),
+        ('BOLETIM','BOLETIM'),
+        ('CERTIFICADO','CERTIFICADO'),
+    ]
     """Documentos gerados (PDFs)"""
     id_documento = models.AutoField(primary_key=True)
     id_aluno = models.ForeignKey(
@@ -15,10 +20,11 @@ class Documento(models.Model):
         blank=True,
         verbose_name='Aluno'
     )
-    tipo_documento = models.CharField(max_length=100, verbose_name='Tipo de Documento')
-    caminho_pdf = models.TextField(null=True, blank=True, verbose_name='Caminho do PDF')
-    imagem_carimbo = models.TextField(null=True, blank=True, verbose_name='Carimbo/Assinatura')
-    uuid_documento = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, verbose_name='UUID')
+    tipo_documento = models.CharField(max_length=100,choices=TIPO_DOCUMENTO_CHOICES, verbose_name='Tipo de Documento')
+    caminho_pdf = models.FileField(upload_to="documentos/documents/pdfs/")
+    #models.TextField(null=True, blank=True, verbose_name='Caminho do PDF')
+    #imagem_carimbo = models.TextField(null=True, blank=True, verbose_name='Carimbo/Assinatura')
+    uuid_documento = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, verbose_name='CÓDIGO ÚNICO DO DOCUMENTO')
     criado_por = models.ForeignKey(
         Funcionario,
         on_delete=models.SET_NULL,
