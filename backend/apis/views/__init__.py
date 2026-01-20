@@ -6,8 +6,9 @@ from .usuario_views import (
 from .aluno_views import AlunoViewSet, AlunoEncarregadoViewSet
 from .academico_views import (
     SalaViewSet, ClasseViewSet, DepartamentoViewSet, SeccaoViewSet,
-    AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet
+    AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet
 )
+
 from .avaliacao_views import (
     TipoDisciplinaViewSet, DisciplinaViewSet, DisciplinaCursoViewSet,
     ProfessorDisciplinaViewSet, NotaViewSet, FaltaAlunoViewSet
@@ -26,7 +27,8 @@ __all__ = [
     'AlunoViewSet', 'AlunoEncarregadoViewSet',
     # Acadêmico
     'SalaViewSet', 'ClasseViewSet', 'DepartamentoViewSet', 'SeccaoViewSet',
-    'AreaFormacaoViewSet', 'CursoViewSet', 'PeriodoViewSet', 'TurmaViewSet',
+    'AreaFormacaoViewSet', 'CursoViewSet', 'PeriodoViewSet', 'TurmaViewSet', 'AnoLectivoViewSet',
+
     # Avaliações
     'TipoDisciplinaViewSet', 'DisciplinaViewSet', 'DisciplinaCursoViewSet',
     'ProfessorDisciplinaViewSet', 'NotaViewSet', 'FaltaAlunoViewSet',

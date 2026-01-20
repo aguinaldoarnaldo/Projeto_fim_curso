@@ -72,6 +72,14 @@ const Inscritos = () => {
     fetchCandidates();
   }, []);
 
+  // Polling for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+        fetchCandidates(true);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchCandidates = async (force = false) => {
       if (!force) {
         const cachedData = getCache('inscritos');
@@ -83,7 +91,7 @@ const Inscritos = () => {
       }
 
       try {
-          setIsLoading(true);
+          if (!force) setIsLoading(true);
           const response = await api.get('candidaturas/');
           const data = response.data.results || response.data;
           
@@ -137,7 +145,7 @@ const Inscritos = () => {
       } catch (err) {
           console.error("Erro ao buscar inscritos:", err);
       } finally {
-          setIsLoading(false);
+          if (!force) setIsLoading(false);
       }
   };
 

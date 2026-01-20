@@ -46,6 +46,14 @@ const Salas = () => {
         fetchData();
     }, []);
 
+    // Polling for real-time updates
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData(true); // Silent force fetch
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
     const fetchData = async (force = false) => {
         if (!force) {
             const cachedData = getCache('salas');
@@ -57,7 +65,7 @@ const Salas = () => {
         }
 
         try {
-            setLoading(true);
+            // Do not set loading=true on polling to avoid flash
             const response = await api.get('salas/');
             const data = response.data.results || response.data;
             setSalas(data);
@@ -65,8 +73,11 @@ const Salas = () => {
             setLoading(false);
         } catch (err) {
             console.error('Erro ao buscar salas:', err);
-            setError('Falha ao carregar lista de salas.');
-            setLoading(false);
+            // Only show error on initial load
+            if (loading) {
+                setError('Falha ao carregar lista de salas.');
+                setLoading(false);
+            }
         }
     };
 

@@ -11,8 +11,9 @@ from apis.views import (
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
     AlunoViewSet, AlunoEncarregadoViewSet,
     SalaViewSet, ClasseViewSet, DepartamentoViewSet, SeccaoViewSet,
-    AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet,
+    AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet,
     TipoDisciplinaViewSet, DisciplinaViewSet, DisciplinaCursoViewSet,
+
     ProfessorDisciplinaViewSet, NotaViewSet, FaltaAlunoViewSet,
     DocumentoViewSet, SolicitacaoDocumentoViewSet,
     CategoriaViewSet, LivroViewSet,

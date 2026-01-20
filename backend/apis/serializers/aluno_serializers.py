@@ -28,14 +28,25 @@ class AlunoListSerializer(serializers.ModelSerializer):
     curso_nome = serializers.CharField(source='id_turma.id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_turma.id_classe.nivel', read_only=True)
     periodo_nome = serializers.CharField(source='id_turma.id_periodo.periodo', read_only=True)
+    encarregado_principal = serializers.SerializerMethodField()
     
     class Meta:
         model = Aluno
         fields = [
             'id_aluno', 'nome_completo', 'numero_matricula',
             'email', 'turma_codigo', 'status_aluno', 'genero',
-            'sala_numero', 'curso_nome', 'classe_nivel', 'periodo_nome'
+            'sala_numero', 'curso_nome', 'classe_nivel', 'periodo_nome',
+            'numero_bi', 'telefone', 'img_path', 
+            'municipio_residencia', 'provincia_residencia',
+            'data_nascimento', 'criado_em', 'encarregado_principal'
         ]
+
+    def get_encarregado_principal(self, obj):
+        # Return first guardian name found
+        first = obj.alunoencarregado_set.first()
+        if first:            
+            return first.id_encarregado.nome_completo
+        return 'N/A'
 
 
 class AlunoDetailSerializer(serializers.ModelSerializer):

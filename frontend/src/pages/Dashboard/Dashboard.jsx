@@ -1,17 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { useCache } from '../../context/CacheContext';
+import CalendarWidget from '../../components/Dashboard/CalendarWidget';
 import './Dashboard.css';
-import {
-  Users,
-  Home,
-  BookOpen,
-  GraduationCap,
-  Layers,
-  Search,
-  Bell,
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  Megaphone
+import { 
+    Search, Bell, GraduationCap, Users, Home, Layers, BookOpen, Megaphone 
 } from 'lucide-react';
 import {
   AreaChart,
@@ -27,170 +21,110 @@ import {
   Legend
 } from 'recharts';
 
-// --- MOCK DATA ---
-
-const kpiData = {
-  alunos: { total: 1250, ativos: 1100, trancados: 50, concluidos: 100 },
-  turmas: { total: 42, concluidas: 12 },
-  salas: 24,
-  classes: 6,
-  cursos: 8,
-};
-
-const historicalData = {
-  '2024': [
-    { mes: 'Jan', matriculas: 150, inscritos: 300 },
-    { mes: 'Fev', matriculas: 120, inscritos: 100 },
-    { mes: 'Mar', matriculas: 60, inscritos: 40 },
-    { mes: 'Ago', matriculas: 50, inscritos: 80 },
-    { mes: 'Set', matriculas: 40, inscritos: 60 },
-  ],
-  '2025': [
-    { mes: 'Jan', matriculas: 180, inscritos: 350 },
-    { mes: 'Fev', matriculas: 90, inscritos: 120 },
-  ]
-};
-
-const genderData = [
-  { name: 'Feminino', value: 670 },
-  { name: 'Masculino', value: 580 },
-];
-
-const COLORS_GENDER = ['#ec4899', '#3b82f6'];
-
-// --- ANGOLA CALENDAR LOGIC ---
-
-const ANGOLA_HOLIDAYS = {
-  '1-1': 'Ano Novo',
-  '4-2': 'Início da Luta Armada',
-  '8-3': 'Dia Internacional da Mulher',
-  '23-3': 'Dia da Libertação da África Austral',
-  '4-4': 'Dia da Paz e Reconciliação',
-  '1-5': 'Dia do Trabalhador',
-  '17-9': 'Dia do Fundador da Nação e do Herói Nacional',
-  '2-11': 'Dia dos Finados',
-  '11-11': 'Dia da Independência',
-  '25-12': 'Natal'
-};
-
-const EVENT_DATES = {
-  '15-1': 'Início das Inscrições',
-  '5-2': 'Início das Aulas'
-};
-
-const CalendarWidget = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  const getDaysInMonth = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month, 1).getDay();
-  };
-
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  };
-
-  const renderDays = () => {
-    const daysInMonth = getDaysInMonth(currentDate);
-    const firstDay = getFirstDayOfMonth(currentDate);
-    const days = [];
-    const today = new Date();
-
-    // Empty slots for previous month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
-    }
-
-    for (let i = 1; i <= daysInMonth; i++) {
-      const dateKey = `${i}-${currentDate.getMonth() + 1}`;
-      const isHoliday = ANGOLA_HOLIDAYS[dateKey];
-      const isEvent = EVENT_DATES[dateKey];
-      const isToday = i === today.getDate() &&
-        currentDate.getMonth() === today.getMonth() &&
-        currentDate.getFullYear() === today.getFullYear();
-
-      days.push(
-        <div
-          key={i}
-          className={`calendar-day 
-                        ${isToday ? 'is-today' : ''} 
-                        ${isHoliday ? 'is-holiday' : ''}
-                        ${isEvent ? 'is-event' : ''}
-                    `}
-          title={isHoliday || isEvent || ''}
-        >
-          <span>{i}</span>
-          {isHoliday && <div className="dot-marker holiday"></div>}
-          {isEvent && <div className="dot-marker event"></div>}
-        </div>
-      );
-    }
-    return days;
-  };
-
-  // Get Holiday or Event name for selected month display
-  const getMonthEvents = () => {
-    const notes = [];
-    const daysInMonth = getDaysInMonth(currentDate);
-    for (let i = 1; i <= daysInMonth; i++) {
-      const dateKey = `${i}-${currentDate.getMonth() + 1}`;
-      if (ANGOLA_HOLIDAYS[dateKey]) notes.push({ day: i, type: 'Feriado', name: ANGOLA_HOLIDAYS[dateKey] });
-      if (EVENT_DATES[dateKey]) notes.push({ day: i, type: 'Evento', name: EVENT_DATES[dateKey] });
-    }
-    return notes;
-  };
-
-  const monthNotes = getMonthEvents();
-
-  return (
-    <div className="calendar-widget">
-      <div className="calendar-header">
-        <button onClick={prevMonth} className="btn-cal-nav"><ChevronLeft size={16} /></button>
-        <h3>{currentDate.toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' })}</h3>
-        <button onClick={nextMonth} className="btn-cal-nav"><ChevronRight size={16} /></button>
-      </div>
-      <div className="calendar-weekdays">
-        <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
-      </div>
-      <div className="calendar-grid">
-        {renderDays()}
-      </div>
-
-      {/* Legend / Upcoming */}
-      <div className="calendar-footer">
-        <h4>Eventos do Mês</h4>
-        {monthNotes.length > 0 ? (
-          <div className="calendar-notes-list">
-            {monthNotes.map((note, idx) => (
-              <div key={idx} className={`note-item ${note.type === 'Feriado' ? 'note-holiday' : 'note-event'}`}>
-                <span className="note-day">{note.day}</span>
-                <span className="note-name">{note.name}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="no-events-text">Nenhum feriado ou evento este mês.</p>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN DASHBOARD ---
-
 const Dashboard = () => {
+  const { user } = useAuth();
+  const { getCache, setCache } = useCache();
+  
+  // Get user name for display
+  const displayName = (user && (user.nome_completo || user.username || (user.email && user.email.split('@')[0]))) || 'Administrador';
+  
+  // Get initials
+  const getInitials = (name) => {
+      if (!name) return 'AD';
+      const parts = name.split(' ');
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   const [selectedYear, setSelectedYear] = useState('2024');
+  const [countCursos, setCountCursos] = useState(() => getCache('dashboard_course_count') || 0);
+  const [countClasses, setCountClasses] = useState(() => getCache('dashboard_classes_count') || 0);
+  const [countSalas, setCountSalas] = useState(() => getCache('dashboard_salas_count') || 0);
+
+  const [kpiData, setKpiData] = useState({
+        alunos: { total: 0, ativos: 0, trancados: 0 },
+        turmas: { total: 0, concluidas: 0 }
+  });
+
+  // Mock Data for Charts
+  const historicalData = {
+      '2024': [
+        { mes: 'Jan', matriculas: 40, inscritos: 24 },
+        { mes: 'Fev', matriculas: 30, inscritos: 13 },
+        { mes: 'Mar', matriculas: 20, inscritos: 58 },
+        { mes: 'Abr', matriculas: 27, inscritos: 39 },
+        { mes: 'Mai', matriculas: 18, inscritos: 48 },
+        { mes: 'Jun', matriculas: 23, inscritos: 38 },
+        { mes: 'Jul', matriculas: 34, inscritos: 43 },
+        { mes: 'Ago', matriculas: 44, inscritos: 53 },
+        { mes: 'Set', matriculas: 54, inscritos: 63 },
+        { mes: 'Out', matriculas: 64, inscritos: 73 },
+        { mes: 'Nov', matriculas: 74, inscritos: 83 },
+        { mes: 'Dez', matriculas: 84, inscritos: 93 },
+      ]
+  };
+
+  const genderData = [
+      { name: 'Masculino', value: 55 },
+      { name: 'Feminino', value: 45 },
+  ];
+  const COLORS_GENDER = ['#3b82f6', '#ec4899'];
+
+  useEffect(() => {
+     const fetchCounts = async () => {
+         try {
+             // Fetch Courses
+             const responseCursos = await api.get('cursos/');
+             const dataCursos = responseCursos.data.results || responseCursos.data || [];
+             const countC = Array.isArray(dataCursos) ? dataCursos.length : 0;
+             setCountCursos(countC);
+             setCache('dashboard_course_count', countC);
+
+             // Fetch Classes
+             const responseClasses = await api.get('classes/');
+             const dataClasses = responseClasses.data.results || responseClasses.data || [];
+             const countCl = Array.isArray(dataClasses) ? dataClasses.length : 0;
+             setCountClasses(countCl);
+             setCache('dashboard_classes_count', countCl);
+
+             // Fetch Salas
+             const responseSalas = await api.get('salas/');
+             const dataSalas = responseSalas.data.results || responseSalas.data || [];
+             const countS = Array.isArray(dataSalas) ? dataSalas.length : 0;
+             setCountSalas(countS);
+             setCache('dashboard_salas_count', countS);
+
+             // Fetch Alunos (simulated or real endpoint)
+             // Ensure 'alunos/' endpoint exists or fail gracefully
+             let countAlunos = 0;
+             try {
+                const responseAlunos = await api.get('alunos/'); 
+                const dataAlunos = responseAlunos.data.results || responseAlunos.data || [];
+                countAlunos = Array.isArray(dataAlunos) ? dataAlunos.length : 0;
+             } catch (e) { console.warn("Could not fetch alunos", e); }
+
+             // Fetch Turmas
+             let countTurmas = 0;
+             try {
+                const responseTurmas = await api.get('turmas/');
+                const dataTurmas = responseTurmas.data.results || responseTurmas.data || [];
+                countTurmas = Array.isArray(dataTurmas) ? dataTurmas.length : 0;
+             } catch (e) { console.warn("Could not fetch turmas", e); }
+
+             setKpiData({
+                alunos: { total: countAlunos, ativos: countAlunos, trancados: 0 },
+                turmas: { total: countTurmas, concluidas: 0 }
+             });
+
+         } catch (error) {
+             console.error("Error fetching dashboard counts", error);
+         }
+     };
+     
+     fetchCounts();
+     const interval = setInterval(fetchCounts, 30000); // 30 seconds
+     return () => clearInterval(interval);
+  }, [setCache]);
 
   const chartData = useMemo(() => {
     return historicalData[selectedYear] || [];
@@ -201,11 +135,11 @@ const Dashboard = () => {
       {/* HEADER */}
       <header className="dashboard-header">
         <div className="header-text">
-          <h1>Olá, Administrador</h1>
+          <h1>Olá, {displayName}</h1>
           <p>Visão geral e controle do sistema escolar.</p>
         </div>
 
-        {/*<div className="header-actions">
+        <div className="header-actions">
           <div className="search-bar">
             <Search size={18} className="dashboard-search-icon" />
             <input type="text" placeholder="Pesquisar..." />
@@ -215,9 +149,11 @@ const Dashboard = () => {
             <span className="notification-badge"></span>
           </button>
           <div className="user-profile">
-            <div className="avatar">AD</div>
+            <div className="avatar" title={user?.email}>
+                {getInitials(displayName)}
+            </div>
           </div>
-        </div>*/}
+        </div>
       </header>
 
       {/* KPI GRID */}
@@ -251,7 +187,7 @@ const Dashboard = () => {
         <div className="kpi-card card-premium-orange">
           <div className="kpi-icon-floating"><Home size={24} /></div>
           <div className="kpi-content">
-            <h3>{kpiData.salas}</h3>
+            <h3>{countSalas}</h3>
             <span className="kpi-label">Salas</span>
           </div>
         </div>
@@ -260,7 +196,7 @@ const Dashboard = () => {
         <div className="kpi-card card-premium-teal">
           <div className="kpi-icon-floating"><Layers size={24} /></div>
           <div className="kpi-content">
-            <h3>{kpiData.classes}</h3>
+            <h3>{countClasses}</h3>
             <span className="kpi-label">Classes</span>
           </div>
         </div>
@@ -269,7 +205,7 @@ const Dashboard = () => {
         <div className="kpi-card card-premium-indigo">
           <div className="kpi-icon-floating"><BookOpen size={24} /></div>
           <div className="kpi-content">
-            <h3>{kpiData.cursos}</h3>
+            <h3>{countCursos}</h3>
             <span className="kpi-label">Cursos</span>
           </div>
         </div>

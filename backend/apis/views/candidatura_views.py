@@ -12,9 +12,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
     serializer_class = CandidatoSerializer
     
     def list(self, request, *args, **kwargs):
-        print(f"Listando candidatos. User: {request.user}, Auth: {request.auth}")
         queryset = self.filter_queryset(self.get_queryset())
-        print(f"Total encontrados: {queryset.count()}")
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -35,14 +33,17 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()] # Admin see list
 
     def create(self, request, *args, **kwargs):
-        print("Recebendo dados de candidatura:", request.data)
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print("Erros de validacao:", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'erro_interno': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def gerar_rupe(self, request, pk=None):
@@ -192,52 +193,66 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
                 turma = Turma.objects.get(pk=id_turma)
                 
                 # 1. Criar/Recuperar Encarregado
-                # Opção simplificada: Cria encarregado baseado no nome se não existir
-                # Idealmente o sistema verificaria email/telefone único
-                encarregado, created = Encarregado.objects.get_or_create(
-                    nome_completo=candidato.nome_encarregado,
-                    defaults={
-                        'telefone': [candidato.telefone_encarregado],
-                        'senha_hash': '123456', # Senha padrão
-                        'is_online': False
-                    }
-                )
+                # Tenta buscar por telefone primeiro (mais unico que nome)
+                encarregado = Encarregado.objects.filter(telefone__contains=candidato.telefone_encarregado).first()
+                if not encarregado:
+                    encarregado = Encarregado.objects.create(
+                        nome_completo=candidato.nome_encarregado,
+                        telefone=candidato.telefone_encarregado,
+                        senha_hash='123456', 
+                        is_online=False
+                    )
                 
-                # 2. Criar Aluno
-                import datetime
-                year = datetime.datetime.now().year
-                # Gerar numero de matricula simples (ex: 20240001)
-                last = Aluno.objects.order_by('-numero_matricula').first()
-                new_num = (last.numero_matricula + 1) if last and last.numero_matricula else int(f"{year}0001")
+                # 2. Criar ou Recuperar Aluno
+                aluno = Aluno.objects.filter(numero_bi=candidato.numero_bi).first()
+                if not aluno and candidato.email:
+                     aluno = Aluno.objects.filter(email=candidato.email).first()
+
+                if not aluno:
+                    import datetime
+                    year = datetime.datetime.now().year
+                    last = Aluno.objects.order_by('-numero_matricula').first()
+                    new_num = (last.numero_matricula + 1) if last and last.numero_matricula else int(f"{year}0001")
+                    
+                    aluno = Aluno.objects.create(
+                        nome_completo=candidato.nome_completo,
+                        data_nascimento=candidato.data_nascimento,
+                        genero=candidato.genero,
+                        numero_bi=candidato.numero_bi,
+                        email=candidato.email,
+                        telefone=candidato.telefone,
+                        provincia_residencia='Huíla', 
+                        municipio_residencia=candidato.residencia,
+                        numero_matricula=new_num,
+                        senha_hash='123456',
+                        status_aluno='Activo',
+                        id_turma=turma,
+                        img_path=candidato.foto_passe
+                    )
+                else:
+                    # Atualizar dados do aluno existente
+                    aluno.id_turma = turma
+                    aluno.status_aluno = 'Activo'
+                    # Se nao tiver dados que talvez tenham vindo agora
+                    if not aluno.data_nascimento and candidato.data_nascimento:
+                        aluno.data_nascimento = candidato.data_nascimento
+                    aluno.save()
                 
-                aluno = Aluno.objects.create(
-                    nome_completo=candidato.nome_completo,
-                    genero=candidato.genero,
-                    numero_bi=candidato.numero_bi,
-                    email=candidato.email,
-                    telefone=candidato.telefone,
-                    provincia_residencia='Huíla', # Default ou do form
-                    municipio_residencia=candidato.residencia, # Adaptando
-                    numero_matricula=new_num,
-                    senha_hash='123456', # Senha padrao
-                    status_aluno='Activo',
-                    id_turma=turma,
-                    img_path=candidato.foto_passe
-                )
+                # 3. Vincular Encarregado (se nao existir vinculo)
+                if not AlunoEncarregado.objects.filter(id_aluno=aluno, id_encarregado=encarregado).exists():
+                    AlunoEncarregado.objects.create(
+                        id_aluno=aluno,
+                        id_encarregado=encarregado,
+                        grau_parentesco=candidato.parentesco_encarregado
+                    )
                 
-                # 3. Vincular Encarregado
-                AlunoEncarregado.objects.create(
-                    id_aluno=aluno,
-                    id_encarregado=encarregado,
-                    grau_parentesco=candidato.parentesco_encarregado
-                )
-                
-                # 4. Criar Matricula
-                matricula = Matricula.objects.create(
-                    id_aluno=aluno,
-                    id_turma=turma,
-                    ativo=True
-                )
+                # 4. Criar Matricula (se nao existir ativa)
+                if not Matricula.objects.filter(id_aluno=aluno, id_turma=turma, ativo=True).exists():
+                    matricula = Matricula.objects.create(
+                        id_aluno=aluno,
+                        id_turma=turma,
+                        ativo=True
+                    )
                 
                 # 5. Update Candidato
                 candidato.status = 'Matriculado'
@@ -256,4 +271,5 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         except Turma.DoesNotExist:
             return Response({'erro': 'Turma não encontrada'}, status=404)
         except Exception as e:
+            # logger.error(f"Erro na matricula: {e}")
             return Response({'erro': f'Erro ao matricular: {str(e)}'}, status=500)

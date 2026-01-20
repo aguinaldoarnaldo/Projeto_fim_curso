@@ -22,6 +22,7 @@ class Aluno(BaseModel):
     id_aluno = models.AutoField(primary_key=True)
     numero_bi = models.CharField(max_length=14, unique=True, null=True, blank=True, verbose_name='Número do BI')
     nome_completo = models.CharField(max_length=150, verbose_name='Nome Completo')
+    data_nascimento = models.DateField(null=True, blank=True, verbose_name='Data de Nascimento')
     email = models.EmailField(max_length=250, unique=True, null=True, blank=True)
     numero_matricula = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name='Número de Matrícula')
     telefone = models.CharField(max_length=10, verbose_name='Telefone')

@@ -64,69 +64,81 @@ const Matriculas = () => {
     const { getCache, setCache } = useCache();
 
     // Fetch Data from API
+    // Fetch Data from API
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
 
-    // Fetch Data from API
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            try {
-                // Parallel fetch for matriculas and filter options (courses)
-                const [matriculasRes, cursosRes] = await Promise.all([
-                    api.get('matriculas/'),
-                    api.get('cursos/')
-                ]);
+    // Define fetch function
+    const fetchData = async (force = false) => {
+        try {
+            if (!force) setLoading(true);
+            
+            // Parallel fetch for matriculas and filter options (courses)
+            const [matriculasRes, cursosRes] = await Promise.all([
+                api.get('matriculas/'),
+                api.get('cursos/')
+            ]);
 
-                // Handle Matriculas Data
-                const formattedData = matriculasRes.data.results ? matriculasRes.data.results.map(item => ({
-                    id: `MAT-${item.id_matricula || '000'}`,
-                    aluno: item.aluno_nome || 'Desconhecido',
-                    foto: item.aluno_foto || null,
-                    anoLectivo: item.ano_lectivo || 'N/A',
-                    classe: item.classe_nome || 'N/A',
-                    curso: item.curso_nome || 'N/A',
-                    sala: item.sala_numero || 'N/A',
-                    turno: item.periodo_nome || 'N/A',
-                    turma: item.turma_codigo || 'Sem Turma',
-                    status: item.ativo ? 'Confirmada' : 'Pendente',
-                    dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
-                    detalhes: {
-                        bi: 'N/A', 
-                        genero: 'N/A',
-                        nif: 'N/A',
-                        dataNascimento: 'N/A',
-                        encarregado: 'N/A', 
-                        parentesco: 'N/A',
-                        telefoneEncarregado: 'N/A',
-                        email: 'N/A',
-                        endereco: 'N/A',
-                        pagamentoStatus: 'Analise',
-                        documentos: [],
-                        historico: ''
-                    }
-                })) : [];
-                
-                if (formattedData.length > 0) {
-                     setMatriculas(formattedData);
-                     setCache('matriculas', formattedData);
-                } else {
-                    setMatriculas([]);
+            // Handle Matriculas Data
+            const formattedData = matriculasRes.data.results ? matriculasRes.data.results.map(item => ({
+                id: `MAT-${item.id_matricula || '000'}`,
+                aluno: item.aluno_nome || 'Desconhecido',
+                foto: item.aluno_foto || null,
+                anoLectivo: item.ano_lectivo || 'N/A',
+                classe: item.classe_nome || 'N/A',
+                curso: item.curso_nome || 'N/A',
+                sala: item.sala_numero || 'N/A',
+                turno: item.periodo_nome || 'N/A',
+                turma: item.turma_codigo || 'Sem Turma',
+                status: item.ativo ? 'Confirmada' : 'Pendente',
+                dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
+                detalhes: {
+                    bi: item.bi || 'N/A', 
+                    genero: item.genero || 'N/A',
+                    nif: item.nif || 'N/A', // Campo nao existe no backend ainda
+                    dataNascimento: item.data_nascimento || 'N/A',
+                    encarregado: item.encarregado_nome || 'N/A', 
+                    parentesco: item.encarregado_parentesco || 'N/A',
+                    telefoneEncarregado: item.encarregado_telefone || 'N/A',
+                    email: item.email || 'N/A', // Serializer nao retorna, talvez adicionar?
+                    endereco: item.endereco || 'N/A',
+                    pagamentoStatus: item.ativo ? 'Confirmado' : 'Pendente',
+                    documentos: [],
+                    historico: ''
                 }
-
-                // Handle Courses Data for Filters
-                const cursosData = cursosRes.data.results || cursosRes.data;
-                if (Array.isArray(cursosData)) {
-                    setCursosDisponiveis(cursosData);
-                }
-
-            } catch (err) {
-                console.error("Error fetching data:", err);
-                setError("Falha ao carregar dados. Verifique a conexão.");
-            } finally {
-                setLoading(false);
+            })) : [];
+            
+            if (formattedData.length > 0) {
+                    setMatriculas(formattedData);
+                    setCache('matriculas', formattedData);
+            } else {
+                setMatriculas([]);
             }
-        };
 
-        fetchInitialData();
+            // Handle Courses Data for Filters
+            const cursosData = cursosRes.data.results || cursosRes.data;
+            if (Array.isArray(cursosData)) {
+                setCursosDisponiveis(cursosData);
+            }
+
+        } catch (err) {
+            console.error("Error fetching data:", err);
+            if (!force) setError("Falha ao carregar dados. Verifique a conexão.");
+        } finally {
+            if (!force) setLoading(false);
+        }
+    };
+
+    // Initial Fetch
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    // Polling
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData(true);
+        }, 2000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleFilterChange = (e) => {

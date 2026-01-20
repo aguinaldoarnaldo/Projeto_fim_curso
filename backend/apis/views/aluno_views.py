@@ -14,7 +14,16 @@ from apis.serializers import (
 
 class AlunoViewSet(viewsets.ModelViewSet):
     """ViewSet para Aluno"""
-    queryset = Aluno.objects.select_related('id_turma').all()
+    queryset = Aluno.objects.select_related(
+        'id_turma',
+        'id_turma__id_curso',
+        'id_turma__id_classe',
+        'id_turma__id_periodo',
+        'id_turma__id_sala'
+    ).prefetch_related(
+        'alunoencarregado_set',
+        'alunoencarregado_set__id_encarregado'
+    ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['status_aluno', 'id_turma', 'genero']

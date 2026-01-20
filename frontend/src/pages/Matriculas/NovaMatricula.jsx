@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { getClasses } from '../../services/classService';
+
+
 import './Matriculas.css';
 
 const NovaMatricula = () => {
@@ -19,6 +22,7 @@ const NovaMatricula = () => {
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
+    const [classesDisponiveis, setClassesDisponiveis] = useState([]);
     
     // State to hold form data
     const [formData, setFormData] = useState({
@@ -34,12 +38,27 @@ const NovaMatricula = () => {
         parentesco_encarregado: '',
         // Academico
         curso: '',
-        classe: '10ª Classe',
+        classe: '',
         turno: '',
         turma_id: '', // Store ID
         sala: '',
         ano_lectivo: '2025/2026'
     });
+
+    useEffect(() => {
+        const loadClasses = async () => {
+            try {
+                const data = await getClasses();
+                setClassesDisponiveis(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error("Failed to load classes", error);
+            }
+        };
+        loadClasses();
+        const interval = setInterval(loadClasses, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
 
     // Populate data from candidate if available
     useEffect(() => {
@@ -66,6 +85,14 @@ const NovaMatricula = () => {
         } else {
              fetchTurmas();
         }
+        
+        // Polling for Turmas
+        const interval = setInterval(() => {
+            // Respect existing filters if any (simplified here to refresh current view)
+            fetchTurmas(location.state?.candidato?.curso1); 
+        }, 3000);
+        return () => clearInterval(interval);
+
     }, [location.state]);
 
     const fetchTurmas = async (cursoFilter = null) => {
@@ -237,11 +264,16 @@ const NovaMatricula = () => {
                             <div>
                                 <label className="field-label">Classe</label>
                                 <select name="classe" value={formData.classe} onChange={handleInputChange} className="field-select">
-                                    <option value="10ª Classe">10ª Classe</option>
-                                    <option value="11ª Classe">11ª Classe</option>
-                                    <option value="12ª Classe">12ª Classe</option>
+                                    <option value="">Selecione a Classe</option>
+                                    {classesDisponiveis.map(c => (
+                                        <option key={c.id_classe} value={c.descricao || `${c.nivel}ª Classe`}>
+                                            {c.descricao || `${c.nivel}ª Classe`}
+                                        </option>
+                                    ))}
                                 </select>
+
                             </div>
+
                             <div>
                                 <label className="field-label">Ano Lectivo</label>
                                 <input type="text" value={formData.ano_lectivo} readOnly className="field-input read-only" />

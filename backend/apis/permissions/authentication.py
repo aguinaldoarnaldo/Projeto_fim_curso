@@ -36,13 +36,36 @@ class SchoolJWTAuthentication(JWTAuthentication):
 
     def get_user(self, validated_token):
         """
-        Sobrescreve para retornar o usuário Django se existir,
-        mas também podemos garantir que o perfil existe
+        Retorna o usuário baseado no tipo e ID do token (Funcionario, Aluno ou Encarregado)
         """
         try:
-            user = super().get_user(validated_token)
+            user_type = validated_token.get('user_type')
+            user_id = validated_token.get('user_id')
+            
+            if not user_type or not user_id:
+               # Se não tiver tipo/id customizado, tenta o padrão Django User (caso use admin etc)
+               return super().get_user(validated_token)
+
+            user = None
+            if user_type == 'funcionario':
+                user = Funcionario.objects.get(id_funcionario=user_id)
+            elif user_type == 'aluno':
+                user = Aluno.objects.get(id_aluno=user_id)
+            elif user_type == 'encarregado':
+                user = Encarregado.objects.get(id_encarregado=user_id)
+            
+            if not user:
+                 raise exceptions.AuthenticationFailed('Usuário não encontrado', code='user_not_found')
+            
+            # Adicionar is_authenticated ao objeto para o DRF (Permission classes usam isso)
+            user.is_authenticated = True
             return user
-        except Exception:
-            # Se for um login direto sem usuário Django (via profiles)
-            # Retornamos um objeto anônimo com as flags necessárias ou o próprio profile
-            return None
+            
+        except (Funcionario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
+            raise exceptions.AuthenticationFailed('Usuário não encontrado', code='user_not_found')
+        except Exception as e:
+            # Fallback for standard Django users
+            try:
+                return super().get_user(validated_token)
+            except:
+                raise exceptions.AuthenticationFailed('Token inválido', code='invalid_token')

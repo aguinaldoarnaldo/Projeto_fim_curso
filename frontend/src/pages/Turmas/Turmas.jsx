@@ -74,6 +74,14 @@ const Turmas = () => {
         fetchData();
     }, []);
 
+    // Polling for real-time updates
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData(true);
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
     const fetchData = async (force = false) => {
         if (!force) {
             const cTurmas = getCache('turmas');
@@ -92,7 +100,7 @@ const Turmas = () => {
         }
 
         try {
-            setLoading(true);
+            // Do not force set loading=true on updates to avoid flash
             const [turmasRes, salasRes, cursosRes, periodosRes] = await Promise.all([
                 api.get('turmas/'),
                 api.get('salas/'),
@@ -109,7 +117,7 @@ const Turmas = () => {
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano || '2024/2025',
                 turno: t.periodo_nome,
-                qtdAlunos: t.qtd_alunos || 0
+                qtdAlunos: t.total_alunos || 0
             }));
             
             const salasData = salasRes.data.results || salasRes.data;
@@ -130,8 +138,10 @@ const Turmas = () => {
             setLoading(false);
         } catch (err) {
             console.error('Erro ao buscar dados:', err);
-            setError('Falha ao carregar dados.');
-            setLoading(false);
+            if (loading) {
+                setError('Falha ao carregar dados.');
+                setLoading(false);
+            }
         }
     };
 

@@ -3,6 +3,30 @@ from .base import BaseModel
 from .usuarios import Funcionario
 import datetime
 
+class AnoLectivo(BaseModel):
+    """Ano Lectivo da Instituição"""
+    id_ano = models.AutoField(primary_key=True)
+    nome = models.CharField(max_length=20, verbose_name='Ano Lectivo', unique=True, help_text="Ex: 2025/2026")
+    data_inicio = models.DateField(verbose_name='Data de Início')
+    data_fim = models.DateField(verbose_name='Data de Fim')
+    activo = models.BooleanField(default=False, verbose_name='Activo?')
+    
+    class Meta:
+        db_table = 'ano_lectivo'
+        verbose_name = 'Ano Lectivo'
+        verbose_name_plural = 'Anos Lectivos'
+        ordering = ['-nome']
+        
+    def save(self, *args, **kwargs):
+        if self.activo:
+            # Se este ano for marcado como activo, desactivar todos os outros
+            AnoLectivo.objects.filter(activo=True).exclude(pk=self.pk).update(activo=False)
+        super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return f"{self.nome} ({'Activo' if self.activo else 'Inactivo'})"
+
+
 class Sala(BaseModel):
     """Salas de aula"""
     id_sala = models.AutoField(primary_key=True)

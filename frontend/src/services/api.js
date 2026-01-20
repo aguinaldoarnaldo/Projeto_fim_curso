@@ -30,10 +30,13 @@ api.interceptors.response.use(
     },
     error => {
         if (error.response && error.response.status === 401) {
-            // Se der erro 401 (Não autorizado), limpa o token e redireciona
-            localStorage.removeItem('@App:token');
-            localStorage.removeItem('@App:user');
-            // Opcional: Redirecionar para login ou lidar com isso no contexto
+            // Se der erro 401 (Não autorizado/Token expirado)
+            // ANTES: Limpava o token e forçava logout.
+            // AGORA: Apenas rejeita o erro para que o frontend decida o que fazer (ex: mostrar aviso).
+            // localStorage.removeItem('@App:token');
+            // localStorage.removeItem('@App:user');
+            
+            console.warn("Autenticação falhou (401). Token pode estar expirado.");
         }
         return Promise.reject(error);
     }

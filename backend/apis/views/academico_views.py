@@ -1,19 +1,37 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from apis.models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
-    Curso, Periodo, Turma
+    Curso, Periodo, Turma, AnoLectivo
 )
-from apis.serializers import (
+from apis.serializers.academico_serializers import (
     SalaSerializer, ClasseSerializer, DepartamentoSerializer, SeccaoSerializer,
     AreaFormacaoSerializer, CursoSerializer, CursoListSerializer,
-    PeriodoSerializer, TurmaSerializer, TurmaListSerializer
+    PeriodoSerializer, TurmaSerializer, TurmaListSerializer, AnoLectivoSerializer
 )
+
+
+
+class AnoLectivoViewSet(viewsets.ModelViewSet):
+    """ViewSet para AnoLectivo"""
+    queryset = AnoLectivo.objects.all()
+    serializer_class = AnoLectivoSerializer
+    ordering = ['-nome']
+    
+    def get_permissions(self):
+        """
+        Apenas admins podem criar, editar ou excluir.
+        Listar pode ser permitido a autenticados (para selects etc).
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+
 
 
 class SalaViewSet(viewsets.ModelViewSet):
@@ -31,7 +49,12 @@ class ClasseViewSet(viewsets.ModelViewSet):
     """ViewSet para Classe"""
     queryset = Classe.objects.all()
     serializer_class = ClasseSerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action == 'list':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+    
     ordering = ['nivel']
 
 

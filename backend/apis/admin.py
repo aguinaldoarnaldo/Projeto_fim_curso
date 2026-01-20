@@ -239,9 +239,9 @@ class TurmaAdmin(ModelAdmin):
 
 @admin.register(Curso)
 class CursoAdmin(ModelAdmin):
-    list_display = ['id_curso', 'nome_curso', 'area_badge', 'duracao', 'total_turmas']
+    list_display = ['id_curso', 'nome_curso', 'coordenador_badge', 'area_badge', 'duracao', 'total_turmas']
     list_filter = ['id_area_formacao']
-    search_fields = ['nome_curso']
+    search_fields = ['nome_curso', 'id_responsavel__nome_completo']
     
     @display(description='Área de Formação')
     def area_badge(self, obj):
@@ -253,6 +253,12 @@ class CursoAdmin(ModelAdmin):
     def total_turmas(self, obj):
         total = Turma.objects.filter(id_curso=obj).count()
         return format_html('<span class="badge badge-info">{}</span>', total)
+
+    @display(description='Coordenador', ordering='id_responsavel__nome_completo')
+    def coordenador_badge(self, obj):
+        if obj.id_responsavel:
+             return obj.id_responsavel.nome_completo
+        return 'Sem Coordenador'
 
 
 @admin.register(Disciplina)

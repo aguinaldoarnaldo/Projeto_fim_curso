@@ -1,8 +1,15 @@
 from rest_framework import serializers
 from apis.models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
-    Curso, Periodo, Turma
+    Curso, Periodo, Turma, AnoLectivo
 )
+
+
+class AnoLectivoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnoLectivo
+        fields = ['id_ano', 'nome', 'data_inicio', 'data_fim', 'activo']
+
 
 
 class SalaSerializer(serializers.ModelSerializer):
@@ -78,16 +85,21 @@ class CursoListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem de Cursos"""
     area_formacao_nome = serializers.SerializerMethodField()
     responsavel_nome = serializers.SerializerMethodField()
+    total_turmas = serializers.SerializerMethodField()
     
     class Meta:
         model = Curso
-        fields = ['id_curso', 'nome_curso', 'area_formacao_nome', 'duracao', 'responsavel_nome']
+        fields = ['id_curso', 'nome_curso', 'area_formacao_nome', 'duracao', 'responsavel_nome', 'total_turmas']
 
     def get_area_formacao_nome(self, obj):
         return obj.id_area_formacao.nome_area if obj.id_area_formacao else "N/A"
 
     def get_responsavel_nome(self, obj):
         return obj.id_responsavel.nome_completo if obj.id_responsavel else "Sem Coordenador"
+
+    def get_total_turmas(self, obj):
+        from apis.models import Turma
+        return Turma.objects.filter(id_curso=obj).count()
 
 
 class PeriodoSerializer(serializers.ModelSerializer):
@@ -129,11 +141,12 @@ class TurmaListSerializer(serializers.ModelSerializer):
     curso_nome = serializers.CharField(source='id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_classe.nivel', read_only=True)
     periodo_nome = serializers.CharField(source='id_periodo.periodo', read_only=True)
+    responsavel_nome = serializers.CharField(source='id_responsavel.nome_completo', read_only=True)
     total_alunos = serializers.SerializerMethodField()
     
     class Meta:
         model = Turma
-        fields = ['id_turma', 'codigo_turma', 'curso_nome', 'classe_nivel', 'periodo_nome', 'ano', 'total_alunos']
+        fields = ['id_turma', 'codigo_turma', 'curso_nome', 'classe_nivel', 'periodo_nome', 'ano', 'total_alunos', 'responsavel_nome']
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno

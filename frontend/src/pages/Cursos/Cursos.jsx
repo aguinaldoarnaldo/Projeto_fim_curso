@@ -20,6 +20,9 @@ const Cursos = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newCourseData, setNewCourseData] = useState({ nome_curso: '', duracao: 4 });
+
     // Fetch courses from API
     // Cache
     const { getCache, setCache } = useCache();
@@ -36,9 +39,8 @@ const Cursos = () => {
         }
 
         try {
-            setLoading(true);
+            // Note: We don't set loading=true here to avoid flashing UI during polling
             const response = await api.get('cursos/');
-            console.log("API Cursos Response:", response);
             
             // Handle different response structures (pagination vs flat array)
             let data = [];
@@ -47,16 +49,15 @@ const Cursos = () => {
             } else if (response.data && Array.isArray(response.data.results)) {
                 data = response.data.results;
             } else {
-                console.warn("Formato de resposta inesperado:", response.data);
                 data = [];
             }
             
-            console.log("Dados processados:", data);
-
             const formattedCourses = data.map(c => ({
                 id: c.id_curso,
                 nome: String(c.nome_curso || 'Sem Nome'),
+                area: c.area_formacao_nome || 'N/A',
                 duracao: c.duracao ? `${c.duracao} Anos` : 'N/A',
+                totalTurmas: c.total_turmas || 0,
                 coordenador: String(c.responsavel_nome || 'Sem Coordenador')
             }));
             setCourses(formattedCourses);
@@ -65,13 +66,44 @@ const Cursos = () => {
             setLoading(false);
         } catch (err) {
             console.error('Erro ao buscar cursos:', err);
-            setError('Falha ao carregar cursos: ' + (err.response?.data?.detail || err.message));
-            setLoading(false);
+            // Don't show error on polling failures to avoid interrupting user
+            if (loading) {
+                setError('Falha ao carregar cursos: ' + (err.response?.data?.detail || err.message));
+                setLoading(false);
+            }
         }
     };
 
+    const handleCreateCourse = async () => {
+        if (!newCourseData.nome_curso) {
+            alert("Nome do curso é obrigatório!");
+            return;
+        }
+
+        try {
+            await api.post('cursos/', newCourseData);
+            alert("Curso criado com sucesso!");
+            setShowCreateModal(false);
+            setNewCourseData({ nome_curso: '', duracao: 4 });
+            fetchCourses(true); // Auto-refresh!
+        } catch (error) {
+            console.error("Erro ao criar curso:", error);
+            alert("Erro ao criar curso. Verifique o console.");
+        }
+    };
+
+    // Initial Fetch
     useEffect(() => {
-        fetchCourses();
+        fetchCourses(true);
+    }, []);
+
+    // Real-time Update (Polling)
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            fetchCourses(true);
+        }, 2000); // Updates every 2 seconds
+
+        return () => clearInterval(intervalId);
     }, []);
 
     const filteredCourses = (Array.isArray(courses) ? courses : []).filter(course => {
@@ -92,14 +124,13 @@ const Cursos = () => {
                         <h1>Gestão de Cursos</h1>
                         <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
-                    <button className="btn-new-course">
+                    <button className="btn-new-course" onClick={() => setShowCreateModal(true)}>
                         <Plus size={18} />
                         Novo Curso
                     </button>
                 </div>
             </header>
-
-
+            
             <div className="table-card">
                 <div className="search-container">
                     <div className="search-wrapper">
@@ -126,30 +157,30 @@ const Cursos = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID do Curso</th>
                                     <th>Nome do Curso</th>
-                                    <th>Duração</th>
+                                    <th>Área de Formação</th>
                                     <th>Coordenador</th>
+                                    <th>Duração</th>
+                                    <th>Turmas</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {error ? (
                                     <tr>
-                                        <td colSpan="5" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                        <td colSpan="6" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
                                             {error}
                                         </td>
                                     </tr>
                                 ) : filteredCourses.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                        <td colSpan="6" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
                                             Nenhum curso encontrado.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredCourses.map((course) => (
                                         <tr key={course.id} className="animate-fade-in">
-                                            <td className="course-id">{course.id}</td>
                                             <td>
                                                 <div className="course-info">
                                                     <div className="course-icon-bg">
@@ -158,12 +189,7 @@ const Cursos = () => {
                                                     <span className="course-name">{course.nome}</span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="duration-info">
-                                                    <Clock size={14} />
-                                                    <span>{course.duracao}</span>
-                                                </div>
-                                            </td>
+                                            <td>{course.area}</td>
                                             <td>
                                                 <div className="coordinator-info">
                                                     <div className="coordinator-avatar">
@@ -172,6 +198,13 @@ const Cursos = () => {
                                                     <span>{course.coordenador}</span>
                                                 </div>
                                             </td>
+                                            <td>
+                                                <div className="duration-info">
+                                                    <Clock size={14} />
+                                                    <span>{course.duracao}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{textAlign: 'center'}}>{course.totalTurmas}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <button
                                                     className="btn-edit-course"
@@ -189,6 +222,60 @@ const Cursos = () => {
                     </div>
                 )}
             </div>
+
+
+            {/* Modal de Criação */}
+            {showCreateModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        background: 'white', padding: '30px', borderRadius: '12px',
+                        width: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                    }}>
+                        <h2 style={{marginTop: 0, marginBottom: '20px', color: '#1e293b'}}>Novo Curso</h2>
+                        
+                        <div style={{marginBottom: '15px'}}>
+                            <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Nome do Curso</label>
+                            <input 
+                                type="text" 
+                                style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1'}}
+                                value={newCourseData.nome_curso}
+                                onChange={e => setNewCourseData({...newCourseData, nome_curso: e.target.value})}
+                                placeholder="Ex: Engenharia Informática"
+                            />
+                        </div>
+
+                        <div style={{marginBottom: '20px'}}>
+                            <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Duração (Anos)</label>
+                            <input 
+                                type="number" 
+                                style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1'}}
+                                value={newCourseData.duracao}
+                                onChange={e => setNewCourseData({...newCourseData, duracao: parseInt(e.target.value)})}
+                                min="1" max="6"
+                            />
+                        </div>
+
+                        <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+                            <button 
+                                onClick={() => setShowCreateModal(false)}
+                                style={{padding: '10px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', color: '#475569'}}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleCreateCourse}
+                                style={{padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#0f172a', color: 'white', cursor: 'pointer', fontWeight: 500}}
+                            >
+                                Criar Curso
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

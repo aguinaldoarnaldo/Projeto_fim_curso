@@ -37,8 +37,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Alunos', icon: <GraduationCap size={20} />, path: '/alunos' },
     { name: 'Turmas', icon: <TurmasIcon size={20} />, path: '/turma' },
     { name: 'Salas', icon: <Home size={20} />, path: '/salas' },
-    { name: 'Classes', icon: <BookOpen size={20} />, path: '/classe' },
-    { name: 'Cursos', icon: <GraduationCap size={20} />, path: '/cursos' },
+    { name: 'Cursos', icon: <BookOpen size={20} />, path: '/cursos' },
+
     { name: 'Relatórios', icon: <FileText size={20} />, path: '/relatorios' },
     { name: 'Configurações', icon: <Settings size={20} />, path: '/configuracoes' },
   ];

@@ -124,6 +124,11 @@ def login_view(request):
         refresh['user_id'] = user_data['id']
         refresh['user_type'] = user_data['tipo']
         
+        # Adicionar claims também ao token de acesso
+        access_token = refresh.access_token
+        access_token['user_id'] = user_data['id']
+        access_token['user_type'] = user_data['tipo']
+        
         # Registrar histórico de login
         user_agent_info = get_user_agent_info(request)
         historico_data = {
@@ -142,7 +147,7 @@ def login_view(request):
         HistoricoLogin.objects.create(**historico_data)
         
         return Response({
-            'access': str(refresh.access_token),
+            'access': str(access_token),
             'refresh': str(refresh),
             'user': user_data
         }, status=status.HTTP_200_OK)
@@ -212,6 +217,7 @@ def logout_view(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def me_view(request):
     """
     Retorna informações do usuário autenticado baseado no Token JWT

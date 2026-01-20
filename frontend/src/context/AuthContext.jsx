@@ -15,14 +15,37 @@ export const AuthProvider = ({ children }) => {
             const storedUser = localStorage.getItem('@App:user');
 
             if (token && storedUser) {
-                // Opcional: Validar token com backend
-                // api.defaults.headers.Authorization = `Bearer ${token}`; // Já feito pelo interceptor
                 try {
-                    // Tentar buscar dados frescos do usuário se necessário
-                    // const response = await api.get('auth/me/');
-                    // setUser(response.data);
-                    setUser(JSON.parse(storedUser));
-                } catch (error) {
+                    let parsedUser = JSON.parse(storedUser);
+                    
+                    // CORREÇÃO DE ESTRUTURA: Se o usuário foi salvo como { user: {...} }, extraímos a parte interna
+                    if (parsedUser.user && typeof parsedUser.user === 'object') {
+                        console.log("Corrigindo estrutura do usuário em cache...");
+                        parsedUser = parsedUser.user;
+                        localStorage.setItem('@App:user', JSON.stringify(parsedUser));
+                    }
+
+                    // Validação mínima para garantir que não é lixo
+                    if (!parsedUser.id && !parsedUser.email && !parsedUser.nome) {
+                        throw new Error("Dados do usuário inválidos/incompletos.");
+                    }
+
+                    // Restaurar sessão imediatamente
+                    setUser(parsedUser);
+                    api.defaults.headers.Authorization = `Bearer ${token}`;
+
+                    // Validar sessão em background
+                    try {
+                        const response = await api.get('auth/me/');
+                        const validUser = response.data.user || response.data;
+                        setUser(validUser);
+                        localStorage.setItem('@App:user', JSON.stringify(validUser));
+                    } catch (error) {
+                         console.warn("Validação online falhou, mantendo offline:", error);
+                    }
+
+                } catch (e) {
+                    console.error("Erro ao carregar sessão salva. Limpando dados...", e);
                     signOut();
                 }
             }
@@ -63,7 +86,7 @@ export const AuthProvider = ({ children }) => {
             if (!userData) {
                  try {
                      const meResponse = await api.get('auth/me/');
-                     userData = meResponse.data;
+                     userData = meResponse.data.user || meResponse.data;
                  } catch (meError) {
                      console.error("Erro ao buscar dados do usuário", meError);
                      // Fallback simples
@@ -73,6 +96,7 @@ export const AuthProvider = ({ children }) => {
 
             localStorage.setItem('@App:user', JSON.stringify(userData));
             setUser(userData);
+            api.defaults.headers.Authorization = `Bearer ${token}`;
             
             return true;
         } catch (err) {

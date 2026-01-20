@@ -44,12 +44,22 @@ const Candidatura = () => {
     });
 
     useEffect(() => {
-        // Load courses for selection
+        // Initial fetch
+        fetchCourses();
+
+        // Polling every 3 seconds for real-time updates
+        const interval = setInterval(fetchCourses, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchCourses = () => {
         api.get('cursos/').then(res => {
             const data = res.data.results || res.data;
+            // Only update if length changed or deep comparison (optional simplification here)
+            // For now, React's virtual DOM handles the diffing reasonably well for small lists
             setCursosDisponiveis(data);
         }).catch(console.error);
-    }, []);
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -161,16 +171,16 @@ const Candidatura = () => {
                         <label className="section-subtitle"><UploadCloud size={16}/> Documentos Obrigatórios</label>
                      </div>
                     <div className="form-control">
-                        <label>Foto Tipo Passe</label>
-                        <input type="file" name="foto_passe" onChange={handleFileChange} accept="image/*" required />
+                        <label>Foto Tipo Passe {formData.foto_passe && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>}</label>
+                        <input type="file" name="foto_passe" onChange={handleFileChange} accept="image/*" required={!formData.foto_passe} />
                     </div>
                      <div className="form-control">
-                        <label>Cópia do BI (PDF/Img)</label>
-                        <input type="file" name="comprovativo_bi" onChange={handleFileChange} accept="image/*,application/pdf" required />
+                        <label>Cópia do BI {formData.comprovativo_bi && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>}</label>
+                        <input type="file" name="comprovativo_bi" onChange={handleFileChange} accept="image/*,application/pdf" required={!formData.comprovativo_bi} />
                     </div>
                      <div className="form-control">
-                        <label>Certificado/Declaração</label>
-                        <input type="file" name="certificado" onChange={handleFileChange} accept="image/*,application/pdf" required />
+                        <label>Certificado {formData.certificado && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>}</label>
+                        <input type="file" name="certificado" onChange={handleFileChange} accept="image/*,application/pdf" required={!formData.certificado} />
                     </div>
                 </div>
             </div>

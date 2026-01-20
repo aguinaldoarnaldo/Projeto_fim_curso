@@ -9,8 +9,9 @@ from .aluno_serializers import (
 from .academico_serializers import (
     SalaSerializer, ClasseSerializer, DepartamentoSerializer, SeccaoSerializer,
     AreaFormacaoSerializer, CursoSerializer, CursoListSerializer,
-    PeriodoSerializer, TurmaSerializer, TurmaListSerializer
+    PeriodoSerializer, TurmaSerializer, TurmaListSerializer, AnoLectivoSerializer
 )
+
 from .avaliacao_serializers import (
     TipoDisciplinaSerializer, DisciplinaSerializer, DisciplinaListSerializer,
     DisciplinaCursoSerializer, ProfessorDisciplinaSerializer,
@@ -46,7 +47,8 @@ __all__ = [
     # Acadêmico
     'SalaSerializer', 'ClasseSerializer', 'DepartamentoSerializer', 'SeccaoSerializer',
     'AreaFormacaoSerializer', 'CursoSerializer', 'CursoListSerializer',
-    'PeriodoSerializer', 'TurmaSerializer', 'TurmaListSerializer',
+    'PeriodoSerializer', 'TurmaSerializer', 'TurmaListSerializer', 'AnoLectivoSerializer',
+
     # Avaliações
     'TipoDisciplinaSerializer', 'DisciplinaSerializer', 'DisciplinaListSerializer',
     'DisciplinaCursoSerializer', 'ProfessorDisciplinaSerializer',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -6,10 +6,16 @@ import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, error } = useAuth();
+  const { signIn, error, signed, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (signed && !authLoading) {
+      navigate('/dashboard');
+    }
+  }, [signed, authLoading, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,6 +23,8 @@ const Login = () => {
     
     const success = await signIn(email, password);
     
+    // Navigation will be handled by the useEffect above when 'signed' becomes true
+    // or we can keep it here for redundancy/immediacy.
     if (success) {
       navigate('/dashboard');
     }

@@ -15,6 +15,9 @@ class MatriculaViewSet(viewsets.ModelViewSet):
         'id_turma__id_sala', 
         'id_turma__id_classe', 
         'id_turma__id_periodo'
+    ).prefetch_related(
+        'id_aluno__alunoencarregado_set',
+        'id_aluno__alunoencarregado_set__id_encarregado'
     ).all()
     serializer_class = MatriculaSerializer
     permission_classes = [AllowAny] # For dev ease, typically IsAuthenticated

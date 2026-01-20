@@ -64,6 +64,7 @@ const Alunos = () => {
     const { getCache, setCache } = useCache();
 
     // Fetch students from API
+    // Fetch students from API
     const fetchStudents = async (force = false) => {
         if (!force) {
             const cachedData = getCache('alunos');
@@ -75,17 +76,28 @@ const Alunos = () => {
         }
 
         try {
-            setLoading(true);
-            const response = await api.get('alunos/');
-            // Check if response.data is an array or paginated object (API defaults to pagination)
-            const data = response.data.results || response.data;
+            let allStudents = [];
+            let nextUrl = 'alunos/';
             
-            const formattedStudents = data.map(student => ({
+            // Loop while there is a next page
+            while (nextUrl) {
+                const response = await api.get(nextUrl);
+                const data = response.data;
+                const results = data.results || (Array.isArray(data) ? data : []);
+                
+                allStudents = [...allStudents, ...results];
+                nextUrl = data.next; // DRF returns full URL or null
+                
+                // Safety break for infinite loops (e.g. > 100 pages, unlikely for now)
+                if (allStudents.length > 5000) break;
+            }
+            
+            const formattedStudents = allStudents.map(student => ({
                 id: student.id_aluno,
                 matricula: student.numero_matricula,
                 nome: student.nome_completo,
                 foto: student.img_path,
-                anoLectivo: student.ano_lectivo || '2024/2025', // Fallback or from API
+                anoLectivo: student.ano_lectivo || '2024/2025',
                 classe: student.classe_nivel ? `${student.classe_nivel}ª Classe` : 'N/A',
                 curso: student.curso_nome || 'N/A',
                 sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
@@ -94,9 +106,9 @@ const Alunos = () => {
                 status: student.status_aluno,
                 dataMatricula: new Date(student.criado_em).toLocaleDateString(),
                 detalhes: {
-                    nif: student.numero_bi, // Using BI as NIF placeholder if NIF not separate
-                    nascimento: 'N/A', // Data nascimento not in list serializer yet
-                    encarregado: 'Carregar...',
+                    nif: student.numero_bi, 
+                    nascimento: student.data_nascimento || 'N/A',
+                    encarregado: student.encarregado_principal || 'N/A',
                     telefone: student.telefone || 'N/A',
                     email: student.email,
                     endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
@@ -104,18 +116,29 @@ const Alunos = () => {
                     obs: ''
                 }
             }));
+            
             setStudents(formattedStudents);
             setCache('alunos', formattedStudents);
             setLoading(false);
         } catch (err) {
             console.error("Erro ao buscar alunos:", err);
-            setError("Falha ao carregar lista de alunos.");
-            setLoading(false);
+            if (loading) {
+                setError("Falha ao carregar lista de alunos.");
+                setLoading(false);
+            }
         }
     };
 
     useEffect(() => {
         fetchStudents();
+    }, []);
+
+    // Polling for real-time updates
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchStudents(true);
+        }, 2000);
+        return () => clearInterval(interval);
     }, []);
 
 

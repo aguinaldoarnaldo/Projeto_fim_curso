@@ -59,8 +59,30 @@ class Candidato(BaseModel):
         if not self.numero_inscricao:
             import datetime
             year = datetime.datetime.now().year
-            last = Candidato.objects.filter(numero_inscricao__startswith=f"INS{year}").count()
-            self.numero_inscricao = f"INS{year}{str(last+1).zfill(4)}"
+            
+            # Find the last used number to avoid gaps/duplicates
+            # We look for the last created entry for this year
+            last_entry = Candidato.objects.filter(numero_inscricao__startswith=f"INS{year}").order_by('numero_inscricao').last()
+            
+            if last_entry:
+                # Extract the sequence number from INS20250004 -> 0004
+                try:
+                    last_sequence = int(last_entry.numero_inscricao.replace(f"INS{year}", ""))
+                    next_sequence = last_sequence + 1
+                except ValueError:
+                    # Fallback if manual entry messed up format
+                    next_sequence = Candidato.objects.filter(numero_inscricao__startswith=f"INS{year}").count() + 1
+            else:
+                next_sequence = 1
+            
+            # Ensure uniqueness loop (just in case)
+            while True:
+                candidate_number = f"INS{year}{str(next_sequence).zfill(4)}"
+                if not Candidato.objects.filter(numero_inscricao=candidate_number).exists():
+                    self.numero_inscricao = candidate_number
+                    break
+                next_sequence += 1
+                
         super().save(*args, **kwargs)
 
     class Meta:
