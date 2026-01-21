@@ -93,7 +93,6 @@ class CursoViewSet(viewsets.ModelViewSet):
     queryset = Curso.objects.select_related(
         'id_area_formacao', 'id_responsavel'
     ).all()
-    authentication_classes = [] 
     # permission_classes = [IsAuthenticated] - Managed by get_permissions
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['id_area_formacao']
@@ -191,5 +190,18 @@ class TurmaViewSet(viewsets.ModelViewSet):
             'total_alunos': total_alunos,
             'alunos_por_status': list(alunos_por_status),
             'alunos_por_genero': list(alunos_por_genero)
+        })
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Retorna sumário de turmas para o dashboard"""
+        total = Turma.objects.count()
+        ativas = Turma.objects.filter(status='Ativa').count()
+        concluidas = Turma.objects.filter(status='Concluida').count()
+        
+        return Response({
+            'total': total,
+            'ativas': ativas,
+            'concluidas': concluidas
         })
         

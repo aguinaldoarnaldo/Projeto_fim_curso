@@ -42,12 +42,12 @@ const Turmas = () => {
         }
     }, [currentPage]);
 
-    // Filters State
     const [filters, setFilters] = useState({
         ano: '',
         curso: '',
         sala: '',
-        turno: ''
+        turno: '',
+        status: ''
     });
 
     const [turmas, setTurmas] = useState([]);
@@ -63,7 +63,8 @@ const Turmas = () => {
         id_periodo: '',
         id_sala: '',
         ano: '2024/2025',
-        responsavel_nome: ''
+        responsavel_nome: '',
+        status: 'Ativa'
     });
 
     // Cache
@@ -112,12 +113,16 @@ const Turmas = () => {
             const formattedTurmas = turmasData.map(t => ({
                 id: t.id_turma,
                 turma: t.codigo_turma,
+                id_curso: t.id_curso,
                 curso: t.curso_nome,
+                id_sala: t.id_sala,
                 sala: `Sala ${t.sala_numero || 'N/A'}`,
+                id_periodo: t.id_periodo,
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano || '2024/2025',
                 turno: t.periodo_nome,
-                qtdAlunos: t.total_alunos || 0
+                qtdAlunos: t.total_alunos || 0,
+                status: t.status || 'Ativa'
             }));
             
             const salasData = salasRes.data.results || salasRes.data;
@@ -158,6 +163,7 @@ const Turmas = () => {
                 id_curso: formData.id_curso,
                 id_sala: formData.id_sala,
                 ano: formData.ano,
+                status: formData.status,
                 // Assuming defaults or handling these fields for now as they might be required by backend
                 id_classe: 1, // Default to 10th grade if not specified
                 id_periodo: formData.id_periodo || 1 // Default to first period if not specified
@@ -189,11 +195,12 @@ const Turmas = () => {
         setSelectedTurma(turma);
         setFormData({
             codigo_turma: turma.turma,
-            id_curso: '', // potentially map from name if needed, or fetch detailed
-            id_periodo: '',
-            id_sala: '',
+            id_curso: turma.id_curso || '',
+            id_periodo: turma.id_periodo || '',
+            id_sala: turma.id_sala || '',
             ano: turma.ano,
-            responsavel_nome: turma.coordenador
+            responsavel_nome: turma.coordenador,
+            status: turma.status
         });
         setModalMode('edit');
         setShowModal(true);
@@ -207,7 +214,8 @@ const Turmas = () => {
             id_periodo: '',
             id_sala: '',
             ano: '2024/2025',
-            responsavel_nome: ''
+            responsavel_nome: '',
+            status: 'Ativa'
         });
         setModalMode('add');
         setShowModal(true);
@@ -221,8 +229,9 @@ const Turmas = () => {
         const matchesCurso = filters.curso === '' || item.curso === filters.curso;
         const matchesSala = filters.sala === '' || item.sala.includes(filters.sala); // Adapted since sala formatting changed
         const matchesTurno = filters.turno === '' || item.turno === filters.turno;
+        const matchesStatus = filters.status === '' || item.status === filters.status;
 
-        return matchesSearch && matchesAno && matchesCurso && matchesSala && matchesTurno;
+        return matchesSearch && matchesAno && matchesCurso && matchesSala && matchesTurno && matchesStatus;
     });
 
     // Pagination Slicing
@@ -314,10 +323,18 @@ const Turmas = () => {
                                     <option value="Noite">Noite</option>
                                 </select>
                             </div>
+                            <div>
+                                <label htmlFor="filtro-status-tur" className="filter-label-turma">Estado</label>
+                                <select id="filtro-status-tur" name="status" value={filters.status} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
+                                    <option value="">Todos</option>
+                                    <option value="Ativa">Ativa</option>
+                                    <option value="Concluida">Concluída</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="clear-filters-box">
                             <button
-                                onClick={() => { setFilters({ ano: '', curso: '', sala: '', turno: '' }); setCurrentPage(1); }}
+                                onClick={() => { setFilters({ ano: '', curso: '', sala: '', turno: '', status: '' }); setCurrentPage(1); }}
                                 className="btn-clear-filters"
                             >
                                 Limpar Filtros
@@ -346,6 +363,7 @@ const Turmas = () => {
                                     <th>Ano</th>
                                     <th>Turno</th>
                                     <th>Alunos (Capacidade)</th>
+                                    <th>Estado</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -386,6 +404,18 @@ const Turmas = () => {
                                                         <div className="capacity-progress-bar" style={{ width: `${(t.qtdAlunos / 50) * 100}%`, background: t.qtdAlunos >= 50 ? '#ef4444' : 'var(--primary-color)' }} />
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    backgroundColor: t.status === 'Ativa' ? '#dcfce7' : '#f1f5f9',
+                                                    color: t.status === 'Ativa' ? '#166534' : '#64748b'
+                                                }}>
+                                                    {t.status === 'Concluida' ? 'Concluída' : t.status}
+                                                </span>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <button
@@ -479,6 +509,17 @@ const Turmas = () => {
                                                 Sala {s.numero_sala} ({s.capacidade_alunos} lug.)
                                             </option>
                                         ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="form-label-turmas">Estado</label>
+                                    <select 
+                                        value={formData.status}
+                                        onChange={e => setFormData({...formData, status: e.target.value})}
+                                        className="form-input-turmas"
+                                    >
+                                        <option value="Ativa">Ativa</option>
+                                        <option value="Concluida">Concluída</option>
                                     </select>
                                 </div>
                                 <div>

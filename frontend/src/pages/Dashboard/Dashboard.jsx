@@ -41,9 +41,12 @@ const Dashboard = () => {
   const [countClasses, setCountClasses] = useState(() => getCache('dashboard_classes_count') || 0);
   const [countSalas, setCountSalas] = useState(() => getCache('dashboard_salas_count') || 0);
 
-  const [kpiData, setKpiData] = useState({
+  const [kpiData, setKpiData] = useState(() => {
+      const cached = getCache('dashboard_kpi_data');
+      return cached || {
         alunos: { total: 0, ativos: 0, trancados: 0 },
-        turmas: { total: 0, concluidas: 0 }
+        turmas: { total: 0, ativas: 0, concluidas: 0 }
+      };
   });
 
   // Mock Data for Charts
@@ -103,27 +106,33 @@ const Dashboard = () => {
                 countAlunos = Array.isArray(dataAlunos) ? dataAlunos.length : 0;
              } catch (e) { console.warn("Could not fetch alunos", e); }
 
-             // Fetch Turmas
-             let countTurmas = 0;
+             // Fetch Turmas Summary
+             let turmasStats = { total: 0, ativas: 0, concluidas: 0 };
              try {
-                const responseTurmas = await api.get('turmas/');
-                const dataTurmas = responseTurmas.data.results || responseTurmas.data || [];
-                countTurmas = Array.isArray(dataTurmas) ? dataTurmas.length : 0;
-             } catch (e) { console.warn("Could not fetch turmas", e); }
+                const responseTurmas = await api.get('turmas/summary/');
+                turmasStats = responseTurmas.data;
+             } catch (e) { console.warn("Could not fetch turmas summary", e); }
 
-             setKpiData({
+             const newKpiData = {
                 alunos: { total: countAlunos, ativos: countAlunos, trancados: 0 },
-                turmas: { total: countTurmas, concluidas: 0 }
-             });
+                turmas: { 
+                    total: turmasStats.total, 
+                    ativas: turmasStats.ativas, 
+                    concluidas: turmasStats.concluidas 
+                }
+             };
+
+             setKpiData(newKpiData);
+             setCache('dashboard_kpi_data', newKpiData);
 
          } catch (error) {
              console.error("Error fetching dashboard counts", error);
          }
      };
      
-     fetchCounts();
-     const interval = setInterval(fetchCounts, 30000); // 30 seconds
-     return () => clearInterval(interval);
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 2000); // 2 seconds (Real-time feel)
+    return () => clearInterval(interval);
   }, [setCache]);
 
   const chartData = useMemo(() => {
@@ -137,22 +146,6 @@ const Dashboard = () => {
         <div className="header-text">
           <h1>Olá, {displayName}</h1>
           <p>Visão geral e controle do sistema escolar.</p>
-        </div>
-
-        <div className="header-actions">
-          <div className="search-bar">
-            <Search size={18} className="dashboard-search-icon" />
-            <input type="text" placeholder="Pesquisar..." />
-          </div>
-          <button className="btn-icon circle-btn">
-            <Bell size={20} />
-            <span className="notification-badge"></span>
-          </button>
-          <div className="user-profile">
-            <div className="avatar" title={user?.email}>
-                {getInitials(displayName)}
-            </div>
-          </div>
         </div>
       </header>
 
@@ -179,6 +172,7 @@ const Dashboard = () => {
             <span className="kpi-label">Total Turmas</span>
           </div>
           <div className="kpi-mini-stats">
+            <span className="mini-stat active">Ativas: {kpiData.turmas.ativas}</span>
             <span className="mini-stat">Concluídas: {kpiData.turmas.concluidas}</span>
           </div>
         </div>

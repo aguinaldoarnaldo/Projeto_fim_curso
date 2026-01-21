@@ -4,6 +4,8 @@ import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
+import Loader from '../../components/Common/Loader'; // Import Loader
+
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, error, signed, loading: authLoading } = useAuth();
@@ -16,6 +18,11 @@ const Login = () => {
       navigate('/dashboard');
     }
   }, [signed, authLoading, navigate]);
+
+  // Show loader while checking authentication status to prevent form flash
+  if (authLoading) {
+      return <Loader />;
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

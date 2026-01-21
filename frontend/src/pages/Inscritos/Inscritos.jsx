@@ -162,7 +162,13 @@ const Inscritos = () => {
     return age;
   };
 
+  const handleOpenDetail = (candidato) => {
+    setShowEvaluationModal(false);
+    setSelectedCandidato(candidato);
+  };
+
   const handleOpenEvaluation = (candidato) => {
+    setSelectedCandidato(null);
     setCandidateToEvaluate(candidato);
     setExamGrade(''); // Reset grade
     setShowEvaluationModal(true);
@@ -345,18 +351,18 @@ const Inscritos = () => {
                 <tbody>
                   {currentData.length > 0 ? currentData.map((i) => (
                     <tr key={i.id} className="clickable-row animate-fade-in">
-                      <td onClick={() => setSelectedCandidato(i)}>{i.id}</td>
-                      <td onClick={() => setSelectedCandidato(i)} style={{ fontWeight: 600 }}>{i.nome}</td>
-                      <td onClick={() => setSelectedCandidato(i)}>{i.curso1}</td>
-                      <td onClick={() => setSelectedCandidato(i)}>
+                      <td onClick={() => handleOpenDetail(i)}>{i.id}</td>
+                      <td onClick={() => handleOpenDetail(i)} style={{ fontWeight: 600 }}>{i.nome}</td>
+                      <td onClick={() => handleOpenDetail(i)}>{i.curso1}</td>
+                      <td onClick={() => handleOpenDetail(i)}>
                         {i.notaExame ? (
                           <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
                             {i.notaExame}
                           </span>
                         ) : '-'}
                       </td>
-                      <td onClick={() => setSelectedCandidato(i)}>{i.anoInscricao}</td>
-                      <td onClick={() => setSelectedCandidato(i)}>
+                      <td onClick={() => handleOpenDetail(i)}>{i.anoInscricao}</td>
+                      <td onClick={() => handleOpenDetail(i)}>
                         <span className={`status-badge ${i.status === 'Pendente' ? 'status-pending' :
                           i.status === 'Em Análise' ? 'status-analysis' :
                             i.status === 'Aprovado' ? 'status-approved' : 
@@ -488,7 +494,7 @@ const Inscritos = () => {
                     <div className="info-item"><label>Idade (Auto)</label><p>{calculateAge(selectedCandidato.dataNascimento)} anos</p></div>
                     <div className="info-item"><label>Nacionalidade</label><p>{selectedCandidato.nacionalidade}</p></div>
                     <div className="info-item"><label>Nº do BI / Passaporte</label><p>{selectedCandidato.bi}</p></div>
-                    <div className="info-item"><label>Data de Emissão</label><p>{selectedCandidato.dataEmissaoBI}</p></div>
+
                     <div className="info-item"><label>Naturalidade</label><p>{selectedCandidato.naturalidade}</p></div>
                     <div className="info-item" style={{ gridColumn: 'span 2' }}>
                       <label>Residência</label><p>{selectedCandidato.residencia}</p>
@@ -537,7 +543,7 @@ const Inscritos = () => {
                   <div className="info-grid">
                     <div className="info-item"><label>Curso – 1ª Opção</label><p>{selectedCandidato.curso1}</p></div>
                     <div className="info-item"><label>Curso – 2ª Opção</label><p>{selectedCandidato.curso2 || 'Nenhuma'}</p></div>
-                    <div className="info-item"><label>Turno Pretendido</label><p>{selectedCandidato.turno}</p></div>
+
                   </div>
                 </div>
               </section>

@@ -89,7 +89,7 @@ class CursoListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Curso
-        fields = ['id_curso', 'nome_curso', 'area_formacao_nome', 'duracao', 'responsavel_nome', 'total_turmas']
+        fields = ['id_curso', 'nome_curso', 'id_area_formacao', 'area_formacao_nome', 'duracao', 'id_responsavel', 'responsavel_nome', 'total_turmas']
 
     def get_area_formacao_nome(self, obj):
         return obj.id_area_formacao.nome_area if obj.id_area_formacao else "N/A"
@@ -126,7 +126,7 @@ class TurmaSerializer(serializers.ModelSerializer):
         fields = [
             'id_turma', 'codigo_turma', 'id_sala', 'sala_numero',
             'id_curso', 'curso_nome', 'id_classe', 'classe_nivel',
-            'id_periodo', 'periodo_nome', 'ano', 'id_responsavel',
+            'id_periodo', 'periodo_nome', 'ano', 'status', 'id_responsavel',
             'responsavel_nome', 'total_alunos', 'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['id_turma', 'codigo_turma', 'criado_em', 'atualizado_em']
@@ -138,6 +138,7 @@ class TurmaSerializer(serializers.ModelSerializer):
 
 class TurmaListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem de Turmas"""
+    sala_numero = serializers.IntegerField(source='id_sala.numero_sala', read_only=True)
     curso_nome = serializers.CharField(source='id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_classe.nivel', read_only=True)
     periodo_nome = serializers.CharField(source='id_periodo.periodo', read_only=True)
@@ -146,7 +147,7 @@ class TurmaListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Turma
-        fields = ['id_turma', 'codigo_turma', 'curso_nome', 'classe_nivel', 'periodo_nome', 'ano', 'total_alunos', 'responsavel_nome']
+        fields = ['id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'id_curso', 'curso_nome', 'classe_nivel', 'id_periodo', 'periodo_nome', 'status', 'ano', 'total_alunos', 'responsavel_nome']
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno

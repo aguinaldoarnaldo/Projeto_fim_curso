@@ -191,13 +191,19 @@ class Periodo(models.Model):
 
 class Turma(BaseModel):
     """Turmas de alunos"""
+    STATUS_CHOICES = [
+        ('Ativa', 'Ativa'),
+        ('Concluida', 'Concluída'),
+    ]
+
     id_turma = models.AutoField(primary_key=True)
     id_sala = models.ForeignKey(Sala, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Sala')
-    id_curso = models.ForeignKey(Curso, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Curso')
+    id_curso = models.ForeignKey(Curso, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Curso')
     id_classe = models.ForeignKey(Classe, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Classe')
     id_periodo = models.ForeignKey(Periodo, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Período')
     ano = models.CharField(null=True, blank=True, verbose_name='Ano',default=f"{str(datetime.date.year)}")
     codigo_turma = models.CharField(max_length=50, unique=True, verbose_name='Código da Turma')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativa', verbose_name='Estado da Turma')
     id_responsavel = models.ForeignKey(
         Funcionario,
         on_delete=models.SET_NULL,

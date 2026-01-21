@@ -500,8 +500,7 @@ body {
   border: none;
   cursor: pointer;
   color: var(--text-muted);
-  position: relative;
-  padding: 5px;
+  padding: 6px;
   border-radius: 50%;
   transition: background 0.2s;
   display: flex;
@@ -514,15 +513,23 @@ body {
   color: var(--primary-color);
 }
 
+.icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .notification-badge {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 8px;
-  height: 8px;
-  background-color: #ef4444; /* Red color for notification */
+  top: -2px;
+  right: 0px;
+  width: 9px;
+  height: 9px;
+  background-color: #ef4444;
   border-radius: 50%;
-  border: 2px solid var(--card-bg);
+  border: 2px solid #fff;
+  z-index: 10;
 }
 
 .user-profile-top {

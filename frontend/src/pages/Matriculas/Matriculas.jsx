@@ -309,8 +309,8 @@ const Matriculas = () => {
                                         <div className="student-info">
                                             {/* Foto ou Placeholder */}
                                             <div className="student-avatar" style={{ 
-                                                width: '36px', 
-                                                height: '36px', 
+                                                width: '48px', 
+                                                height: '48px', 
                                                 display: 'flex', 
                                                 alignItems: 'center', 
                                                 justifyContent: 'center',
@@ -323,7 +323,7 @@ const Matriculas = () => {
                                                 {m.foto ? (
                                                     <img src={m.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <User size={18} color="var(--primary-color)" />
+                                                    <User size={24} color="var(--primary-color)" />
                                                 )}
                                             </div>
                                             <div style={{display: 'flex', flexDirection: 'column'}}>
@@ -402,7 +402,7 @@ const Matriculas = () => {
                                         <img src={selectedMatricula.foto} alt={selectedMatricula.aluno} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <User size={40} />
+                                            <User size={80} />
                                         </div>
                                     )}
                                 </div>

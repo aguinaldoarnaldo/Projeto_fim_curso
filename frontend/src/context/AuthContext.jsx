@@ -30,18 +30,27 @@ export const AuthProvider = ({ children }) => {
                         throw new Error("Dados do usuário inválidos/incompletos.");
                     }
 
-                    // Restaurar sessão imediatamente
+                    // Restaurar sessão imediatamente (optimistic UI)
                     setUser(parsedUser);
                     api.defaults.headers.Authorization = `Bearer ${token}`;
 
                     // Validar sessão em background
                     try {
                         const response = await api.get('auth/me/');
+                        // Se sucesso, atualizamos com os dados frescos do servidor
                         const validUser = response.data.user || response.data;
                         setUser(validUser);
                         localStorage.setItem('@App:user', JSON.stringify(validUser));
                     } catch (error) {
-                         console.warn("Validação online falhou, mantendo offline:", error);
+                         console.error("Validação de sessão falhou:", error);
+                         // Se o erro for de autenticação (401/403), o token é inválido. Logout forçado.
+                         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                             signOut();
+                         } else {
+                             // Se for erro de rede ou outro (500), mantemos o usuário logado (offline mode)
+                             // ou decidimos fazer logout. Para segurança, se não validou, melhor avisar.
+                             console.warn("Erro de conexão ou servidor. Mantendo sessão offline temporariamente.");
+                         }
                     }
 
                 } catch (e) {
@@ -112,6 +121,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('@App:token');
         localStorage.removeItem('@App:user');
         setUser(null);
+        delete api.defaults.headers.Authorization;
     };
 
     return (

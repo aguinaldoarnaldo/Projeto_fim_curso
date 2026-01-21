@@ -207,11 +207,26 @@ class AlunoAdmin(ModelAdmin):
 
 @admin.register(Turma)
 class TurmaAdmin(ModelAdmin):
-    list_display = ['id_turma', 'codigo_turma', 'curso_badge', 'classe_badge', 
-                    'periodo_badge', 'total_alunos', 'ano']
-    list_filter = ['id_curso', 'id_classe', 'id_periodo', 'ano']
+    list_display = ['id_turma', 'codigo_turma', 'curso_badge', 'classe_badge', 'sala_badge', 
+                    'periodo_badge', 'total_alunos', 'status_badge', 'ano']
+    list_filter = ['status', 'id_curso', 'id_classe', 'id_periodo', 'id_sala', 'ano']
     search_fields = ['codigo_turma']
     list_per_page = 20
+    
+    @display(description='Estado', ordering='status')
+    def status_badge(self, obj):
+        colors = {
+            'Ativa': 'success',
+            'Concluida': 'secondary'
+        }
+        color = colors.get(obj.status, 'secondary')
+        return format_html('<span class="badge badge-{}">{}</span>', color, obj.status)
+    
+    @display(description='Sala', ordering='id_sala__numero_sala')
+    def sala_badge(self, obj):
+        if obj.id_sala:
+            return format_html('<span class="badge badge-warning">Sala {}</span>', obj.id_sala.numero_sala)
+        return '-'
     
     @display(description='Curso', ordering='id_curso__nome_curso')
     def curso_badge(self, obj):

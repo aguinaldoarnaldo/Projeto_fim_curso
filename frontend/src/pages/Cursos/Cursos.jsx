@@ -21,7 +21,20 @@ const Cursos = () => {
     const [error, setError] = useState(null);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newCourseData, setNewCourseData] = useState({ nome_curso: '', duracao: 4 });
+    const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+    const [selectedCourseId, setSelectedCourseId] = useState(null);
+    
+    // Form Data
+    const [formData, setFormData] = useState({ 
+        nome_curso: '', 
+        duracao: 4,
+        id_area_formacao: '',
+        id_responsavel: ''
+    });
+
+    // Aux Data
+    const [areasFormacao, setAreasFormacao] = useState([]);
+    const [coordenadores, setCoordenadores] = useState([]);
 
     // Fetch courses from API
     // Cache
@@ -58,7 +71,9 @@ const Cursos = () => {
                 area: c.area_formacao_nome || 'N/A',
                 duracao: c.duracao ? `${c.duracao} Anos` : 'N/A',
                 totalTurmas: c.total_turmas || 0,
-                coordenador: String(c.responsavel_nome || 'Sem Coordenador')
+                coordenador: String(c.responsavel_nome || 'Sem Coordenador'),
+                // Raw data for editing
+                raw: c
             }));
             setCourses(formattedCourses);
             setCache('cursos', formattedCourses);
@@ -74,27 +89,81 @@ const Cursos = () => {
         }
     };
 
-    const handleCreateCourse = async () => {
-        if (!newCourseData.nome_curso) {
+    const handleSaveCourse = async () => {
+        if (!formData.nome_curso) {
             alert("Nome do curso é obrigatório!");
             return;
         }
 
         try {
-            await api.post('cursos/', newCourseData);
-            alert("Curso criado com sucesso!");
+            const payload = {
+                nome_curso: formData.nome_curso,
+                duracao: formData.duracao,
+                id_area_formacao: formData.id_area_formacao || null,
+                id_responsavel: formData.id_responsavel || null
+            };
+
+            if (modalMode === 'create') {
+                await api.post('cursos/', payload);
+                alert("Curso criado com sucesso!");
+            } else {
+                await api.put(`cursos/${selectedCourseId}/`, payload);
+                alert("Curso atualizado com sucesso!");
+            }
+
             setShowCreateModal(false);
-            setNewCourseData({ nome_curso: '', duracao: 4 });
+            resetForm();
             fetchCourses(true); // Auto-refresh!
         } catch (error) {
-            console.error("Erro ao criar curso:", error);
-            alert("Erro ao criar curso. Verifique o console.");
+            console.error("Erro ao salvar curso:", error);
+            alert("Erro ao salvar curso. " + (error.response?.data?.detail || ""));
         }
     };
 
-    // Initial Fetch
+    const handleEdit = (course) => {
+        setModalMode('edit');
+        setSelectedCourseId(course.id);
+        
+        // Populate form using raw data if available, or fallback
+        const raw = course.raw || {};
+        setFormData({
+            nome_curso: raw.nome_curso || course.nome,
+            duracao: raw.duracao || 4,
+            id_area_formacao: raw.id_area_formacao || '',
+            id_responsavel: raw.id_responsavel || ''
+        });
+        setShowCreateModal(true);
+    };
+
+    const resetForm = () => {
+        setFormData({ 
+            nome_curso: '', 
+            duracao: 4,
+            id_area_formacao: '',
+            id_responsavel: ''
+        });
+        setModalMode('create');
+        setSelectedCourseId(null);
+    };
+
+    // Initial Fetch & Aux Data
     useEffect(() => {
         fetchCourses(true);
+        
+        // Fetch Aux Data (Areas & Coordinators)
+        const fetchAuxData = async () => {
+             try {
+                 const [resAreas, resFuncionarios] = await Promise.all([
+                     api.get('areas-formacao/'),
+                     api.get('funcionarios/')
+                 ]);
+                 setAreasFormacao(resAreas.data.results || resAreas.data || []);
+                 setCoordenadores(resFuncionarios.data.results || resFuncionarios.data || []);
+             } catch (e) {
+                 console.error("Erro ao carregar dados auxiliares", e);
+             }
+        };
+        fetchAuxData();
     }, []);
 
     // Real-time Update (Polling)
@@ -124,7 +193,7 @@ const Cursos = () => {
                         <h1>Gestão de Cursos</h1>
                         <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
-                    <button className="btn-new-course" onClick={() => setShowCreateModal(true)}>
+                    <button className="btn-new-course" onClick={() => { resetForm(); setShowCreateModal(true); }}>
                         <Plus size={18} />
                         Novo Curso
                     </button>
@@ -207,6 +276,7 @@ const Cursos = () => {
                                             <td style={{textAlign: 'center'}}>{course.totalTurmas}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <button
+                                                    onClick={() => handleEdit(course)}
                                                     className="btn-edit-course"
                                                     title="Editar Curso"
                                                 >
@@ -224,7 +294,7 @@ const Cursos = () => {
             </div>
 
 
-            {/* Modal de Criação */}
+            {/* Modal de Criação / Edição */}
             {showCreateModal && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -233,30 +303,65 @@ const Cursos = () => {
                 }}>
                     <div style={{
                         background: 'white', padding: '30px', borderRadius: '12px',
-                        width: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                        width: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
                     }}>
-                        <h2 style={{marginTop: 0, marginBottom: '20px', color: '#1e293b'}}>Novo Curso</h2>
+                        <h2 style={{marginTop: 0, marginBottom: '20px', color: '#1e293b'}}>
+                            {modalMode === 'create' ? 'Novo Curso' : 'Editar Curso'}
+                        </h2>
                         
                         <div style={{marginBottom: '15px'}}>
                             <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Nome do Curso</label>
                             <input 
                                 type="text" 
                                 style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1'}}
-                                value={newCourseData.nome_curso}
-                                onChange={e => setNewCourseData({...newCourseData, nome_curso: e.target.value})}
+                                value={formData.nome_curso}
+                                onChange={e => setFormData({...formData, nome_curso: e.target.value})}
                                 placeholder="Ex: Engenharia Informática"
                             />
                         </div>
 
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px'}}>
+                             <div>
+                                <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Duração (Anos)</label>
+                                <input 
+                                    type="number" 
+                                    style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1'}}
+                                    value={formData.duracao}
+                                    onChange={e => setFormData({...formData, duracao: parseInt(e.target.value)})}
+                                    min="1" max="6"
+                                />
+                             </div>
+                             <div>
+                                <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Área de Formação</label>
+                                <select
+                                    style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1'}}
+                                    value={formData.id_area_formacao}
+                                    onChange={e => setFormData({...formData, id_area_formacao: e.target.value})}
+                                >
+                                    <option value="">Selecione...</option>
+                                    {areasFormacao.map(area => (
+                                        <option key={area.id_area_formacao} value={area.id_area_formacao}>
+                                            {area.nome_area}
+                                        </option>
+                                    ))}
+                                </select>
+                             </div>
+                        </div>
+
                         <div style={{marginBottom: '20px'}}>
-                            <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Duração (Anos)</label>
-                            <input 
-                                type="number" 
+                            <label style={{display: 'block', marginBottom: '5px', fontWeight: 500, color: '#475569'}}>Coordenador</label>
+                            <select
                                 style={{width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1'}}
-                                value={newCourseData.duracao}
-                                onChange={e => setNewCourseData({...newCourseData, duracao: parseInt(e.target.value)})}
-                                min="1" max="6"
-                            />
+                                value={formData.id_responsavel}
+                                onChange={e => setFormData({...formData, id_responsavel: e.target.value})}
+                            >
+                                <option value="">Selecione um coordenador...</option>
+                                {coordenadores.map(func => (
+                                    <option key={func.id_funcionario} value={func.id_funcionario}>
+                                        {func.nome_completo}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
@@ -267,10 +372,10 @@ const Cursos = () => {
                                 Cancelar
                             </button>
                             <button 
-                                onClick={handleCreateCourse}
+                                onClick={handleSaveCourse}
                                 style={{padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#0f172a', color: 'white', cursor: 'pointer', fontWeight: 500}}
                             >
-                                Criar Curso
+                                {modalMode === 'create' ? 'Criar Curso' : 'Salvar Alterações'}
                             </button>
                         </div>
                     </div>
