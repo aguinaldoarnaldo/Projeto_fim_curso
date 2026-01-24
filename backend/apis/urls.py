@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 
 from apis.views import (
     # Auth views
-    login_view, logout_view, me_view,
+    login_view, logout_view, me_view, update_profile_view,
     # ViewSets
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
     AlunoViewSet, AlunoEncarregadoViewSet,
@@ -42,6 +42,7 @@ router.register(r'seccoes', SeccaoViewSet, basename='seccao')
 router.register(r'areas-formacao', AreaFormacaoViewSet, basename='area-formacao')
 router.register(r'cursos', CursoViewSet, basename='curso')
 router.register(r'periodos', PeriodoViewSet, basename='periodo')
+router.register(r'anos-lectivos', AnoLectivoViewSet, basename='ano-lectivo')
 router.register(r'turmas', TurmaViewSet, basename='turma')
 
 # Avaliações
@@ -77,6 +78,7 @@ urlpatterns = [
     path('auth/login/', login_view, name='login'),
     path('auth/logout/', logout_view, name='logout'),
     path('auth/me/', me_view, name='me'),
+    path('auth/profile/update/', update_profile_view, name='update_profile'),
     
     # Incluir rotas do router
     path('', include(router.urls)),

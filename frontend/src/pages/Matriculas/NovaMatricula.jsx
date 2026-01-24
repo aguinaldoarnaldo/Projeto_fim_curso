@@ -126,6 +126,29 @@ const NovaMatricula = () => {
         }));
     };
 
+    const [isTransferido, setIsTransferido] = useState(false);
+    const [historicoEscolar, setHistoricoEscolar] = useState([]);
+    const [historicoForm, setHistoricoForm] = useState({
+        escola: '',
+        ano: '',
+        classe: '',
+        media: '',
+        obs: ''
+    });
+
+    const addHistorico = () => {
+        if (!historicoForm.escola || !historicoForm.classe || !historicoForm.ano) {
+            alert("Preencha Escola, Classe e Ano.");
+            return;
+        }
+        setHistoricoEscolar([...historicoEscolar, { ...historicoForm, id: Date.now() }]);
+        setHistoricoForm({ escola: '', ano: '', classe: '', media: '', obs: '' });
+    };
+
+    const removeHistorico = (id) => {
+        setHistoricoEscolar(historicoEscolar.filter(h => h.id !== id));
+    };
+
     const handleSubmit = async () => {
         if (!formData.turma_id) {
             alert("Por favor, selecione uma turma.");
@@ -134,10 +157,21 @@ const NovaMatricula = () => {
 
         setIsSubmitting(true);
         try {
-            // Call the correct backend endpoint
-            await api.post(`candidaturas/${formData.candidato_id}/matricular/`, {
-                id_turma: formData.turma_id
-            });
+            if (location.state && location.state.candidato) {
+                // Matrícula via Candidatura (Fluxo Normal)
+                await api.post(`candidaturas/${formData.candidato_id}/matricular/`, {
+                    id_turma: formData.turma_id
+                });
+            } else {
+                // Matrícula Direta / Transferência
+                const payload = {
+                    ...formData,
+                    turma_id: formData.turma_id,
+                    historico_escolar: isTransferido ? historicoEscolar : []
+                };
+                
+                await api.post('matriculas/matricular_novo_aluno/', payload);
+            }
             
             alert('Matrícula realizada com sucesso! O aluno foi registado.');
             navigate('/matriculas');
@@ -167,44 +201,117 @@ const NovaMatricula = () => {
                                     type="text" 
                                     name="nome_completo"
                                     value={formData.nome_completo}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="Nome do Aluno"
                                 />
                             </div>
                             <div>
-                                <label className="field-label">Data de Nascimento</label>
+                                <label className="field-label">Data de Nascimento (YYYY-MM-DD)</label>
                                 <input 
-                                    type="text" 
+                                    type="date" 
+                                    name="data_nascimento"
                                     value={formData.data_nascimento}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
                                 />
                             </div>
                             <div>
                                 <label className="field-label">Genero</label>
-                                <input 
-                                    type="text" 
-                                    value={formData.genero}
-                                    readOnly={isReadOnly}
-                                    className={`field-input ${isReadOnly ? 'read-only' : ''}`}
-                                />
+                                {isReadOnly ? (
+                                    <input 
+                                        type="text" 
+                                        value={formData.genero} 
+                                        readOnly 
+                                        className="field-input read-only" 
+                                    />
+                                ) : (
+                                    <select 
+                                        name="genero" 
+                                        value={formData.genero} 
+                                        onChange={handleInputChange}
+                                        className="field-select"
+                                    >
+                                        <option value="">Selecione...</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Feminino</option>
+                                    </select>
+                                )}
                             </div>
                             <div>
                                 <label className="field-label">Nº BI</label>
                                 <input 
                                     type="text" 
+                                    name="numero_bi"
                                     value={formData.numero_bi}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="000000000LA000"
                                 />
                             </div>
                             <div>
-                                <label className="field-label">Nacionalidade</label>
+                                <label className="field-label">Email</label>
                                 <input 
-                                    type="text" 
-                                    value={formData.nacionalidade}
+                                    type="email" 
+                                    name="email"
+                                    value={formData.email || ''}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="exemplo@email.com"
+                                />
+                            </div>
+                             <div>
+                                <label className="field-label">Telefone</label>
+                                <input 
+                                    type="text" 
+                                    name="telefone"
+                                    value={formData.telefone || ''}
+                                    onChange={handleInputChange}
+                                    readOnly={isReadOnly}
+                                    className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="923000000"
+                                />
+                            </div>
+
+                            {/* Campos de Endereço (Novos/Editaveis) */}
+                            <div>
+                                <label className="field-label">Província</label>
+                                <input 
+                                    type="text" 
+                                    name="provincia"
+                                    value={formData.provincia || ''}
+                                    onChange={handleInputChange}
+                                    readOnly={isReadOnly}
+                                    className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="Huíla"
+                                />
+                            </div>
+                            <div>
+                                <label className="field-label">Município</label>
+                                <input 
+                                    type="text" 
+                                    name="municipio"
+                                    value={formData.municipio || ''}
+                                    onChange={handleInputChange}
+                                    readOnly={isReadOnly}
+                                    className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="Lubango"
+                                />
+                            </div>
+                            <div className="form-full-width">
+                                <label className="field-label">Bairro / Endereço</label>
+                                <input 
+                                    type="text" 
+                                    name="bairro"
+                                    value={formData.bairro || ''}
+                                    onChange={handleInputChange}
+                                    readOnly={isReadOnly}
+                                    className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                    placeholder="Bairro da Mapunda"
                                 />
                             </div>
                         </div>
@@ -218,16 +325,20 @@ const NovaMatricula = () => {
                                 <label className="field-label">Nome do Encarregado</label>
                                 <input 
                                     type="text" 
+                                    name="nome_encarregado"
                                     value={formData.nome_encarregado}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
                                 />
                             </div>
                             <div>
-                                <label className="field-label">Telefone</label>
+                                <label className="field-label">Telefone Encarregado</label>
                                 <input 
                                     type="text" 
+                                    name="telefone_encarregado"
                                     value={formData.telefone_encarregado}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
                                 />
@@ -236,7 +347,9 @@ const NovaMatricula = () => {
                                 <label className="field-label">Parentesco</label>
                                 <input 
                                     type="text" 
+                                    name="parentesco_encarregado"
                                     value={formData.parentesco_encarregado}
+                                    onChange={handleInputChange}
                                     readOnly={isReadOnly}
                                     className={`field-input ${isReadOnly ? 'read-only' : ''}`}
                                 />
@@ -246,37 +359,37 @@ const NovaMatricula = () => {
                 );
 
             case 2:
-                // Filter dropdowns based on state if needed, here simple filter
+                const turmaSelect = turmasDisponiveis.find(t => t.id_turma == formData.turma_id);
+
                 return (
                     <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
                         <h3 className="form-title">
                             <BookOpen size={22} /> Dados Académicos & Turma
                         </h3>
+
+                        {!isReadOnly && (
+                            <div className="switch-container" style={{ marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isTransferido} 
+                                        onChange={(e) => setIsTransferido(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }}
+                                    />
+                                    <span style={{ fontSize: '15px', fontWeight: '600' }}>Este aluno vem por transferência?</span>
+                                </label>
+                                {isTransferido && <p style={{ marginLeft: '28px', fontSize: '13px', color: '#64748b' }}>Habilita o preenchimento do histórico escolar.</p>}
+                            </div>
+                        )}
+
                         <div className="form-grid-2col">
                             <div>
                                 <label className="field-label">Curso</label>
-                                <input type="text" value={formData.curso} readOnly className="field-input read-only" />
+                                <input type="text" value={formData.curso || (turmaSelect ? turmaSelect.curso_nome : '')} readOnly className="field-input read-only" placeholder="Selecione a turma para definir" />
                             </div>
                             <div>
-                                <label className="field-label">Turno</label>
-                                <input type="text" value={formData.turno} readOnly className="field-input read-only" />
-                            </div>
-                            <div>
-                                <label className="field-label">Classe</label>
-                                <select name="classe" value={formData.classe} onChange={handleInputChange} className="field-select">
-                                    <option value="">Selecione a Classe</option>
-                                    {classesDisponiveis.map(c => (
-                                        <option key={c.id_classe} value={c.descricao || `${c.nivel}ª Classe`}>
-                                            {c.descricao || `${c.nivel}ª Classe`}
-                                        </option>
-                                    ))}
-                                </select>
-
-                            </div>
-
-                            <div>
-                                <label className="field-label">Ano Lectivo</label>
-                                <input type="text" value={formData.ano_lectivo} readOnly className="field-input read-only" />
+                                <label className="field-label">Turno ({formData.turno})</label>
+                                <input type="text" value={formData.turno || (turmaSelect ? turmaSelect.turno : '')} readOnly className="field-input read-only" />
                             </div>
                             
                             <div className="form-full-width" style={{ marginTop: '10px', background: '#f0f9ff', padding: '15px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
@@ -296,16 +409,77 @@ const NovaMatricula = () => {
                                         </option>
                                     ))}
                                 </select>
-                                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '5px' }}>
-                                    A lista mostra apenas turmas compatíveis com o Curso e Turno do candidato.
-                                </p>
                             </div>
 
                             <div>
-                                <label className="field-label">Sala (Automático)</label>
-                                <input type="text" value={formData.sala} readOnly className="field-input read-only" placeholder="Selecione a turma..." />
+                                <label className="field-label">Ano Lectivo</label>
+                                <input type="text" value={formData.ano_lectivo} readOnly className="field-input read-only" />
                             </div>
                         </div>
+
+                        {/* Historico Section */}
+                        {isTransferido && (
+                            <div style={{ marginTop: '30px', borderTop: '2px dashed #cbd5e1', paddingTop: '20px' }}>
+                                <h4 style={{ marginBottom: '15px', color: '#334155' }}>Histórico Escolar (Anos Anteriores)</h4>
+                                
+                                {/* Formulario de Adição */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 2fr) 1fr 1fr 100px auto', gap: '10px', alignItems: 'end', marginBottom: '15px', background: '#f1f5f9', padding: '15px', borderRadius: '8px' }}>
+                                    <div>
+                                        <label className="field-label" style={{fontSize:'12px'}}>Escola de Origem</label>
+                                        <input type="text" className="field-input" placeholder="Ex: Escola 123" 
+                                            value={historicoForm.escola} onChange={e => setHistoricoForm({...historicoForm, escola: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="field-label" style={{fontSize:'12px'}}>Classe</label>
+                                        <input type="text" className="field-input" placeholder="Ex: 9ª"
+                                            value={historicoForm.classe} onChange={e => setHistoricoForm({...historicoForm, classe: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="field-label" style={{fontSize:'12px'}}>Ano Lectivo</label>
+                                        <input type="text" className="field-input" placeholder="Ex: 2024"
+                                            value={historicoForm.ano} onChange={e => setHistoricoForm({...historicoForm, ano: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="field-label" style={{fontSize:'12px'}}>Média</label>
+                                        <input type="number" className="field-input" placeholder="0-20"
+                                            value={historicoForm.media} onChange={e => setHistoricoForm({...historicoForm, media: e.target.value})} />
+                                    </div>
+                                    <button type="button" onClick={addHistorico} className="btn-primary-action" style={{ padding: '10px', height: '42px' }}>
+                                        + Add
+                                    </button>
+                                </div>
+
+                                {/* Tabela Visual */}
+                                {historicoEscolar.length > 0 ? (
+                                    <table className="data-table" style={{ marginTop: '10px' }}>
+                                        <thead>
+                                            <tr>
+                                                <th>Ano</th>
+                                                <th>Classe</th>
+                                                <th>Escola</th>
+                                                <th>Média</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {historicoEscolar.map(h => (
+                                                <tr key={h.id}>
+                                                    <td>{h.ano}</td>
+                                                    <td>{h.classe}</td>
+                                                    <td>{h.escola}</td>
+                                                    <td>{h.media || '-'}</td>
+                                                    <td>
+                                                        <button type="button" onClick={() => removeHistorico(h.id)} style={{ color: 'red', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <p style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px' }}>Nenhum histórico adicionado ainda.</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 );
 
@@ -320,10 +494,14 @@ const NovaMatricula = () => {
                             <p><strong>Aluno:</strong> {formData.nome_completo}</p>
                             <p><strong>BI:</strong> {formData.numero_bi}</p>
                             <hr style={{ margin: '15px 0', borderColor: '#e2e8f0' }} />
-                            <p><strong>Curso:</strong> {formData.curso}</p>
-                            <p><strong>Classe:</strong> {formData.classe}</p>
                             <p><strong>Turma:</strong> {turmasDisponiveis.find(t => t.id_turma == formData.turma_id)?.codigo_turma || 'Não selecionada'}</p>
                             <p><strong>Ano Lectivo:</strong> {formData.ano_lectivo}</p>
+                            
+                            {isTransferido && (
+                                <div style={{ marginTop: '10px', padding: '10px', background: '#fffbeb', borderRadius: '6px', border: '1px solid #fcd34d' }}>
+                                    <p style={{ color: '#b45309', fontWeight: '600', fontSize: '13px' }}>Aluno Transferido - {historicoEscolar.length} registros de histórico anexados.</p>
+                                </div>
+                            )}
                         </div>
                         
                         <div style={{ marginTop: '20px' }}>

@@ -16,6 +16,7 @@ import {
     X,
     Save,
     Lock,
+    Edit,
     Calendar
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -47,6 +48,8 @@ const Configuracoes = () => {
     const [academicYears, setAcademicYears] = useState([]);
     const [yearLoading, setYearLoading] = useState(false);
     const [newYear, setNewYear] = useState({ nome: '', data_inicio: '', data_fim: '', activo: false });
+    const [isEditingYear, setIsEditingYear] = useState(false);
+    const [editingYearId, setEditingYearId] = useState(null);
 
     
     // Modal State
@@ -210,14 +213,40 @@ const Configuracoes = () => {
             return;
         }
         try {
-            await api.post('anos-lectivos/', newYear);
-            alert("Ano Lectivo criado com sucesso!");
+            if (isEditingYear) {
+                // Update
+                await api.patch(`anos-lectivos/${editingYearId}/`, newYear);
+                alert("Ano Lectivo atualizado com sucesso!");
+                setIsEditingYear(false);
+                setEditingYearId(null);
+            } else {
+                // Create
+                await api.post('anos-lectivos/', newYear);
+                alert("Ano Lectivo criado com sucesso!");
+            }
             setNewYear({ nome: '', data_inicio: '', data_fim: '', activo: false });
             fetchAcademicYears();
         } catch (error) {
-            console.error("Erro ao criar ano lectivo:", error);
-            alert("Erro ao criar ano lectivo.");
+            console.error("Erro ao salvar ano lectivo:", error);
+            alert("Erro ao salvar ano lectivo.");
         }
+    };
+
+    const handleEditYear = (year) => {
+        setNewYear({
+            nome: year.nome,
+            data_inicio: year.data_inicio,
+            data_fim: year.data_fim,
+            activo: year.activo
+        });
+        setIsEditingYear(true);
+        setEditingYearId(year.id_ano);
+    };
+
+    const handleCancelEditYear = () => {
+        setNewYear({ nome: '', data_inicio: '', data_fim: '', activo: false });
+        setIsEditingYear(false);
+        setEditingYearId(null);
     };
 
     const handleToggleActiveYear = async (id, currentStatus) => {
@@ -746,10 +775,12 @@ const Configuracoes = () => {
 
                          <div style={{ marginTop: '20px', background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px'}}>
-                                <div style={{background: '#dbeafe', padding: '8px', borderRadius: '8px', color: '#1e40af'}}>
-                                    <Plus size={18} />
-                                </div>
-                                <h4 style={{fontSize: '16px', fontWeight: '700', color: '#1e293b', margin: 0}}>Criar Novo Ano Lectivo</h4>
+                                    <div style={{background: isEditingYear ? '#fef3c7' : '#dbeafe', padding: '8px', borderRadius: '8px', color: isEditingYear ? '#d97706' : '#1e40af'}}>
+                                        {isEditingYear ? <Edit size={18} /> : <Plus size={18} />}
+                                    </div>
+                                    <h4 style={{fontSize: '16px', fontWeight: '700', color: '#1e293b', margin: 0}}>
+                                        {isEditingYear ? "Editar Ano Lectivo" : "Criar Novo Ano Lectivo"}
+                                    </h4>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', alignItems: 'start' }}>
@@ -799,29 +830,51 @@ const Configuracoes = () => {
                             </div>
                             
                             <div style={{marginTop: '20px', display: 'flex', justifyContent: 'flex-end'}}>
-                                <button
-                                    onClick={handleCreateYear}
-                                    style={{
-                                        padding: '12px 24px', 
-                                        borderRadius: '10px', 
-                                        background: '#1e3a8a', 
-                                        color: 'white', 
-                                        border: 'none', 
-                                        fontWeight: '600', 
-                                        cursor: 'pointer', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: '8px', 
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
-                                        transition: 'all 0.2s',
-                                        fontSize: '14px'
-                                    }}
-                                    onMouseOver={(e) => {e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(30, 58, 138, 0.2)'}}
-                                    onMouseOut={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                                >
-                                    <Save size={18} />
-                                    Salvar Ano Lectivo
-                                </button>
+                                    <button
+                                        onClick={handleCreateYear}
+                                        style={{
+                                            padding: '12px 24px', 
+                                            borderRadius: '10px', 
+                                            background: isEditingYear ? '#d97706' : '#1e3a8a', 
+                                            color: 'white', 
+                                            border: 'none', 
+                                            fontWeight: '600', 
+                                            cursor: 'pointer', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '8px', 
+                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 
+                                            transition: 'all 0.2s',
+                                            fontSize: '14px'
+                                        }}
+                                        onMouseOver={(e) => {e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(30, 58, 138, 0.2)'}}
+                                        onMouseOut={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
+                                    >
+                                        <Save size={18} />
+                                        {isEditingYear ? "Atualizar Dados" : "Salvar Ano Lectivo"}
+                                    </button>
+                                    
+                                    {isEditingYear && (
+                                        <button
+                                            onClick={handleCancelEditYear}
+                                            style={{
+                                                padding: '12px 24px', 
+                                                borderRadius: '10px', 
+                                                background: '#f1f5f9', 
+                                                color: '#64748b', 
+                                                border: '1px solid #cbd5e1', 
+                                                fontWeight: '600', 
+                                                cursor: 'pointer', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '8px', 
+                                                fontSize: '14px',
+                                                marginLeft: '10px'
+                                            }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                    )}
                             </div>
                         </div>
 
@@ -857,13 +910,22 @@ const Configuracoes = () => {
                                                             <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Inativo</span>
                                                         )}
                                                     </td>
-                                                    <td style={{ padding: '12px 15px', textAlign: 'right' }}>
+                                                    <td style={{ padding: '12px 15px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                        <button
+                                                            onClick={() => handleEditYear(ano)}
+                                                            className="edit-btn"
+                                                            style={{
+                                                                padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px'
+                                                            }}
+                                                        >
+                                                            <Edit size={14} /> Editar
+                                                        </button>
                                                         {!ano.activo && (
                                                             <button 
                                                                 onClick={() => handleToggleActiveYear(ano.id_ano, ano.activo)}
-                                                                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontSize: '12px' }}
+                                                                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#dbeafe', color: '#1e40af', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                                                             >
-                                                                Definir como Actual
+                                                                Definir Actual
                                                             </button>
                                                         )}
                                                     </td>

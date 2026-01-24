@@ -64,6 +64,23 @@ class Funcionario(BaseModel):
     def __str__(self):
         return f"{self.nome_completo} - {self.codigo_identificacao}"
 
+    @property
+    def is_staff(self):
+        """Allows access to admin sites and IsAdminUser permission"""
+        return True 
+
+    @property
+    def is_superuser(self):
+        """Allows all permissions"""
+        # Simplificação: se for Diretor ou Admin, é superuser
+        if self.id_cargo and 'Diretor' in self.id_cargo.nome_cargo:
+            return True
+        return False
+    
+    @property
+    def is_active(self):
+        return self.status_funcionario == 'Activo'
+
     def save(self, *args, **kwargs):
         # Se a senha não estiver criptografada (não começa com o prefixo padrão do Django)
         if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):

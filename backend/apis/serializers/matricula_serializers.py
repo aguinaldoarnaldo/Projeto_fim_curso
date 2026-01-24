@@ -25,7 +25,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
     # Safe fields using methods to handle null Turma
     turma_codigo = serializers.SerializerMethodField()
-    ano_lectivo = serializers.SerializerMethodField()
+    ano_lectivo_nome = serializers.SerializerMethodField()
     classe_nome = serializers.SerializerMethodField()
     curso_nome = serializers.SerializerMethodField()
     sala_numero = serializers.SerializerMethodField()
@@ -40,7 +40,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'bi', 'genero', 'data_nascimento', 'telefone', 'email', 'endereco',
             'encarregado_nome', 'encarregado_telefone', 'encarregado_parentesco',
             'id_turma', 'turma_codigo', 
-            'ano_lectivo',
+            'ano_lectivo', 'ano_lectivo_nome',
             'classe_nome',
             'curso_nome',
             'sala_numero',
@@ -61,7 +61,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
         return obj.id_aluno.get_genero_display() if obj.id_aluno and obj.id_aluno.genero else 'N/A'
     
     def get_data_nascimento(self, obj):
-        # Requires 'data_nascimento' field on Aluno model
+        # Checking if data_nascimento exists on Aluno
         return obj.id_aluno.data_nascimento if obj.id_aluno and hasattr(obj.id_aluno, 'data_nascimento') else 'N/A'
 
     def get_telefone(self, obj):
@@ -79,7 +79,6 @@ class MatriculaSerializer(serializers.ModelSerializer):
             self._encarregado_cache = {}
         if obj.id_matricula not in self._encarregado_cache:
             if obj.id_aluno:
-                # Optimized access if prefetch is used, otherwise simple query
                 rel = obj.id_aluno.alunoencarregado_set.first() 
                 self._encarregado_cache[obj.id_matricula] = rel
             else:
@@ -92,25 +91,19 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
     def get_encarregado_telefone(self, obj):
         rel = self._get_encarregado_relation(obj)
-        # Assuming telefone is a string or list, existing model showed list in prompt, checking model: CharField or similar?
-        # Encarregado model in usuarios.py? assuming standard field
         return rel.id_encarregado.telefone if rel and rel.id_encarregado else 'N/A'
 
     def get_encarregado_parentesco(self, obj):
         rel = self._get_encarregado_relation(obj)
         return rel.grau_parentesco if rel else 'N/A'
 
-
     def create(self, validated_data):
         candidato_id = validated_data.pop('id_candidato', None)
         aluno = validated_data.get('id_aluno')
 
-        # Se id_candidato for fornecido, processar a promoção para Aluno
         if candidato_id and not aluno:
             try:
                 candidato = Candidato.objects.get(pk=candidato_id)
-                
-                # Regra: Evitar duplicados pelo BI ou Email
                 existing_aluno = Aluno.objects.filter(numero_bi=candidato.numero_bi).first()
                 if not existing_aluno and candidato.email:
                      existing_aluno = Aluno.objects.filter(email=candidato.email).first()
@@ -118,7 +111,6 @@ class MatriculaSerializer(serializers.ModelSerializer):
                 if existing_aluno:
                     aluno = existing_aluno
                 else:
-                    # Criar novo aluno com dados do candidato
                     with transaction.atomic():
                         aluno = Aluno.objects.create(
                             nome_completo=candidato.nome_completo,
@@ -126,18 +118,13 @@ class MatriculaSerializer(serializers.ModelSerializer):
                             email=candidato.email,
                             telefone=candidato.telefone,
                             genero=candidato.genero,
-                            # Mapeamento básico de endereço
                             bairro_residencia=candidato.residencia,
-                            municipio_residencia=candidato.municipio_escola, # Placeholder
-                            # Definir turma inicial igual à da matrícula se possível
+                            municipio_residencia=candidato.municipio_escola,
                             id_turma=validated_data.get('id_turma'),
                             status_aluno='Activo'
                         )
-                        
-                        # Atualizar status do candidato
                         candidato.status = 'Matriculado'
                         candidato.save()
-            
             except Candidato.DoesNotExist:
                 raise serializers.ValidationError({"id_candidato": "Candidato não encontrado."})
 
@@ -150,8 +137,10 @@ class MatriculaSerializer(serializers.ModelSerializer):
     def get_turma_codigo(self, obj):
         return obj.id_turma.codigo_turma if obj.id_turma else "Sem Turma"
 
-    def get_ano_lectivo(self, obj):
-        return obj.id_turma.ano if obj.id_turma else "N/A"
+    def get_ano_lectivo_nome(self, obj):
+        if obj.ano_lectivo:
+            return obj.ano_lectivo.nome
+        return obj.id_turma.ano_lectivo.nome if obj.id_turma and obj.id_turma.ano_lectivo else (obj.id_turma.ano if obj.id_turma else "N/A")
 
     def get_classe_nome(self, obj):
         # Accessing nested: id_turma -> id_classe -> descricao

@@ -1,7 +1,7 @@
 import React from 'react';
 import './Loader.css';
 
-const Loader = ({ message = "Mutue Education" }) => {
+const Loader = ({ message = "Sistema Gestão de Matriculas" }) => {
     return (
         <div className="loader-container">
             <div className="loader-content">

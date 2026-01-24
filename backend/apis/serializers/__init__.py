@@ -37,6 +37,7 @@ from .auditoria_serializers import (
 from .candidatura_serializers import (
     CandidatoSerializer, CandidatoCreateSerializer, RupeCandidatoSerializer
 )
+from .historico_serializers import HistoricoEscolarSerializer
 
 __all__ = [
     # Usuários
@@ -68,4 +69,5 @@ __all__ = [
     'HistoricoSerializer', 'HistoricoLoginSerializer',
     # Candidatura
     'CandidatoSerializer', 'CandidatoCreateSerializer', 'RupeCandidatoSerializer',
+    'HistoricoEscolarSerializer',
 ]

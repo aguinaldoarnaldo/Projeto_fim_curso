@@ -289,3 +289,94 @@ def me_view(request):
             {'error': f'Erro ao obter dados do usuário: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['PUT', 'PATCH'])
+def update_profile_view(request):
+    """
+    Endpoint para atualização de perfil do usuário logado
+    """
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    
+    # 1. Identificar usuário via Token
+    try:
+        jwt_auth = JWTAuthentication()
+        user_auth_tuple = jwt_auth.authenticate(request)
+        
+        if user_auth_tuple is None:
+            return Response({'error': 'Token não fornecido'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        token = user_auth_tuple[1]
+        user_id = token.payload.get('user_id')
+        user_type = token.payload.get('user_type')
+        
+    except Exception as e:
+        return Response({'error': 'Token inválido'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # 2. Obter instância do usuário
+    user = None
+    try:
+        if user_type == 'funcionario':
+            user = Funcionario.objects.get(id_funcionario=user_id)
+        elif user_type == 'aluno':
+            user = Aluno.objects.get(id_aluno=user_id)
+        elif user_type == 'encarregado':
+            user = Encarregado.objects.get(id_encarregado=user_id)
+        else:
+            return Response({'error': 'Tipo de usuário desconhecido'}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    # 3. Atualizar dados
+    data = request.data
+    
+    # Atualizar Senha
+    senha_atual = data.get('currentPassword')
+    nova_senha = data.get('newPassword')
+    
+    if nova_senha:
+        # Se o usuário está tentando mudar a senha
+        if not senha_atual:
+            return Response({'error': 'Para definir nova senha, a senha atual é obrigatória.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar senha atual
+        if not check_password(senha_atual, user.senha_hash):
+            return Response({'error': 'A senha atual está incorreta.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # A senha será hasheada no método .save() do modelo
+        user.senha_hash = nova_senha 
+
+    # Atualizar Outros campos
+    if 'nome' in data and data['nome']:
+        user.nome_completo = data['nome']
+    
+    # Endereço -> mapear para bairro_residencia (simplificação)
+    if 'endereco' in data:
+        user.bairro_residencia = data['endereco']
+        
+    # Telefone
+    if 'telefone' in data:
+        if user_type != 'encarregado':
+            user.telefone = data['telefone']
+
+    try:
+        user.save()
+        
+        # Retornar dados atualizados (estrutura similar ao me_view)
+        user_resp = {
+            'nome': user.nome_completo,
+            'email': user.email,
+        }
+        
+        if hasattr(user, 'bairro_residencia'):
+            user_resp['endereco'] = user.bairro_residencia
+        if hasattr(user, 'telefone') and user_type != 'encarregado':
+            user_resp['telefone'] = user.telefone
+            
+        return Response({
+            'message': 'Perfil atualizado com sucesso!',
+            'user': user_resp
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({'error': f'Erro ao salvar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

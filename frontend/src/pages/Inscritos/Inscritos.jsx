@@ -64,12 +64,15 @@ const Inscritos = () => {
   // Fetch candidates from API
   const [inscritos, setInscritos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
+  const [anosDisponiveis, setAnosDisponiveis] = useState([]);
 
   // Cache
   const { getCache, setCache } = useCache();
 
   useEffect(() => {
     fetchCandidates();
+    fetchFilters();
   }, []);
 
   // Polling for real-time updates
@@ -79,6 +82,24 @@ const Inscritos = () => {
     }, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchFilters = async () => {
+      try {
+          const [cursosRes, anosRes] = await Promise.all([
+              api.get('cursos/'),
+              api.get('anos-lectivos/')
+          ]);
+          
+          if (cursosRes.data.results || Array.isArray(cursosRes.data))
+             setCursosDisponiveis(cursosRes.data.results || cursosRes.data);
+          
+          if (anosRes.data.results || Array.isArray(anosRes.data))
+             setAnosDisponiveis(anosRes.data.results || anosRes.data);
+
+      } catch (e) {
+          console.error("Error fetching filter options", e);
+      }
+  };
 
   const fetchCandidates = async (force = false) => {
       if (!force) {
@@ -102,35 +123,36 @@ const Inscritos = () => {
           }
 
           const formatted = data.map(c => ({
-              id: c.numero_inscricao || `INS-${c.id_candidato}`,
+              id: (c.numero_inscricao || `INS-${c.id_candidato || 'UNKNOWN'}`).toString(),
               real_id: c.id_candidato,
-              nome: c.nome_completo,
+              nome: c.nome_completo || 'Sem Nome',
               genero: c.genero === 'M' ? 'Masculino' : 'Feminino',
               dataNascimento: c.data_nascimento,
-              nacionalidade: c.nacionalidade,
-              bi: c.numero_bi,
+              nacionalidade: c.nacionalidade || 'Angolana',
+              bi: c.numero_bi || 'N/A',
               dataEmissaoBI: 'N/A', 
               naturalidade: 'N/A', 
-              residencia: c.residencia,
-              telefone: c.telefone,
-              email: c.email,
+              residencia: c.residencia || 'N/A',
+              telefone: c.telefone || 'N/A',
+              email: c.email || '',
               deficiencia: 'Não', 
               escola9: 'Pública',
-              nomeEscola: c.escola_proveniencia,
-              municipioEscola: c.municipio_escola,
+              nomeEscola: c.escola_proveniencia || 'N/A',
+              municipioEscola: c.municipio_escola || 'N/A',
               anoConclusao: c.ano_conclusao,
-              anoInscricao: c.criado_em ? new Date(c.criado_em).getFullYear().toString() : '2026',
-              nota9: c.media_final,
+              // Use created year or academic year if available
+              anoInscricao: c.ano_lectivo_nome || (c.criado_em ? new Date(c.criado_em).getFullYear().toString() : '2026'),
+              nota9: parseFloat(c.media_final) || 0,
               notaExame: c.nota_exame,
-              curso1: c.curso1_nome,
-              curso2: c.curso2_nome,
-              turno: c.turno_preferencial,
-              status: c.status,
+              curso1: c.curso1_nome || 'N/A',
+              curso2: c.curso2_nome || 'N/A',
+              turno: c.turno_preferencial || 'N/A',
+              status: c.status || 'Pendente',
               dataInscricao: c.criado_em ? new Date(c.criado_em).toLocaleDateString() : 'N/A',
               encarregado: {
-                  nome: c.nome_encarregado,
-                  parentesco: c.parentesco_encarregado,
-                  telefone: c.telefone_encarregado,
+                  nome: c.nome_encarregado || 'N/A',
+                  parentesco: c.parentesco_encarregado || 'N/A',
+                  telefone: c.telefone_encarregado || 'N/A',
                   email: '',
                   profissao: 'N/A'
               },
@@ -152,14 +174,17 @@ const Inscritos = () => {
 
   const calculateAge = (birthDate) => {
     if (!birthDate) return 0;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
+    try {
+        const today = new Date();
+        const birth = new Date(birthDate);
+        if (isNaN(birth.getTime())) return 0; // Handle invalid date
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+        }
+        return age;
+    } catch { return 0; }
   };
 
   const handleOpenDetail = (candidato) => {
@@ -234,7 +259,10 @@ const Inscritos = () => {
   // Filtered and Paginated Data
   const filteredInscritos = useMemo(() => {
     return inscritos.filter(i => {
-      const matchesSearch = i.nome.toLowerCase().includes(searchTerm.toLowerCase()) || i.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const nameMatch = (i.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const idMatch = (i.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = nameMatch || idMatch;
+      
       const matchesAno = filters.ano === '' || i.anoInscricao === filters.ano;
       const matchesStatus = filters.status === '' || i.status === filters.status;
       const matchesCurso = filters.curso === '' || i.curso1 === filters.curso;
@@ -296,8 +324,9 @@ const Inscritos = () => {
                 <label htmlFor="filtro-ano-ins">Ano de Inscrição</label>
                 <select id="filtro-ano-ins" name="ano" value={filters.ano} onChange={handleFilterChange} className="selecao-filtro">
                   <option value="">Todos os Anos</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
+                  {anosDisponiveis.map(ano => (
+                    <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
+                  ))}
                 </select>
               </div>
               <div className="grupo-filtro">
@@ -315,9 +344,9 @@ const Inscritos = () => {
                 <label htmlFor="filtro-curso-ins">Curso</label>
                 <select id="filtro-curso-ins" name="curso" value={filters.curso} onChange={handleFilterChange} className="selecao-filtro">
                   <option value="">Todos os Cursos</option>
-                  <option value="Informática">Informática</option>
-                  <option value="Gestão">Gestão</option>
-                  <option value="Direito">Direito</option>
+                  {cursosDisponiveis.map(c => (
+                     <option key={c.id_curso || c.id} value={c.nome_curso}>{c.nome_curso}</option>
+                  ))}
                 </select>
               </div>
             </div>

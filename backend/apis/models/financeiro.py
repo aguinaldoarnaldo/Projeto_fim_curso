@@ -1,7 +1,10 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from .base import BaseModel
 from .alunos import Aluno
+from .alunos import Aluno
 from .usuarios import Funcionario
+from .academico import AnoLectivo
 
 
 class Fatura(BaseModel):
@@ -21,6 +24,13 @@ class Fatura(BaseModel):
         blank=True,
         verbose_name='Aluno'
     )
+    ano_lectivo = models.ForeignKey(
+        AnoLectivo,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name='Ano Lectivo'
+    )
     descricao = models.CharField(max_length=255, verbose_name='Descrição')
     total = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Total')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente', verbose_name='Status')
@@ -39,6 +49,19 @@ class Fatura(BaseModel):
     
     def __str__(self):
         return f"Fatura {self.id_fatura} - {self.descricao}"
+
+    def clean(self):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)
 
 
 class Pagamento(BaseModel):

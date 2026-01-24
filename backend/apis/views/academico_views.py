@@ -32,6 +32,50 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
             return [IsAdminUser()]
         return [IsAuthenticated()]
 
+    @action(detail=True, methods=['get'])
+    def stats_by_year(self, request, pk=None):
+        """Retorna estatísticas mensais para o gráfico (Matrículas vs Inscrições)"""
+        # Imports locais para evitar dependências circulares
+        from django.db.models.functions import ExtractMonth
+        from django.db.models import Count
+        from apis.models import Matricula, Candidato
+        
+        ano_lectivo = self.get_object()
+        
+        # 1. Matrículas por mes
+        # Agrupa por mês da data_matricula e conta
+        matriculas_qs = Matricula.objects.filter(ano_lectivo=ano_lectivo).annotate(
+            mes=ExtractMonth('data_matricula')
+        ).values('mes').annotate(total=Count('id_matricula')).order_by('mes')
+        
+        # 2. Candidaturas (Inscritos) por mes
+        # Candidato usa 'criado_em' (Inherited from BaseModel) para saber a data de inscrição
+        candidatos_qs = Candidato.objects.filter(ano_lectivo=ano_lectivo).annotate(
+            mes=ExtractMonth('criado_em')
+        ).values('mes').annotate(total=Count('id_candidato')).order_by('mes')
+        
+        # 3. Merge data into standard format [Jan-Dec]
+        month_map = {
+            1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+            7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
+        }
+        
+        data = []
+        for i in range(1, 13):
+            mes_label = month_map[i]
+            
+            # Find stats for this month if exists in querysets
+            mat_stat = next((item for item in matriculas_qs if item['mes'] == i), None)
+            cand_stat = next((item for item in candidatos_qs if item['mes'] == i), None)
+            
+            data.append({
+                'mes': mes_label,
+                'matriculas': mat_stat['total'] if mat_stat else 0,
+                'inscritos': cand_stat['total'] if cand_stat else 0
+            })
+            
+        return Response(data)
+
 
 
 class SalaViewSet(viewsets.ModelViewSet):

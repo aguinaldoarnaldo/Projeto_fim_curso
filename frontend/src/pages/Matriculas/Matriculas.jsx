@@ -64,18 +64,32 @@ const Matriculas = () => {
     const { getCache, setCache } = useCache();
 
     // Fetch Data from API
-    // Fetch Data from API
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
+    const [anosDisponiveis, setAnosDisponiveis] = useState([]);
+    const [classesDisponiveis, setClassesDisponiveis] = useState([]);
+    const [salasDisponiveis, setSalasDisponiveis] = useState([]);
+    const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
 
     // Define fetch function
     const fetchData = async (force = false) => {
         try {
             if (!force) setLoading(true);
             
-            // Parallel fetch for matriculas and filter options (courses)
-            const [matriculasRes, cursosRes] = await Promise.all([
+            // Parallel fetch for matriculas and filter options
+            const [
+                matriculasRes, 
+                cursosRes,
+                anosRes,
+                classesRes,
+                salasRes,
+                turmasRes
+            ] = await Promise.all([
                 api.get('matriculas/'),
-                api.get('cursos/')
+                api.get('cursos/'),
+                api.get('anos-lectivos/'),
+                api.get('classes/'),
+                api.get('salas/'),
+                api.get('turmas/')
             ]);
 
             // Handle Matriculas Data
@@ -83,10 +97,10 @@ const Matriculas = () => {
                 id: `MAT-${item.id_matricula || '000'}`,
                 aluno: item.aluno_nome || 'Desconhecido',
                 foto: item.aluno_foto || null,
-                anoLectivo: item.ano_lectivo || 'N/A',
+                anoLectivo: item.ano_lectivo_nome || item.ano_lectivo || 'N/A',
                 classe: item.classe_nome || 'N/A',
                 curso: item.curso_nome || 'N/A',
-                sala: item.sala_numero || 'N/A',
+                sala: item.sala_numero || item.sala_nome || 'N/A',
                 turno: item.periodo_nome || 'N/A',
                 turma: item.turma_codigo || 'Sem Turma',
                 status: item.ativo ? 'Confirmada' : 'Pendente',
@@ -94,12 +108,12 @@ const Matriculas = () => {
                 detalhes: {
                     bi: item.bi || 'N/A', 
                     genero: item.genero || 'N/A',
-                    nif: item.nif || 'N/A', // Campo nao existe no backend ainda
+                    nif: item.nif || 'N/A',
                     dataNascimento: item.data_nascimento || 'N/A',
                     encarregado: item.encarregado_nome || 'N/A', 
                     parentesco: item.encarregado_parentesco || 'N/A',
                     telefoneEncarregado: item.encarregado_telefone || 'N/A',
-                    email: item.email || 'N/A', // Serializer nao retorna, talvez adicionar?
+                    email: item.email || 'N/A', 
                     endereco: item.endereco || 'N/A',
                     pagamentoStatus: item.ativo ? 'Confirmado' : 'Pendente',
                     documentos: [],
@@ -114,11 +128,21 @@ const Matriculas = () => {
                 setMatriculas([]);
             }
 
-            // Handle Courses Data for Filters
-            const cursosData = cursosRes.data.results || cursosRes.data;
-            if (Array.isArray(cursosData)) {
-                setCursosDisponiveis(cursosData);
-            }
+            // Handle Filter Options
+            const cursosData = cursosRes.data.results || cursosRes.data || [];
+            if (Array.isArray(cursosData)) setCursosDisponiveis(cursosData);
+
+            const anosData = anosRes.data.results || anosRes.data || [];
+            if (Array.isArray(anosData)) setAnosDisponiveis(anosData);
+
+            const classesData = classesRes.data.results || classesRes.data || [];
+            if (Array.isArray(classesData)) setClassesDisponiveis(classesData);
+
+            const salasData = salasRes.data.results || salasRes.data || [];
+            if (Array.isArray(salasData)) setSalasDisponiveis(salasData);
+
+            const turmasData = turmasRes.data.results || turmasRes.data || [];
+            if (Array.isArray(turmasData)) setTurmasDisponiveis(turmasData);
 
         } catch (err) {
             console.error("Error fetching data:", err);
@@ -137,7 +161,7 @@ const Matriculas = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             fetchData(true);
-        }, 2000);
+        }, 30000); // Increased polling time to avoid spamming multiple endpoints
         return () => clearInterval(interval);
     }, []);
 
@@ -157,7 +181,7 @@ const Matriculas = () => {
             (filters.ano === '' || matricula.anoLectivo === filters.ano) &&
             (filters.classe === '' || matricula.classe === filters.classe) &&
             (filters.curso === '' || matricula.curso === filters.curso) &&
-            (filters.sala === '' || matricula.sala === filters.sala) &&
+            (filters.sala === '' || String(matricula.sala) === filters.sala) &&
             (filters.turma === '' || matricula.turma === filters.turma);
 
         return matchesSearch && matchesFilters;
@@ -234,17 +258,18 @@ const Matriculas = () => {
                                 <label htmlFor="filtro-ano-mat">Ano Lectivo</label>
                                 <select id="filtro-ano-mat" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todos</option>
-                                    <option value="2024/2025">2024/2025</option>
-                                    <option value="2023/2024">2023/2024</option>
+                                    {anosDisponiveis.map(ano => (
+                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-classe-mat">Classe</label>
                                 <select id="filtro-classe-mat" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todas</option>
-                                    <option value="10ª Classe">10ª Classe</option>
-                                    <option value="11ª Classe">11ª Classe</option>
-                                    <option value="12ª Classe">12ª Classe</option>
+                                    {classesDisponiveis.map(classe => (
+                                        <option key={classe.id_classe || classe.id} value={classe.nome_classe}>{classe.nome_classe}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
@@ -252,7 +277,7 @@ const Matriculas = () => {
                                 <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todos</option>
                                     {cursosDisponiveis.map(curso => (
-                                        <option key={curso.id_curso} value={curso.nome_curso}>{curso.nome_curso}</option>
+                                        <option key={curso.id_curso || curso.id} value={curso.nome_curso}>{curso.nome_curso}</option>
                                     ))}
                                 </select>
                             </div>
@@ -260,18 +285,18 @@ const Matriculas = () => {
                                 <label htmlFor="filtro-sala-mat">Sala</label>
                                 <select id="filtro-sala-mat" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todas</option>
-                                    <option value="L-01">L-01</option>
-                                    <option value="S-204">S-204</option>
-                                    <option value="S-102">S-102</option>
+                                    {salasDisponiveis.map(sala => (
+                                        <option key={sala.id_sala || sala.id} value={sala.numero_sala || sala.nome}>{sala.numero_sala || sala.nome}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
                                 <label htmlFor="filtro-turma-mat">Turma</label>
                                 <select id="filtro-turma-mat" name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
                                     <option value="">Todas</option>
-                                    <option value="INF10A">INF10A</option>
-                                    <option value="GST12B">GST12B</option>
-                                    <option value="DIR11C">DIR11C</option>
+                                    {turmasDisponiveis.map(turma => (
+                                        <option key={turma.id_turma || turma.id} value={turma.codigo_turma || turma.nome}>{turma.codigo_turma || turma.nome}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -286,31 +311,27 @@ const Matriculas = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Matrícula</th>
-                                <th>Nome Completo</th>
-                                <th className="col-ano">Ano Lectivo</th>
-                                <th>Classe</th>
-                                <th>Curso</th>
-                                <th className="col-sala">Sala</th>
-                                <th className="col-turno">Turno</th>
-                                <th>Turma</th>
-                                <th>Estado</th>
-                                <th className="col-data">Data</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentItems.map((m) => (
-                                <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row animate-fade-in">
-                                    <td className="student-id" style={{fontFamily: 'monospace', fontSize: '13px'}}>
-                                        {m.id}
-                                    </td>
-                                    <td>
-                                        <div className="student-info">
-                                            {/* Foto ou Placeholder */}
+                                    <th style={{ width: '60px', textAlign: 'center' }}>Foto</th>
+                                    <th>Nome Completo</th>
+                                    <th className="col-ano">Ano Lectivo</th>
+                                    <th>Classe</th>
+                                    <th>Curso</th>
+                                    <th className="col-sala">Sala</th>
+                                    <th className="col-turno">Turno</th>
+                                    <th>Turma</th>
+                                    <th>Estado</th>
+                                    <th className="col-data">Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentItems.map((m) => (
+                                    <tr key={m.id} onClick={() => setSelectedMatricula(m)} className="clickable-row animate-fade-in">
+                                        <td style={{ textAlign: 'center' }}>
                                             <div className="student-avatar" style={{ 
-                                                width: '48px', 
-                                                height: '48px', 
+                                                width: '40px', 
+                                                height: '40px',
+                                                margin: '0 auto', 
                                                 display: 'flex', 
                                                 alignItems: 'center', 
                                                 justifyContent: 'center',
@@ -318,19 +339,18 @@ const Matriculas = () => {
                                                 overflow: 'hidden',
                                                 background: m.foto ? 'white' : '#e0e7ff',
                                                 border: m.foto ? '1px solid #e2e8f0' : 'none',
-                                                borderRadius: '10px'
+                                                borderRadius: '50%'
                                             }}>
                                                 {m.foto ? (
                                                     <img src={m.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <User size={24} color="var(--primary-color)" />
+                                                    <User size={18} color="var(--primary-color)" />
                                                 )}
                                             </div>
-                                            <div style={{display: 'flex', flexDirection: 'column'}}>
-                                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{m.aluno}</span>
-                                            </div>
-                                        </div>
-                                    </td>
+                                        </td>
+                                        <td>
+                                            <span style={{ fontWeight: 600, color: '#1e293b' }}>{m.aluno}</span>
+                                        </td>
                                     <td className="col-ano" style={{color: '#64748b'}}>{m.anoLectivo}</td>
                                     <td style={{fontWeight: 600, color: '#334155'}}>{m.classe}</td>
                                     <td style={{color: '#475569'}}>{m.curso}</td>
@@ -406,11 +426,41 @@ const Matriculas = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="profile-texts">
+                                <div className="profile-texts" style={{ flex: 1 }}>
                                     <h3>{selectedMatricula.aluno}</h3>
-                                    <div className="profile-badges">
+                                    <div className="profile-badges" style={{ marginBottom: '20px' }}>
                                         {getStatusBadge(selectedMatricula.status)}
                                         <span className="info-badge">{selectedMatricula.classe}</span>
+                                        <span className="info-badge" style={{background: '#eff6ff', color: '#1d4ed8'}}>
+                                            {selectedMatricula.curso}
+                                        </span>
+                                    </div>
+
+                                    <div className="profile-quick-info" style={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                        gap: '12px',
+                                        paddingTop: '16px',
+                                        borderTop: '1px solid #f1f5f9'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px' }}>
+                                            <Mail size={15} />
+                                            <span>{selectedMatricula.detalhes.email}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px' }}>
+                                            <Phone size={15} />
+                                            <span>{selectedMatricula.detalhes.telefoneEncarregado} <span style={{fontSize: '11px', opacity: 0.7}}>(Enc.)</span></span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px' }}>
+                                            <MapPin size={15} />
+                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px' }}>
+                                                {selectedMatricula.detalhes.endereco}
+                                            </span>
+                                        </div>
+                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px' }}>
+                                            <User size={15} />
+                                            <span>BI: {selectedMatricula.detalhes.bi}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -483,8 +533,20 @@ const Matriculas = () => {
                                     </div>
                                     <div className="grid-2-cols">
                                         <div className="info-item">
+                                            <label>Número de Matrícula</label>
+                                            <p className="highlight-text" style={{ fontSize: '15px' }}>{selectedMatricula.id}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Ano Lectivo</label>
+                                            <p>{selectedMatricula.anoLectivo}</p>
+                                        </div>
+                                        <div className="info-item">
                                             <label>Curso</label>
                                             <p>{selectedMatricula.curso}</p>
+                                        </div>
+                                        <div className="info-item">
+                                            <label>Classe</label>
+                                            <p>{selectedMatricula.classe}</p>
                                         </div>
                                         <div className="info-item">
                                             <label>Turma</label>
@@ -497,10 +559,6 @@ const Matriculas = () => {
                                         <div className="info-item">
                                             <label>Turno</label>
                                             <p>{selectedMatricula.turno}</p>
-                                        </div>
-                                        <div className="info-item">
-                                            <label>Ano Lectivo</label>
-                                            <p>{selectedMatricula.anoLectivo}</p>
                                         </div>
                                         <div className="info-item">
                                             <label>Data Matrícula</label>

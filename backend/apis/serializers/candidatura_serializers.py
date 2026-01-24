@@ -4,6 +4,7 @@ from apis.models import Candidato, ExameAdmissao, RupeCandidato, Curso
 class CandidatoSerializer(serializers.ModelSerializer):
     curso1_nome = serializers.CharField(source='curso_primeira_opcao.nome_curso', read_only=True)
     curso2_nome = serializers.CharField(source='curso_segunda_opcao.nome_curso', read_only=True)
+    ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
     nota_exame = serializers.SerializerMethodField()
     
     class Meta:
@@ -27,6 +28,7 @@ class CandidatoCreateSerializer(serializers.ModelSerializer):
             'escola_proveniencia', 'municipio_escola', 'ano_conclusao', 'media_final',
             'curso_primeira_opcao', 'curso_segunda_opcao', 'turno_preferencial',
             'nome_encarregado', 'parentesco_encarregado', 'telefone_encarregado',
+            'ano_lectivo',
             'foto_passe', 'comprovativo_bi', 'certificado'
         ]
         read_only_fields = ['id_candidato', 'numero_inscricao']

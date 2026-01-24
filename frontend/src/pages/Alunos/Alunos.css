@@ -145,6 +145,7 @@
     max-height: 65vh;
     overflow-y: auto;
     overflow-x: auto;
+    max-width: 100%;
 }
 
 .student-info {

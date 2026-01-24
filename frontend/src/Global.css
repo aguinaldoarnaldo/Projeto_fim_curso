@@ -328,11 +328,13 @@ body {
 }
 
 .data-table td {
-  padding: 12px 16px; /* Reduced from 16px 24px */
+  padding: 12px 12px; /* Adjusted optimized padding */
   border-bottom: 1px solid var(--border-color);
-  font-size: 13px; /* Slightly smaller */
+  font-size: 13px;
   color: #334155;
-  white-space: nowrap; /* Prevent messy wrapping */
+  white-space: normal; /* Changed from nowrap to normal to allow wrapping */
+  vertical-align: middle;
+  word-wrap: break-word; /* Ensure long words don't overflow */
 }
 
 /* Responsive Table Padding Globally */
@@ -581,6 +583,7 @@ body {
   object-fit: cover;
 }
 
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .app-container {
@@ -622,5 +625,166 @@ body {
   .user-info-top {
     display: none; /* Hide name on very small screens, keep avatar */
   }
+}
+
+/* Notification Panel Styles */
+.notification-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: 50px;
+    right: -10px;
+    width: 380px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.notification-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.notification-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.mark-read-btn {
+    font-size: 12px;
+    color: var(--primary-color);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0;
+}
+
+.mark-read-btn:hover {
+    text-decoration: underline;
+}
+
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+.notification-list::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 10px;
+}
+
+.notification-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.notification-item:hover {
+    background-color: var(--bg-color);
+}
+
+.notification-item.unread {
+    background-color: var(--primary-light-bg);
+}
+
+.notification-item.unread:hover {
+    background-color: #e0f2fe;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-icon.blue { background: #eff6ff; color: #3b82f6; }
+.notification-icon.green { background: #f0fdf4; color: #22c55e; }
+.notification-icon.yellow { background: #fefce8; color: #eab308; }
+.notification-icon.purple { background: #faf5ff; color: #a855f7; }
+.notification-icon.red { background: #fef2f2; color: #ef4444; }
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: #94a3b8;
+    display: block;
+}
+
+.notification-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-footer {
+    padding: 12px;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+    background: #f8fafc;
+}
+
+.view-all-btn {
+    font-size: 13px;
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
 }
 

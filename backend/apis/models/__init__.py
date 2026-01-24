@@ -12,6 +12,7 @@ from .documentos import Documento, SolicitacaoDocumento
 from .biblioteca import Categoria, Livro
 from .financeiro import Fatura, Pagamento
 from .matriculas import Inscricao, Matricula
+from .historico import HistoricoEscolar
 from .auditoria import Historico, HistoricoLogin
 from .candidatura import Candidato, RupeCandidato, ExameAdmissao
 

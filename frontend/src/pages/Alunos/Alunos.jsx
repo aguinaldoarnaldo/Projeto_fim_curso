@@ -54,6 +54,47 @@ const Alunos = () => {
         classe: ''
     });
 
+    // State for filter options
+    const [anosDisponiveis, setAnosDisponiveis] = useState([]);
+    const [classesDisponiveis, setClassesDisponiveis] = useState([]);
+    const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
+    const [salasDisponiveis, setSalasDisponiveis] = useState([]);
+    const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
+
+    // Fetch filter options
+    useEffect(() => {
+        const fetchFilterOptions = async () => {
+            try {
+                const [anosRes, classesRes, cursosRes, salasRes, turmasRes] = await Promise.all([
+                    api.get('anos-lectivos/'),
+                    api.get('classes/'),
+                    api.get('cursos/'),
+                    api.get('salas/'),
+                    api.get('turmas/')
+                ]);
+
+                if (anosRes.data.results || Array.isArray(anosRes.data)) 
+                    setAnosDisponiveis(anosRes.data.results || anosRes.data);
+                
+                if (classesRes.data.results || Array.isArray(classesRes.data)) 
+                    setClassesDisponiveis(classesRes.data.results || classesRes.data);
+
+                if (cursosRes.data.results || Array.isArray(cursosRes.data)) 
+                    setCursosDisponiveis(cursosRes.data.results || cursosRes.data);
+
+                if (salasRes.data.results || Array.isArray(salasRes.data)) 
+                    setSalasDisponiveis(salasRes.data.results || salasRes.data);
+
+                if (turmasRes.data.results || Array.isArray(turmasRes.data)) 
+                    setTurmasDisponiveis(turmasRes.data.results || turmasRes.data);
+
+            } catch (err) {
+                console.error("Erro ao buscar opções de filtros:", err);
+            }
+        };
+        fetchFilterOptions();
+    }, []);
+
     // State for students data
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -137,7 +178,7 @@ const Alunos = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             fetchStudents(true);
-        }, 2000);
+        }, 120000); // 2 minutes (less aggressive polling for students list)
         return () => clearInterval(interval);
     }, []);
 
@@ -238,44 +279,45 @@ const Alunos = () => {
                                     className="selecao-filtro"
                                 >
                                     <option value="">Todos</option>
-                                    <option value="2024/2025">2024/2025</option>
-                                    <option value="2023/2024">2023/2024</option>
+                                    {anosDisponiveis.map(ano => (
+                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
                                 <label>Classe</label>
                                 <select name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todas</option>
-                                    <option value="10ª Classe">10ª Classe</option>
-                                    <option value="11ª Classe">11ª Classe</option>
-                                    <option value="12ª Classe">12ª Classe</option>
+                                    {classesDisponiveis.map(classe => (
+                                        <option key={classe.id_classe || classe.id} value={classe.nome_classe}>{classe.nome_classe}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
                                 <label>Curso</label>
                                 <select name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todos</option>
-                                    <option value="Informática">Informática</option>
-                                    <option value="Gestão">Gestão</option>
-                                    <option value="Direito">Direito</option>
+                                    {cursosDisponiveis.map(curso => (
+                                        <option key={curso.id_curso || curso.id} value={curso.nome_curso}>{curso.nome_curso}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
                                 <label>Sala</label>
                                 <select name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todas</option>
-                                    <option value="L-01">L-01</option>
-                                    <option value="S-204">S-204</option>
-                                    <option value="S-102">S-102</option>
+                                    {salasDisponiveis.map(sala => (
+                                        <option key={sala.id_sala || sala.id} value={`Sala ${sala.numero_sala}`}>{`Sala ${sala.numero_sala}`}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="grupo-filtro">
                                 <label>Turma</label>
                                 <select name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
                                     <option value="">Todas</option>
-                                    <option value="INF10A">INF10A</option>
-                                    <option value="GST12B">GST12B</option>
-                                    <option value="DIR11C">DIR11C</option>
+                                    {turmasDisponiveis.map(turma => (
+                                        <option key={turma.id_turma || turma.id} value={turma.codigo_turma}>{turma.codigo_turma}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -301,7 +343,7 @@ const Alunos = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>Nº Aluno</th>
+                                    <th style={{ width: '60px', textAlign: 'center' }}>Foto</th>
                                     <th>Nome Completo</th>
                                     <th>Ano Lectivo</th>
                                     <th>Classe</th>
@@ -310,48 +352,48 @@ const Alunos = () => {
                                     <th>Turno</th>
                                     <th>Turma</th>
                                     <th>Estado</th>
-                                    <th>Data Matrícula</th>
                                     <th style={{ textAlign: 'center' }}>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {error ? (
                                     <tr>
-                                        <td colSpan="11" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                        <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
                                             {error}
                                         </td>
                                     </tr>
                                 ) : currentStudents.length === 0 ? (
                                     <tr>
-                                        <td colSpan="11" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                        <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
                                             Nenhum aluno encontrado.
                                         </td>
                                     </tr>
                                 ) : (
                                     currentStudents.map((s) => (
                                         <tr key={s.id} onClick={() => setSelectedStudent(s)} className="clickable-row">
-                                            <td className="student-id">{s.id}</td>
-                                            <td>
-                                                <div className="student-info">
-                                                    <div className="student-avatar" style={{ 
-                                                        width: '36px', 
-                                                        height: '36px', 
-                                                        display: 'flex', 
-                                                        alignItems: 'center', 
-                                                        justifyContent: 'center',
-                                                        flexShrink: 0,
-                                                        overflow: 'hidden',
-                                                        background: s.foto ? 'white' : '#e0e7ff',
-                                                        border: s.foto ? '1px solid #e2e8f0' : 'none'
-                                                    }}>
-                                                        {s.foto ? (
-                                                            <img src={s.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                        ) : (
-                                                            <User size={16} />
-                                                        )}
-                                                    </div>
-                                                    <span className="student-name">{s.nome}</span>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div className="student-avatar" style={{ 
+                                                    width: '40px', 
+                                                    height: '40px', 
+                                                    margin: '0 auto',
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    flexShrink: 0,
+                                                    overflow: 'hidden',
+                                                    borderRadius: '50%',
+                                                    background: s.foto ? 'white' : '#e0e7ff',
+                                                    border: s.foto ? '1px solid #e2e8f0' : 'none'
+                                                }}>
+                                                    {s.foto ? (
+                                                        <img src={s.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <User size={18} color="var(--primary-color)" />
+                                                    )}
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <span className="student-name" style={{ fontWeight: 600, color: '#1e293b' }}>{s.nome}</span>
                                             </td>
                                             <td>{s.anoLectivo}</td>
                                             <td style={{ fontWeight: 700 }}>{s.classe}</td>
@@ -371,7 +413,6 @@ const Alunos = () => {
                                                     {s.status}
                                                 </span>
                                             </td>
-                                            <td className="student-date">{s.dataMatricula}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <button className="btn-more-actions">
                                                     <MoreVertical size={20} />

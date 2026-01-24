@@ -50,8 +50,10 @@ const Dashboard = () => {
   });
 
   // Mock Data for Charts
-  const historicalData = {
-      '2024': [
+  // Dynamic Data States
+  const [academicYears, setAcademicYears] = useState([]);
+  const [chartDataByYear, setChartDataByYear] = useState({
+     '2024': [
         { mes: 'Jan', matriculas: 40, inscritos: 24 },
         { mes: 'Fev', matriculas: 30, inscritos: 13 },
         { mes: 'Mar', matriculas: 20, inscritos: 58 },
@@ -65,53 +67,88 @@ const Dashboard = () => {
         { mes: 'Nov', matriculas: 74, inscritos: 83 },
         { mes: 'Dez', matriculas: 84, inscritos: 93 },
       ]
-  };
+  }); // Will be populated with real data or combined with mock
 
-  const genderData = [
-      { name: 'Masculino', value: 55 },
-      { name: 'Feminino', value: 45 },
-  ];
+  const [genderData, setGenderData] = useState([
+      { name: 'Masculino', value: 0 },
+      { name: 'Feminino', value: 0 },
+  ]);
+  const [courseData, setCourseData] = useState([]);
   const COLORS_GENDER = ['#3b82f6', '#ec4899'];
 
-  useEffect(() => {
+    useEffect(() => {
      const fetchCounts = async () => {
          try {
-             // Fetch Courses
-             const responseCursos = await api.get('cursos/');
+             const [
+                 responseCursos,
+                 responseClasses,
+                 responseSalas,
+                 responseAlunos,
+                 responseTurmas,
+                 responseAnos
+             ] = await Promise.all([
+                 api.get('cursos/').catch(e => ({ data: [] })),
+                 api.get('classes/').catch(e => ({ data: [] })),
+                 api.get('salas/').catch(e => ({ data: [] })),
+                 api.get('alunos/').catch(e => ({ data: [] })),
+                 api.get('turmas/summary/').catch(e => ({ data: { total: 0, ativas: 0, concluidas: 0 } })),
+                 api.get('anos-lectivos/').catch(e => ({ data: [] }))
+             ]);
+
+             // Process Cursos
              const dataCursos = responseCursos.data.results || responseCursos.data || [];
              const countC = Array.isArray(dataCursos) ? dataCursos.length : 0;
              setCountCursos(countC);
              setCache('dashboard_course_count', countC);
 
-             // Fetch Classes
-             const responseClasses = await api.get('classes/');
+             // Process Classes
              const dataClasses = responseClasses.data.results || responseClasses.data || [];
              const countCl = Array.isArray(dataClasses) ? dataClasses.length : 0;
              setCountClasses(countCl);
              setCache('dashboard_classes_count', countCl);
 
-             // Fetch Salas
-             const responseSalas = await api.get('salas/');
+             // Process Salas
              const dataSalas = responseSalas.data.results || responseSalas.data || [];
              const countS = Array.isArray(dataSalas) ? dataSalas.length : 0;
              setCountSalas(countS);
              setCache('dashboard_salas_count', countS);
 
-             // Fetch Alunos (simulated or real endpoint)
-             // Ensure 'alunos/' endpoint exists or fail gracefully
-             let countAlunos = 0;
-             try {
-                const responseAlunos = await api.get('alunos/'); 
-                const dataAlunos = responseAlunos.data.results || responseAlunos.data || [];
-                countAlunos = Array.isArray(dataAlunos) ? dataAlunos.length : 0;
-             } catch (e) { console.warn("Could not fetch alunos", e); }
+             // Process Alunos
+             const dataAlunos = responseAlunos.data.results || responseAlunos.data || [];
+             const countAlunos = Array.isArray(dataAlunos) ? dataAlunos.length : 0;
 
-             // Fetch Turmas Summary
-             let turmasStats = { total: 0, ativas: 0, concluidas: 0 };
-             try {
-                const responseTurmas = await api.get('turmas/summary/');
-                turmasStats = responseTurmas.data;
-             } catch (e) { console.warn("Could not fetch turmas summary", e); }
+             // Calculate Gender Distribution
+             let countM = 0;
+             let countF = 0;
+             if (Array.isArray(dataAlunos)) {
+                 dataAlunos.forEach(aluno => {
+                     if (aluno.genero === 'M') countM++;
+                     else if (aluno.genero === 'F') countF++;
+                 });
+             }
+             setGenderData([
+                 { name: 'Masculino', value: countM },
+                 { name: 'Feminino', value: countF },
+             ]);
+
+             // Calculate Course Popularity
+             const courseMap = {};
+             if (Array.isArray(dataAlunos)) {
+                 dataAlunos.forEach(aluno => {
+                     const cName = aluno.curso_nome || 'Outros';
+                     if (cName) {
+                         courseMap[cName] = (courseMap[cName] || 0) + 1;
+                     }
+                 });
+             }
+             const sortedCourses = Object.keys(courseMap)
+                 .map(key => ({ name: key, qnty: courseMap[key] }))
+                 .sort((a, b) => b.qnty - a.qnty)
+                 .slice(0, 5);
+             setCourseData(sortedCourses);
+
+             // Process Turmas
+             const turmasStats = responseTurmas.data || { total: 0, ativas: 0, concluidas: 0 };
 
              const newKpiData = {
                 alunos: { total: countAlunos, ativos: countAlunos, trancados: 0 },
@@ -125,19 +162,95 @@ const Dashboard = () => {
              setKpiData(newKpiData);
              setCache('dashboard_kpi_data', newKpiData);
 
+             // Process Anos Lectivos
+             const dataAnos = responseAnos.data.results || responseAnos.data || [];
+             
+             // Map to objects
+             let yearObjs = Array.isArray(dataAnos) ? dataAnos.map(a => ({ 
+                 id: a.id_ano, 
+                 nome: a.nome, 
+                 activo: a.activo 
+             })) : [];
+
+             // Ensure 2024 exists (Legacy/Mock)
+             if (!yearObjs.find(y => y.nome === '2024')) {
+                 yearObjs.push({ id: null, nome: '2024', activo: false });
+             }
+             
+             // Sort by name
+             yearObjs.sort((a, b) => a.nome.localeCompare(b.nome));
+             
+             setAcademicYears(yearObjs);
+                 
+             // Smart selection: active year -> last year -> first year
+             // Only change selection if currently default '2024' or invalid
+             const activeYear = yearObjs.find(a => a.activo);
+             if (activeYear) {
+                 if (selectedYear === '2024') setSelectedYear(activeYear.nome);
+             } else if (yearObjs.length > 0 && !yearObjs.find(y => y.nome === selectedYear)) {
+                 setSelectedYear(yearObjs[yearObjs.length - 1].nome);
+             }
+
+             // Start with existing chart data
+             const newChartData = { ...chartDataByYear };
+             
+             // Initialize empty structure for new years to avoid crashes before fetch
+             yearObjs.forEach(year => {
+                 if (!newChartData[year.nome]) {
+                     newChartData[year.nome] = [
+                        { mes: 'Jan', matriculas: 0, inscritos: 0 },
+                        { mes: 'Fev', matriculas: 0, inscritos: 0 },
+                        { mes: 'Mar', matriculas: 0, inscritos: 0 },
+                        { mes: 'Abr', matriculas: 0, inscritos: 0 },
+                        { mes: 'Mai', matriculas: 0, inscritos: 0 },
+                        { mes: 'Jun', matriculas: 0, inscritos: 0 },
+                        { mes: 'Jul', matriculas: 0, inscritos: 0 },
+                        { mes: 'Ago', matriculas: 0, inscritos: 0 },
+                        { mes: 'Set', matriculas: 0, inscritos: 0 },
+                        { mes: 'Out', matriculas: 0, inscritos: 0 },
+                        { mes: 'Nov', matriculas: 0, inscritos: 0 },
+                        { mes: 'Dez', matriculas: 0, inscritos: 0 },
+                     ];
+                 }
+             });
+             setChartDataByYear(newChartData);
+
+
          } catch (error) {
              console.error("Error fetching dashboard counts", error);
          }
      };
      
     fetchCounts();
-    const interval = setInterval(fetchCounts, 2000); // 2 seconds (Real-time feel)
-    return () => clearInterval(interval);
-  }, [setCache]);
+     const interval = setInterval(fetchCounts, 30000); // 30 seconds
+     return () => clearInterval(interval);
+   }, [setCache]);
+
+   // Fetch stats for specific year when selected
+   useEffect(() => {
+        const fetchYearStats = async () => {
+             const yearObj = academicYears.find(y => y.nome === selectedYear);
+             if (yearObj && yearObj.id) {
+                 try {
+                     const response = await api.get(`anos-lectivos/${yearObj.id}/stats_by_year/`);
+                     setChartDataByYear(prev => ({
+                         ...prev,
+                         [selectedYear]: response.data
+                     }));
+                 } catch (e) {
+                     console.error("Error fetching stats for year", selectedYear, e);
+                 }
+             }
+        };
+        
+        if (selectedYear && academicYears.length > 0) {
+            fetchYearStats();
+        }
+   }, [selectedYear, academicYears]);
 
   const chartData = useMemo(() => {
-    return historicalData[selectedYear] || [];
-  }, [selectedYear]);
+    return chartDataByYear[selectedYear] || [];
+  }, [selectedYear, chartDataByYear]);
 
   return (
     <div className="dashboard-container">
@@ -223,13 +336,15 @@ const Dashboard = () => {
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
-                {Object.keys(historicalData).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
+                {academicYears.length > 0 ? academicYears.map(year => (
+                  <option key={year.nome} value={year.nome}>{year.nome}</option>
+                )) : (
+                     <option value="2024">2024</option>
+                )}
               </select>
             </div>
             <div className="chart-body">
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={280} debounce={300}>
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorMat" x1="0" y1="0" x2="0" y2="1">
@@ -265,7 +380,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="chart-body gender-chart-body">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={300}>
                   <PieChart>
                     <Pie
                       data={genderData}
@@ -306,14 +421,11 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="chart-body course-chart-body">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={300}>
                   <AreaChart
                     layout="vertical"
-                    data={[
-                      { name: 'Informática', qnty: 450 },
-                      { name: 'Contabilidade', qnty: 320 },
-                      { name: 'Enfermagem', qnty: 280 },
-                      { name: 'Mecânica', qnty: 200 }
+                    data={courseData.length > 0 ? courseData : [
+                      { name: 'Sem dados', qnty: 0 }
                     ]}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >

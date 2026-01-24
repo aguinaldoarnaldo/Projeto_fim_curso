@@ -5,11 +5,12 @@ from apis.models import Fatura, Pagamento
 class FaturaSerializer(serializers.ModelSerializer):
     """Serializer para Fatura"""
     aluno_nome = serializers.CharField(source='id_aluno.nome_completo', read_only=True)
+    ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
     
     class Meta:
         model = Fatura
         fields = [
-            'id_fatura', 'id_aluno', 'aluno_nome', 'descricao', 'total',
+            'id_fatura', 'id_aluno', 'aluno_nome', 'ano_lectivo', 'ano_lectivo_nome', 'descricao', 'total',
             'status', 'data_vencimento', 'data_pagamento',
             'criado_em', 'atualizado_em'
         ]
@@ -19,10 +20,11 @@ class FaturaSerializer(serializers.ModelSerializer):
 class FaturaListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem de Faturas"""
     aluno_nome = serializers.CharField(source='id_aluno.nome_completo', read_only=True)
+    ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
     
     class Meta:
         model = Fatura
-        fields = ['id_fatura', 'aluno_nome', 'descricao', 'total', 'status', 'data_vencimento']
+        fields = ['id_fatura', 'aluno_nome', 'ano_lectivo_nome', 'descricao', 'total', 'status', 'data_vencimento']
 
 
 class PagamentoSerializer(serializers.ModelSerializer):

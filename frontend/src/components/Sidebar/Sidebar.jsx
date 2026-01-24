@@ -51,7 +51,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <div className="sidebar-brand">
             <img src={logo} alt="Logo" className="sidebar-logo" />
             <div className="sidebar-title">
-              <h1>Sistema Escolar</h1>
+              <h1>Sistema Gestão Matriculas</h1>
               <p>Gestão Académica</p>
             </div>
           </div>

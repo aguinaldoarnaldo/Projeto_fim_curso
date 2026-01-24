@@ -20,6 +20,8 @@ const Cursos = lazy(() => import("../pages/Cursos/Cursos"));
 const Configuracoes = lazy(() => import("../pages/Configuracoes/Configuracoes"));
 const NovaMatricula = lazy(() => import("../pages/Matriculas/NovaMatricula"));
 const Relatorios = lazy(() => import("../pages/Relatorios/Relatorios"));
+const Perfil = lazy(() => import("../pages/Perfil/Perfil"));
+const Ajuda = lazy(() => import("../pages/Ajuda/Ajuda"));
 
 const PrivateRoute = ({ children }) => {
     const { signed, loading } = useAuth();
@@ -43,6 +45,7 @@ export default function Routers(params) {
                     {/* Public Routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/candidatura" element={<Candidatura />} />
+                    <Route path="/candidatos" element={<Candidatura />} />
                     
                     {/* Root path now points to Login. Login component handles redirect if already authenticated. */}
                     <Route path="/" element={<Login />} />
@@ -58,6 +61,8 @@ export default function Routers(params) {
                     <Route path="/configuracoes" element={<PrivateRoute><Layout><Configuracoes /></Layout></PrivateRoute>} />
                     <Route path="/matriculas/nova" element={<PrivateRoute><Layout><NovaMatricula /></Layout></PrivateRoute>} />
                     <Route path="/relatorios" element={<PrivateRoute><Layout><Relatorios /></Layout></PrivateRoute>} />
+                    <Route path="/perfil" element={<PrivateRoute><Layout><Perfil /></Layout></PrivateRoute>} />
+                    <Route path="/ajuda" element={<PrivateRoute><Layout><Ajuda /></Layout></PrivateRoute>} />
                 </Routes>
             </Suspense>
         </BrowserRouter>

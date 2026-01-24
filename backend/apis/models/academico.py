@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from .base import BaseModel
 from .usuarios import Funcionario
 import datetime
@@ -201,7 +202,8 @@ class Turma(BaseModel):
     id_curso = models.ForeignKey(Curso, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Curso')
     id_classe = models.ForeignKey(Classe, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Classe')
     id_periodo = models.ForeignKey(Periodo, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Período')
-    ano = models.CharField(null=True, blank=True, verbose_name='Ano',default=f"{str(datetime.date.year)}")
+    ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Ano Lectivo')
+    ano = models.CharField(null=True, blank=True, verbose_name='Ano (Legacy)',default=f"{str(datetime.date.year)}")
     codigo_turma = models.CharField(max_length=50, unique=True, verbose_name='Código da Turma')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativa', verbose_name='Estado da Turma')
     id_responsavel = models.ForeignKey(
@@ -229,7 +231,15 @@ class Turma(BaseModel):
             
             self.codigo_turma = f"{sala}{curso}{classe}{periodo}{ano}"
             
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
+
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.codigo_turma

@@ -1,6 +1,8 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from .base import BaseModel
-from .academico import Curso, Sala
+from .base import BaseModel
+from .academico import Curso, Sala, AnoLectivo
 import uuid
 
 class Candidato(BaseModel):
@@ -52,6 +54,15 @@ class Candidato(BaseModel):
     parentesco_encarregado = models.CharField(max_length=50)
     telefone_encarregado = models.CharField(max_length=30)
     
+    # Ano Lectivo
+    ano_lectivo = models.ForeignKey(
+        AnoLectivo,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name='Ano Lectivo'
+    )
+    
     # Estado
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pendente')
     
@@ -85,6 +96,15 @@ class Candidato(BaseModel):
                 
         super().save(*args, **kwargs)
 
+    def clean(self):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
+
+    def delete(self, *args, **kwargs):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)
+
     class Meta:
         db_table = 'candidato'
         verbose_name = 'Candidato'
@@ -107,6 +127,19 @@ class ExameAdmissao(BaseModel):
     class Meta:
         db_table = 'exame_admissao'
         verbose_name = 'Exame de Admissão'
+
+    def clean(self):
+        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)
         
 class RupeCandidato(BaseModel):
     """Pagamento do RUPE de inscrição"""
@@ -119,3 +152,16 @@ class RupeCandidato(BaseModel):
     
     class Meta:
         db_table = 'rupe_candidato'
+
+    def clean(self):
+        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)

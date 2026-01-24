@@ -1,6 +1,8 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from .alunos import Aluno
-from .academico import Turma
+from .alunos import Aluno
+from .academico import Turma, AnoLectivo
 
 
 class Inscricao(models.Model):
@@ -32,6 +34,13 @@ class Matricula(models.Model):
         blank=True,
         verbose_name='Turma'
     )
+    ano_lectivo = models.ForeignKey(
+        AnoLectivo,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name='Ano Lectivo'
+    )
     data_matricula = models.DateField(auto_now_add=True, verbose_name='Data de Matrícula')
     ativo = models.BooleanField(default=True, verbose_name='Ativo')
     
@@ -43,3 +52,16 @@ class Matricula(models.Model):
     
     def __str__(self):
         return f"Matrícula {self.id_matricula} - {self.id_aluno.nome_completo}"
+
+    def clean(self):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)

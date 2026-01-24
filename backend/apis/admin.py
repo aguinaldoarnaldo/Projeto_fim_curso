@@ -10,7 +10,7 @@ from apis.models import (
     # Alunos
     Aluno, AlunoEncarregado,
     # Acadêmico
-    Sala, Classe, Departamento, Seccao, AreaFormacao, Curso, Periodo, Turma,
+    Sala, Classe, Departamento, Seccao, AreaFormacao, Curso, Periodo, Turma, AnoLectivo,
     # Avaliações
     TipoDisciplina, Disciplina, DisciplinaCurso, ProfessorDisciplina, Nota, FaltaAluno,
     # Documentos
@@ -152,7 +152,7 @@ class EncarregadoAdmin(ModelAdmin):
 
 @admin.register(Aluno)
 class AlunoAdmin(ModelAdmin):
-    list_display = ['id_aluno', 'nome_completo', 'numero_matricula', 'turma_badge', 
+    list_display = ['id_aluno', 'foto_badge', 'nome_completo', 'numero_matricula', 'turma_badge', 
                     'status_badge', 'genero', 'online_badge']
     list_filter = ['status_aluno', 'id_turma', 'genero']
     search_fields = ['nome_completo', 'numero_matricula', 'email']
@@ -176,6 +176,15 @@ class AlunoAdmin(ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    @display(description='Foto')
+    def foto_badge(self, obj):
+        if obj.img_path:
+            return format_html(
+                '<img src="{}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />',
+                obj.img_path.url
+            )
+        return format_html('<div style="width: 40px; height: 40px; background-color: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; font-weight: bold; font-size: 10px;">N/A</div>')
     
     @display(description='Turma', ordering='id_turma__codigo_turma')
     def turma_badge(self, obj):
@@ -383,6 +392,7 @@ admin.site.register(Classe, ModelAdmin)
 admin.site.register(Departamento, ModelAdmin)
 admin.site.register(Seccao, ModelAdmin)
 admin.site.register(AreaFormacao, ModelAdmin)
+admin.site.register(AnoLectivo, ModelAdmin)
 admin.site.register(Periodo, ModelAdmin)
 admin.site.register(TipoDisciplina, ModelAdmin)
 admin.site.register(DisciplinaCurso, ModelAdmin)

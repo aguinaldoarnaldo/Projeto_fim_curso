@@ -32,8 +32,10 @@ class ClasseSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Classe
-        fields = ['id_classe', 'nivel', 'descricao']
+        fields = ['id_classe', 'nivel', 'descricao', 'nome_classe']
         read_only_fields = ['id_classe']
+
+    nome_classe = serializers.CharField(source='__str__', read_only=True)
 
 
 class DepartamentoSerializer(serializers.ModelSerializer):
@@ -117,16 +119,18 @@ class TurmaSerializer(serializers.ModelSerializer):
     sala_numero = serializers.IntegerField(source='id_sala.numero_sala', read_only=True)
     curso_nome = serializers.CharField(source='id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_classe.nivel', read_only=True)
+    classe_nome = serializers.CharField(source='id_classe.__str__', read_only=True)
     periodo_nome = serializers.CharField(source='id_periodo.periodo', read_only=True)
     responsavel_nome = serializers.CharField(source='id_responsavel.nome_completo', read_only=True)
+    ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
     total_alunos = serializers.SerializerMethodField()
     
     class Meta:
         model = Turma
         fields = [
             'id_turma', 'codigo_turma', 'id_sala', 'sala_numero',
-            'id_curso', 'curso_nome', 'id_classe', 'classe_nivel',
-            'id_periodo', 'periodo_nome', 'ano', 'status', 'id_responsavel',
+            'id_curso', 'curso_nome', 'id_classe', 'classe_nivel', 'classe_nome',
+            'id_periodo', 'periodo_nome', 'ano', 'ano_lectivo', 'ano_lectivo_nome', 'status', 'id_responsavel',
             'responsavel_nome', 'total_alunos', 'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['id_turma', 'codigo_turma', 'criado_em', 'atualizado_em']
@@ -141,13 +145,15 @@ class TurmaListSerializer(serializers.ModelSerializer):
     sala_numero = serializers.IntegerField(source='id_sala.numero_sala', read_only=True)
     curso_nome = serializers.CharField(source='id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_classe.nivel', read_only=True)
+    classe_nome = serializers.CharField(source='id_classe.__str__', read_only=True)
     periodo_nome = serializers.CharField(source='id_periodo.periodo', read_only=True)
     responsavel_nome = serializers.CharField(source='id_responsavel.nome_completo', read_only=True)
+    ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
     total_alunos = serializers.SerializerMethodField()
     
     class Meta:
         model = Turma
-        fields = ['id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'id_curso', 'curso_nome', 'classe_nivel', 'id_periodo', 'periodo_nome', 'status', 'ano', 'total_alunos', 'responsavel_nome']
+        fields = ['id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'id_curso', 'curso_nome', 'classe_nivel', 'classe_nome', 'id_periodo', 'periodo_nome', 'status', 'ano', 'ano_lectivo', 'ano_lectivo_nome', 'total_alunos', 'responsavel_nome']
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno

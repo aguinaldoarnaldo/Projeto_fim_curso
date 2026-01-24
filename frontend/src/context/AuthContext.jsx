@@ -117,6 +117,29 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateProfile = async (data) => {
+        setLoading(true);
+        try {
+            const response = await api.put('auth/profile/update/', data);
+            
+            if (response.data.user) {
+                // Mesclar dados atuais com as atualizações
+                const updatedUser = { ...user, ...response.data.user };
+                setUser(updatedUser);
+                localStorage.setItem('@App:user', JSON.stringify(updatedUser));
+            }
+            
+            return { success: true, message: response.data.message };
+        } catch (err) {
+            return { 
+                success: false, 
+                message: err.response?.data?.error || 'Erro ao atualizar perfil.' 
+            };
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const signOut = () => {
         localStorage.removeItem('@App:token');
         localStorage.removeItem('@App:user');
@@ -125,7 +148,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, signed: !!user, signIn, signOut, loading, error }}>
+        <AuthContext.Provider value={{ user, signed: !!user, signIn, signOut, updateProfile, loading, error }}>
             {children}
         </AuthContext.Provider>
     );

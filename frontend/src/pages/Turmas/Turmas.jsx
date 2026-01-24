@@ -45,6 +45,7 @@ const Turmas = () => {
     const [filters, setFilters] = useState({
         ano: '',
         curso: '',
+        classe: '',
         sala: '',
         turno: '',
         status: ''
@@ -55,8 +56,11 @@ const Turmas = () => {
     const [error, setError] = useState(null);
 
     const [salas, setSalas] = useState([]);
+    const [classesDisponiveis, setClassesDisponiveis] = useState([]);
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
     const [periodosDisponiveis, setPeriodosDisponiveis] = useState([]);
+    const [anosDisponiveis, setAnosDisponiveis] = useState([]);
+    
     const [formData, setFormData] = useState({
         codigo_turma: '',
         id_curso: '',
@@ -79,7 +83,7 @@ const Turmas = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             fetchData(true);
-        }, 2000);
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -89,12 +93,16 @@ const Turmas = () => {
             const cSalas = getCache('salas');
             const cCursos = getCache('cursos');
             const cPeriodos = getCache('periodos');
+            const cAnos = getCache('anos-lectivos');
+            const cClasses = getCache('classes');
 
-            if (cTurmas && cSalas && cCursos && cPeriodos) {
+            if (cTurmas && cSalas && cCursos && cPeriodos && cAnos && cClasses) {
                  setTurmas(cTurmas);
                  setSalas(cSalas);
+                 setClassesDisponiveis(cClasses);
                  setCursosDisponiveis(cCursos);
                  setPeriodosDisponiveis(cPeriodos);
+                 setAnosDisponiveis(cAnos);
                  setLoading(false);
                  return;
             }
@@ -102,11 +110,13 @@ const Turmas = () => {
 
         try {
             // Do not force set loading=true on updates to avoid flash
-            const [turmasRes, salasRes, cursosRes, periodosRes] = await Promise.all([
+            const [turmasRes, salasRes, cursosRes, periodosRes, anosRes, classesRes] = await Promise.all([
                 api.get('turmas/'),
                 api.get('salas/'),
                 api.get('cursos/'),
-                api.get('periodos/')
+                api.get('periodos/'),
+                api.get('anos-lectivos/'),
+                api.get('classes/')
             ]);
             
             const turmasData = turmasRes.data.results || turmasRes.data;
@@ -117,6 +127,8 @@ const Turmas = () => {
                 curso: t.curso_nome,
                 id_sala: t.id_sala,
                 sala: `Sala ${t.sala_numero || 'N/A'}`,
+                id_classe: t.id_classe,
+                classe: t.classe_nome || 'N/A',
                 id_periodo: t.id_periodo,
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano || '2024/2025',
@@ -128,17 +140,23 @@ const Turmas = () => {
             const salasData = salasRes.data.results || salasRes.data;
             const cursosData = cursosRes.data.results || cursosRes.data;
             const periodosData = periodosRes.data.results || periodosRes.data;
+            const anosData = anosRes.data.results || anosRes.data || [];
+            const classesData = classesRes.data.results || classesRes.data || [];
 
             setTurmas(formattedTurmas);
             setSalas(salasData);
+            setClassesDisponiveis(classesData);
             setCursosDisponiveis(cursosData);
             setPeriodosDisponiveis(periodosData);
+            setAnosDisponiveis(anosData);
 
             // Cache all
             setCache('turmas', formattedTurmas);
             setCache('salas', salasData);
+            setCache('classes', classesData);
             setCache('cursos', cursosData);
             setCache('periodos', periodosData);
+            setCache('anos-lectivos', anosData);
 
             setLoading(false);
         } catch (err) {
@@ -164,9 +182,8 @@ const Turmas = () => {
                 id_sala: formData.id_sala,
                 ano: formData.ano,
                 status: formData.status,
-                // Assuming defaults or handling these fields for now as they might be required by backend
-                id_classe: 1, // Default to 10th grade if not specified
-                id_periodo: formData.id_periodo || 1 // Default to first period if not specified
+                id_classe: formData.id_classe,
+                id_periodo: formData.id_periodo
             };
             
             // NOTE: You might need to adjust payload keys to match your exact serializer expectations
@@ -198,6 +215,7 @@ const Turmas = () => {
             id_curso: turma.id_curso || '',
             id_periodo: turma.id_periodo || '',
             id_sala: turma.id_sala || '',
+            id_classe: turma.id_classe || '',
             ano: turma.ano,
             responsavel_nome: turma.coordenador,
             status: turma.status
@@ -213,6 +231,7 @@ const Turmas = () => {
             id_curso: '',
             id_periodo: '',
             id_sala: '',
+            id_classe: '',
             ano: '2024/2025',
             responsavel_nome: '',
             status: 'Ativa'
@@ -227,11 +246,12 @@ const Turmas = () => {
             String(item.id).toLowerCase().includes(searchTerm.toLowerCase());
         const matchesAno = filters.ano === '' || String(item.ano) === filters.ano;
         const matchesCurso = filters.curso === '' || item.curso === filters.curso;
+        const matchesClasse = filters.classe === '' || (item.classe && item.classe.includes(filters.classe));
         const matchesSala = filters.sala === '' || item.sala.includes(filters.sala); // Adapted since sala formatting changed
         const matchesTurno = filters.turno === '' || item.turno === filters.turno;
         const matchesStatus = filters.status === '' || item.status === filters.status;
 
-        return matchesSearch && matchesAno && matchesCurso && matchesSala && matchesTurno && matchesStatus;
+        return matchesSearch && matchesAno && matchesCurso && matchesClasse && matchesSala && matchesTurno && matchesStatus;
     });
 
     // Pagination Slicing
@@ -291,36 +311,45 @@ const Turmas = () => {
                                 <label htmlFor="filtro-ano-tur" className="filter-label-turma">Ano Lectivo</label>
                                 <select id="filtro-ano-tur" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todos</option>
-                                    <option value="2024/2025">2024/2025</option>
-                                    <option value="2023/2024">2023/2024</option>
+                                    {anosDisponiveis.map(ano => (
+                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="filtro-classe-tur" className="filter-label-turma">Classe</label>
+                                <select id="filtro-classe-tur" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
+                                    <option value="">Todas</option>
+                                    {classesDisponiveis.map(c => (
+                                        <option key={c.id_classe} value={c.nome_classe}>{c.nome_classe}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
                                 <label htmlFor="filtro-curso-tur" className="filter-label-turma">Curso</label>
                                 <select id="filtro-curso-tur" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todos</option>
-                                    <option value="Informática">Informática</option>
-                                    <option value="Gestão">Gestão</option>
-                                    <option value="Direito">Direito</option>
+                                    {cursosDisponiveis.map(c => (
+                                        <option key={c.id_curso} value={c.nome_curso}>{c.nome_curso}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
                                 <label htmlFor="filtro-sala-tur" className="filter-label-turma">Sala</label>
                                 <select id="filtro-sala-tur" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todas</option>
-                                    <option value="Lab 01">Lab 01</option>
-                                    <option value="Lab 02">Lab 02</option>
-                                    <option value="S-204">S-204</option>
-                                    <option value="S-102">S-102</option>
+                                    {salas.map(s => (
+                                        <option key={s.id_sala} value={`${s.numero_sala}`}>Sala {s.numero_sala}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
                                 <label htmlFor="filtro-turno-tur" className="filter-label-turma">Turno</label>
                                 <select id="filtro-turno-tur" name="turno" value={filters.turno} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
                                     <option value="">Todos</option>
-                                    <option value="Manhã">Manhã</option>
-                                    <option value="Tarde">Tarde</option>
-                                    <option value="Noite">Noite</option>
+                                    {periodosDisponiveis.map(p => (
+                                        <option key={p.id_periodo} value={p.periodo}>{p.periodo}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
@@ -334,7 +363,7 @@ const Turmas = () => {
                         </div>
                         <div className="clear-filters-box">
                             <button
-                                onClick={() => { setFilters({ ano: '', curso: '', sala: '', turno: '', status: '' }); setCurrentPage(1); }}
+                                onClick={() => { setFilters({ ano: '', curso: '', classe: '', sala: '', turno: '', status: '' }); setCurrentPage(1); }}
                                 className="btn-clear-filters"
                             >
                                 Limpar Filtros
@@ -355,9 +384,9 @@ const Turmas = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID Turma</th>
                                     <th>Nome Turma</th>
                                     <th>Curso</th>
+                                    <th>Classe</th>
                                     <th>Sala</th>
                                     <th>Coordenador</th>
                                     <th>Ano</th>
@@ -370,22 +399,22 @@ const Turmas = () => {
                             <tbody>
                                 {error ? (
                                     <tr>
-                                        <td colSpan="9" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                        <td colSpan="8" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
                                             {error}
                                         </td>
                                     </tr>
                                 ) : currentTurmas.length === 0 ? (
                                     <tr>
-                                        <td colSpan="9" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                        <td colSpan="8" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
                                             Nenhuma turma encontrada.
                                         </td>
                                     </tr>
                                 ) : (
                                     currentTurmas.map((t) => (
                                         <tr key={t.id} className="animate-fade-in">
-                                            <td className="turma-id-cell">#{t.id}</td>
                                             <td className="turma-name-cell">{t.turma}</td>
                                             <td>{t.curso}</td>
+                                            <td>{t.classe}</td>
                                             <td style={{ fontWeight: 500 }}>{t.sala}</td>
                                             <td>
                                                 <div className="coordinator-cell">
@@ -480,6 +509,19 @@ const Turmas = () => {
                                         <option value="">Seleccionar Curso</option>
                                         {cursosDisponiveis.map(c => (
                                             <option key={c.id_curso} value={c.id_curso}>{c.nome_curso}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="form-label-turmas">Classe</label>
+                                    <select 
+                                        value={formData.id_classe}
+                                        onChange={e => setFormData({...formData, id_classe: e.target.value})}
+                                        className="form-input-turmas"
+                                    >
+                                        <option value="">Seleccionar Classe</option>
+                                        {classesDisponiveis.map(c => (
+                                            <option key={c.id_classe} value={c.id_classe}>{c.nome_classe}</option>
                                         ))}
                                     </select>
                                 </div>
