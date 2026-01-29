@@ -40,7 +40,9 @@ const Candidatura = () => {
         turno_preferencial: '',
         nome_encarregado: '',
         parentesco_encarregado: '',
-        telefone_encarregado: ''
+        telefone_encarregado: '',
+        email_encarregado: '',
+        numero_bi_encarregado: ''
     });
 
     useEffect(() => {
@@ -238,9 +240,9 @@ const Candidatura = () => {
 
             <div className="form-section">
                 <div className="section-title"><ClipboardList size={24} /> Encarregado</div>
-                <div className="form-grid">
+                <div class="form-grid">
                     <div className="form-control full-width">
-                        <label>Nome</label>
+                        <label>Nome Completo</label>
                         <input name="nome_encarregado" value={formData.nome_encarregado} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
@@ -250,6 +252,14 @@ const Candidatura = () => {
                     <div className="form-control">
                         <label>Telefone</label>
                         <input name="telefone_encarregado" value={formData.telefone_encarregado} onChange={handleChange} required />
+                    </div>
+                    <div className="form-control">
+                        <label>Email (Opcional)</label>
+                        <input type="email" name="email_encarregado" value={formData.email_encarregado || ''} onChange={handleChange} />
+                    </div>
+                    <div className="form-control">
+                         <label>Nº BI (Opcional)</label>
+                         <input name="numero_bi_encarregado" value={formData.numero_bi_encarregado || ''} onChange={handleChange} />
                     </div>
                 </div>
             </div>
@@ -301,6 +311,8 @@ const Candidatura = () => {
                         <p><strong>Nome:</strong> {formData.nome_encarregado}</p>
                         <p><strong>Parentesco:</strong> {formData.parentesco_encarregado}</p>
                         <p><strong>Telefone:</strong> {formData.telefone_encarregado}</p>
+                        <p><strong>Email:</strong> {formData.email_encarregado || 'N/A'}</p>
+                        <p><strong>BI:</strong> {formData.numero_bi_encarregado || 'N/A'}</p>
                     </div>
                 </div>
 

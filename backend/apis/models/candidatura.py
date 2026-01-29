@@ -53,6 +53,8 @@ class Candidato(BaseModel):
     nome_encarregado = models.CharField(max_length=150)
     parentesco_encarregado = models.CharField(max_length=50)
     telefone_encarregado = models.CharField(max_length=30)
+    email_encarregado = models.EmailField(null=True, blank=True)
+    numero_bi_encarregado = models.CharField(max_length=20, null=True, blank=True)
     
     # Ano Lectivo
     ano_lectivo = models.ForeignKey(

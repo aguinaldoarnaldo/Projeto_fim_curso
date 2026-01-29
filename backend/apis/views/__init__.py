@@ -1,5 +1,5 @@
 # Importar todas as views para facilitar o uso
-from .auth_views import login_view, logout_view, me_view, update_profile_view
+from .auth_views import login_view, logout_view, me_view, update_profile_view, define_password_view
 from .usuario_views import (
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet
 )
@@ -20,7 +20,7 @@ from .candidatura_views import CandidaturaViewSet
 
 __all__ = [
     # Auth
-    'login_view', 'logout_view', 'me_view', 'update_profile_view',
+    'login_view', 'logout_view', 'me_view', 'update_profile_view', 'define_password_view',
     # Usuários
     'CargoViewSet', 'FuncionarioViewSet', 'EncarregadoViewSet', 'CargoFuncionarioViewSet',
     # Alunos

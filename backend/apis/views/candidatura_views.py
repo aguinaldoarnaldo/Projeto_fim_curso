@@ -27,10 +27,10 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         return CandidatoSerializer
 
     def get_permissions(self):
-        """Permite criacao anonima de candidaturas"""
-        if self.action in ['create', 'gerar_rupe', 'consultar_status', 'list', 'avaliar', 'matricular']:
+        """Permite criacao anonima de candidaturas para ações publicas"""
+        if self.action in ['create', 'gerar_rupe', 'consultar_status', 'simular_pagamento']:
             return [AllowAny()]
-        return [IsAuthenticated()] # Admin see list
+        return [IsAuthenticated()] # Default secure for list, matricular, etc
 
     def create(self, request, *args, **kwargs):
         try:

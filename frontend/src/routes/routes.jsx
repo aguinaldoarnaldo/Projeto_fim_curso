@@ -7,7 +7,10 @@ import Loader from "../components/Common/Loader";
 
 import Login from "../pages/Login/Login";
 
+// import DefinirSenha from "../pages/Login/DefinirSenha";
+
 // Lazy Loaded Pages
+const DefinirSenha = lazy(() => import("../pages/Login/DefinirSenha"));
 const Alunos = lazy(() => import("../pages/Alunos/Alunos"));
 const Dashboard = lazy(() => import("../pages/Dashboard/Dashboard"));
 const Inscrito = lazy(() => import("../pages/Inscritos/Inscritos"));
@@ -44,6 +47,7 @@ export default function Routers(params) {
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/definir-senha" element={<DefinirSenha />} />
                     <Route path="/candidatura" element={<Candidatura />} />
                     <Route path="/candidatos" element={<Candidatura />} />
                     

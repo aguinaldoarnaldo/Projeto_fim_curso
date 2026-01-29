@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 
 from apis.views import (
     # Auth views
-    login_view, logout_view, me_view, update_profile_view,
+    login_view, logout_view, me_view, update_profile_view, define_password_view,
     # ViewSets
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
     AlunoViewSet, AlunoEncarregadoViewSet,
@@ -79,6 +79,7 @@ urlpatterns = [
     path('auth/logout/', logout_view, name='logout'),
     path('auth/me/', me_view, name='me'),
     path('auth/profile/update/', update_profile_view, name='update_profile'),
+    path('auth/define-password/', define_password_view, name='define_password'),
     
     # Incluir rotas do router
     path('', include(router.urls)),

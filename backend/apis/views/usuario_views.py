@@ -36,6 +36,45 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
     search_fields = ['nome_completo', 'email', 'codigo_identificacao']
     ordering_fields = ['nome_completo', 'data_admissao', 'criado_em']
     ordering = ['nome_completo']
+
+    def create(self, request, *args, **kwargs):
+        print(f"Dados recebidos no CREATE Funcionario: {request.data}")
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            print(f"ERRO DE VALIDAÇÃO FUNCIONARIO: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def perform_create(self, serializer):
+        from apis.utils.auth_utils import generate_password_token, send_password_definition_email
+        from django.utils.crypto import get_random_string
+        
+        # Verificar se senha foi fornecida
+        password = self.request.data.get('senha_hash')
+        is_invite = False
+        
+        if not password:
+            # Gerar senha temporária aleatória
+            password = get_random_string(length=32)
+            is_invite = True
+            
+        # Gerar código de identificação único
+        import datetime
+        year = datetime.datetime.now().year
+        # Tenta gerar um código único (loop simples para evitar colisão, embora raro com 6 chars)
+        code = f"FUNC{year}{get_random_string(length=4, allowed_chars='0123456789')}"
+        
+        instance = serializer.save(senha_hash=password, codigo_identificacao=code)
+        
+        if is_invite and instance.email:
+            try:
+                token = generate_password_token(instance.id_funcionario, 'funcionario')
+                send_password_definition_email(instance, token)
+            except Exception as e:
+                print(f"Erro ao enviar convite: {e}")
+
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -75,6 +114,29 @@ class EncarregadoViewSet(viewsets.ModelViewSet):
     search_fields = ['nome_completo', 'email']
     ordering_fields = ['nome_completo', 'criado_em']
     ordering = ['nome_completo']
+    
+    def perform_create(self, serializer):
+        from apis.utils.auth_utils import generate_password_token, send_password_definition_email
+        from django.utils.crypto import get_random_string
+        
+        # Verificar se senha foi fornecida
+        password = self.request.data.get('senha_hash')
+        is_invite = False
+        
+        if not password:
+            # Gerar senha temporária
+            password = get_random_string(length=32)
+            is_invite = True
+            
+        instance = serializer.save(senha_hash=password)
+        
+        if is_invite and instance.email:
+            try:
+                token = generate_password_token(instance.id_encarregado, 'encarregado')
+                send_password_definition_email(instance, token)
+            except Exception as e:
+                print(f"Erro ao enviar convite: {e}")
+
     
     def get_serializer_class(self):
         if self.action == 'list':

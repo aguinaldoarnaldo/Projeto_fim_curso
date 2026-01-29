@@ -380,3 +380,48 @@ def update_profile_view(request):
         
     except Exception as e:
         return Response({'error': f'Erro ao salvar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def define_password_view(request):
+    """
+    Endpoint para definir senha através do link enviado por email
+    Body: { "token": "...", "password": "..." }
+    """
+    token = request.data.get('token')
+    password = request.data.get('password')
+    
+    if not token or not password:
+        return Response({'error': 'Token e senha são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    from apis.utils.auth_utils import decode_password_token
+    payload = decode_password_token(token)
+    
+    if not payload:
+        return Response({'error': 'Token inválido ou expirado'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user_id = payload['user_id']
+    user_type = payload['user_type']
+    
+    try:
+        user = None
+        if user_type == 'funcionario':
+            user = Funcionario.objects.get(id_funcionario=user_id)
+        elif user_type == 'encarregado':
+            user = Encarregado.objects.get(id_encarregado=user_id)
+        elif user_type == 'aluno':
+            user = Aluno.objects.get(id_aluno=user_id)
+            
+        if user:
+            # A senha será hasheada pelo método save() do modelo (se lógica customizada existir)
+            # Mas wait, Funcionario.save() calls make_password ONLY if it doesn't start with pbkdf2...
+            # If we send plain text "123456", it triggers make_password.
+            user.senha_hash = password 
+            user.save()
+            return Response({'message': 'Senha definida com sucesso!'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

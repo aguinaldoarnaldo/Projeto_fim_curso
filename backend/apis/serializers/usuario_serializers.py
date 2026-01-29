@@ -24,10 +24,30 @@ class FuncionarioSerializer(serializers.ModelSerializer):
             'senha_hash', 'status_funcionario', 'descricao', 'data_admissao',
             'is_online', 'img_path', 'criado_em', 'atualizado_em'
         ]
-        read_only_fields = ['id_funcionario', 'criado_em', 'atualizado_em']
+        read_only_fields = ['id_funcionario', 'criado_em', 'atualizado_em', 'codigo_identificacao']
         extra_kwargs = {
-            'senha_hash': {'write_only': True}
+            'senha_hash': {'write_only': True, 'required': False},
+            'genero': {'required': False},
+            'telefone': {'required': False},
+            'provincia_residencia': {'required': False},
+            'municipio_residencia': {'required': False},
+            'bairro_residencia': {'required': False},
+            'descricao': {'required': False},
+            'data_admissao': {'required': False},
+            'status_funcionario': {'required': False},
+            'numero_bi': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'email': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
+
+    def validate_numero_bi(self, value):
+        if not value:
+            return None
+        return value
+
+    def validate_email(self, value):
+        if not value:
+            return None
+        return value
 
     def get_cargo_nome(self, obj):
         return obj.id_cargo.nome_cargo if obj.id_cargo else None
@@ -61,7 +81,7 @@ class EncarregadoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_encarregado', 'criado_em', 'atualizado_em']
         extra_kwargs = {
-            'senha_hash': {'write_only': True}
+            'senha_hash': {'write_only': True, 'required': False}
         }
 
 

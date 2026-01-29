@@ -55,12 +55,13 @@ const Configuracoes = () => {
     // Modal State
     const [showUserModal, setShowUserModal] = useState(false);
     const [cargoError, setCargoError] = useState(null);
+    const [isEditingUser, setIsEditingUser] = useState(false);
     const [newUserEncoded, setNewUserEncoded] = useState({
         nome_completo: '',
         numero_bi: '',
         email: '',
         id_cargo: '',
-        senha_hash: '123456', // Default password
+        senha_hash: '', 
         status_funcionario: 'Activo'
     });
 
@@ -146,28 +147,63 @@ const Configuracoes = () => {
     };
 
     const handleCreateUser = async () => {
-        if (!newUserEncoded.nome_completo || !newUserEncoded.email || !newUserEncoded.id_cargo) {
-            alert("Por favor preencha os campos obrigatórios.");
+        if (!newUserEncoded.nome_completo || !newUserEncoded.id_cargo) {
+            alert("Por favor preencha os campos obrigatórios (Nome e Cargo).");
             return;
         }
 
         try {
-            await api.post('funcionarios/', newUserEncoded);
-            alert("Usuário criado com sucesso!");
+            if (isEditingUser && selectedUser) {
+                // Update Logic
+                 await api.patch(`funcionarios/${selectedUser.id_funcionario}/`, {
+                    nome_completo: newUserEncoded.nome_completo,
+                    email: newUserEncoded.email,
+                    numero_bi: newUserEncoded.numero_bi,
+                    id_cargo: newUserEncoded.id_cargo,
+                    // Senha e status tratamos separadamente ou aqui se quiser
+                });
+                alert("Dados do usuário atualizados com sucesso!");
+            } else {
+                // Create Logic
+                if (!newUserEncoded.email) {
+                    alert("Email é obrigatório para novos usuários.");
+                    return;
+                }
+                await api.post('funcionarios/', newUserEncoded);
+                alert("Usuário criado com sucesso!");
+            }
+
             setShowUserModal(false);
             setNewUserEncoded({
                 nome_completo: '',
                 numero_bi: '',
                 email: '',
                 id_cargo: '',
-                senha_hash: '123456',
+                senha_hash: '',
                 status_funcionario: 'Activo'
             });
-            fetchSecurityData();
+            setIsEditingUser(false);
+            fetchSecurityData(true); // Refresh list
         } catch (error) {
-            console.error("Erro ao criar usuário:", error);
-            alert("Erro ao criar usuário. Verifique os dados.");
+            console.error("Erro ao salvar usuário:", error);
+            const msg = error.response?.data?.detail || JSON.stringify(error.response?.data) || "Erro ao processar.";
+            alert(`Erro: ${msg}`);
         }
+    };
+    
+    // Preparar edição
+    const handleEditSelectedUser = () => {
+        if (!selectedUser) return;
+        setNewUserEncoded({
+            nome_completo: selectedUser.nome_completo,
+            numero_bi: selectedUser.numero_bi || '',
+            email: selectedUser.email || '',
+            id_cargo: selectedUser.id_cargo || '', // Assumindo que vem id_cargo no objeto usuario
+            senha_hash: '',
+            status_funcionario: selectedUser.status_funcionario
+        });
+        setIsEditingUser(true);
+        setShowUserModal(true);
     };
 
     const handleUpdateStatus = async (status) => {
@@ -451,7 +487,7 @@ const Configuracoes = () => {
 
                                     <div>
                                         <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
-                                            Email Institucional <span style={{color: '#ef4444'}}>*</span>
+                                            Email de Acesso (Login e Convite) <span style={{color: '#ef4444'}}>*</span>
                                         </label>
                                         <input 
                                             type="email" 
@@ -524,7 +560,7 @@ const Configuracoes = () => {
 
                                     <div>
                                         <label style={{display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
-                                            Senha Inicial
+                                            Senha Inicial <span style={{fontSize: '11px', color: '#64748b', fontWeight: 'normal'}}>(Opcional)</span>
                                         </label>
                                         <div style={{position: 'relative'}}>
                                             <input 
@@ -532,6 +568,7 @@ const Configuracoes = () => {
                                                 className="form-input-salas" 
                                                 value={newUserEncoded.senha_hash}
                                                 onChange={e => setNewUserEncoded({...newUserEncoded, senha_hash: e.target.value})}
+                                                placeholder="Deixe vazio para enviar convite"
                                                 style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', color: '#1e293b', background: '#f8fafc', fontFamily: 'monospace', letterSpacing: '1px', outline: 'none'}}
                                                 onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
                                                 onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
@@ -540,6 +577,9 @@ const Configuracoes = () => {
                                                 <Lock size={16} />
                                             </div>
                                         </div>
+                                        <p style={{fontSize: '11px', color: '#64748b', marginTop: '6px'}}>
+                                            Se deixar vazio, um link será enviado ao email do usuário para definir a senha.
+                                        </p>
                                     </div>
                                 </div>
 
@@ -637,7 +677,7 @@ const Configuracoes = () => {
                                                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 'bold' }}>
                                                         {selectedUser.nome_completo.charAt(0)}
                                                     </div>
-                                                    <div>
+                                                    <div style={{ flex: 1 }}>
                                                         <h4 style={{ fontSize: '16px', margin: 0 }}>{selectedUser.nome_completo}</h4>
                                                         <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
                                                             {selectedUser.cargo_nome} • {selectedUser.email || 'Sem Email'}
@@ -646,6 +686,17 @@ const Configuracoes = () => {
                                                             Status Atual: {selectedUser.status_funcionario}
                                                         </p>
                                                     </div>
+                                                    {isAdmin && (
+                                                        <button 
+                                                            onClick={handleEditSelectedUser}
+                                                            title="Editar Dados e Cargo"
+                                                            style={{
+                                                                background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#334155'
+                                                            }}
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 <div style={{background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
