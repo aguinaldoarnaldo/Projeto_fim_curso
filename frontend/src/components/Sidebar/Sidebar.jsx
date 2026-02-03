@@ -11,14 +11,19 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ClipboardList,
+  X
 } from 'lucide-react';
 import logo from '../../assets/img/logo_ipm2.png';
 import { useAuth } from '../../context/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
+import { PERMISSIONS } from '../../utils/permissions';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { signOut } = useAuth();
+  const { hasPermission } = usePermission();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   const handleLogoutClick = () => {
@@ -31,16 +36,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   };
 
   const menuItems = [
-    { name: 'Dashboard', icon: <BarChart2 size={20} />, path: '/dashboard' },
-    { name: 'Inscritos', icon: <Users size={20} />, path: '/inscrito' },
-    { name: 'Matrículas', icon: <FileText size={20} />, path: '/matriculas' },
-    { name: 'Alunos', icon: <GraduationCap size={20} />, path: '/alunos' },
-    { name: 'Turmas', icon: <TurmasIcon size={20} />, path: '/turma' },
-    { name: 'Salas', icon: <Home size={20} />, path: '/salas' },
-    { name: 'Cursos', icon: <BookOpen size={20} />, path: '/cursos' },
-
-    { name: 'Relatórios', icon: <FileText size={20} />, path: '/relatorios' },
-    { name: 'Configurações', icon: <Settings size={20} />, path: '/configuracoes' },
+    { name: 'Dashboard', icon: <BarChart2 size={20} />, path: '/dashboard', permission: PERMISSIONS.VIEW_DASHBOARD },
+    { name: 'Inscritos', icon: <Users size={20} />, path: '/inscrito', permission: PERMISSIONS.VIEW_INSCRITOS },
+    { name: 'Lista de Espera', icon: <ClipboardList size={20} />, path: '/lista-espera', permission: PERMISSIONS.VIEW_INSCRITOS },
+    { name: 'Matrículas', icon: <FileText size={20} />, path: '/matriculas', permission: PERMISSIONS.VIEW_MATRICULAS },
+    { name: 'Alunos', icon: <GraduationCap size={20} />, path: '/alunos', permission: PERMISSIONS.VIEW_ALUNOS },
+    { name: 'Turmas', icon: <TurmasIcon size={20} />, path: '/turma', permission: PERMISSIONS.VIEW_TURMAS },
+    { name: 'Salas', icon: <Home size={20} />, path: '/salas', permission: PERMISSIONS.VIEW_SALAS },
+    { name: 'Cursos', icon: <BookOpen size={20} />, path: '/cursos', permission: PERMISSIONS.VIEW_CURSOS },
+    { name: 'Relatórios', icon: <FileText size={20} />, path: '/relatorios', permission: PERMISSIONS.VIEW_RELATORIOS },
+    { name: 'Configurações', icon: <Settings size={20} />, path: '/configuracoes', permission: PERMISSIONS.VIEW_CONFIGURACOES },
   ];
 
   return (
@@ -68,14 +73,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       <nav className="sidebar-nav">
         {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
-          >
-            {item.icon}
-            {isOpen && <span>{item.name}</span>}
-          </NavLink>
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
+            >
+              {item.icon}
+              {isOpen && <span>{item.name}</span>}
+            </NavLink>
         ))}
       </nav>
 
@@ -98,10 +103,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 <p className="sidebar-modal-text">Você precisará fazer login novamente para acessar o sistema.</p>
                 <div className="sidebar-modal-actions">
                     <button className="btn-modal-cancel" onClick={() => setShowLogoutModal(false)}>
-                        Cancelar
+                        <X size={18} /> Cancelar
                     </button>
                     <button className="btn-modal-confirm" onClick={confirmLogout}>
-                        Sim, Sair
+                        <LogOut size={18} /> Sim, Sair
                     </button>
                 </div>
             </div>

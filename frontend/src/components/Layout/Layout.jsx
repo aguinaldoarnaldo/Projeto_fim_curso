@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../Sidebar/Sidebar';
 import TopNavbar from '../TopNavbar/TopNavbar';
 import '../../Global.css';
 
 const Layout = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    // Inicializa lendo do localStorage. Se não houver, padrão é true (aberto)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        const saved = localStorage.getItem('@App:sidebarOpen');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+
+    // Salva no localStorage sempre que mudar
+    useEffect(() => {
+        localStorage.setItem('@App:sidebarOpen', JSON.stringify(isSidebarOpen));
+    }, [isSidebarOpen]);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);

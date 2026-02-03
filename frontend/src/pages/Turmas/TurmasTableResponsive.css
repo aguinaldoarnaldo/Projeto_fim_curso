@@ -1,0 +1,107 @@
+/* Turmas.css - Table Responsiveness Optimization */
+
+/* Specific column width optimizations for Turmas table */
+.turmas-page .data-table {
+    table-layout: auto;
+}
+
+/* Sticky Column: Nome Turma (1st Column) */
+.turmas-page .data-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 80;
+    min-width: 120px;
+    max-width: 180px;
+    background: white; 
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.turmas-page .data-table th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 101; /* Higher than row stickies */
+    min-width: 120px;
+    max-width: 180px;
+    /* Re-apply global gradient or inherit */
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    color: white;
+    border-right: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.2);
+}
+
+/* Prevent text wrapping on data cells for compact view */
+.turmas-page .data-table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* Default cap */
+}
+
+/* Column specific tweaks */
+.turmas-page .data-table td:nth-child(2) { /* Curso */
+    max-width: 180px;
+}
+
+.turmas-page .data-table td:nth-child(5) { /* Coordenador */
+    max-width: 160px;
+}
+
+.turmas-page .data-table td:last-child { /* Actions */
+    text-align: center;
+    overflow: visible;
+    position: sticky;
+    right: 0;
+    background: white;
+    border-left: 1px solid #e2e8f0;
+    box-shadow: -4px 0 6px -4px rgba(0, 0, 0, 0.1);
+    z-index: 80;
+    width: 60px;
+}
+.turmas-page .data-table th:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 101;
+    border-left: 1px solid #e2e8f0;
+}
+
+/* 1366x768/* 1366x768 Responsive Tweaks - CLEANER VERSION */
+@media (max-width: 1440px) {
+    /* Hide less critical columns to save space */
+    .turmas-page .data-table th:nth-child(5), /* Coordenador Header */
+    .turmas-page .data-table td:nth-child(5), /* Coordenador Data */
+    .turmas-page .data-table th:nth-child(6), /* Ano Header */
+    .turmas-page .data-table td:nth-child(6)  /* Ano Data */
+    {
+        display: none;
+    }
+
+    /* Give more room to remaining columns */
+    .turmas-page .data-table td {
+        max-width: 250px; /* Relaxed constraint */
+        white-space: nowrap;
+        font-size: 13px; /* Better readability */
+    }
+
+    /* First column sticky but simpler */
+    .turmas-page .data-table th:first-child,
+    .turmas-page .data-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 20; /* Lower z-index */
+        border-right: 2px solid #f1f5f9; /* Distinct separator */
+        width: auto !important;
+        min-width: 100px;
+    }
+}
+
+/* Disable second sticky column on smaller screens */
+@media (max-width: 1280px) {
+    .turmas-page .sticky-col-2,
+    .turmas-page thead th.sticky-col-2 {
+        position: static !important;
+        left: auto !important;
+        box-shadow: none !important;
+        border-right: none !important;
+    }
+}

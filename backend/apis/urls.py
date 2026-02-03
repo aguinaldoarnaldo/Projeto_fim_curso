@@ -6,9 +6,10 @@ from rest_framework.routers import DefaultRouter
 
 from apis.views import (
     # Auth views
-    login_view, logout_view, me_view, update_profile_view,
+    login_view, logout_view, me_view, update_profile_view, define_password_view,
     # ViewSets
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
+    UsuarioViewSet, # Added
     AlunoViewSet, AlunoEncarregadoViewSet,
     SalaViewSet, ClasseViewSet, DepartamentoViewSet, SeccaoViewSet,
     AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet,
@@ -19,12 +20,15 @@ from apis.views import (
     CategoriaViewSet, LivroViewSet,
     FaturaViewSet, PagamentoViewSet,
     CandidaturaViewSet,
+    ListaEsperaViewSet,
+    RelatorioViewSet,
 )
 
 # Criar router e registrar ViewSets
 router = DefaultRouter()
 
 # Usuários
+router.register(r'usuarios', UsuarioViewSet, basename='usuario')
 router.register(r'cargos', CargoViewSet, basename='cargo')
 router.register(r'funcionarios', FuncionarioViewSet, basename='funcionario')
 router.register(r'encarregados', EncarregadoViewSet, basename='encarregado')
@@ -67,10 +71,22 @@ router.register(r'pagamentos', PagamentoViewSet, basename='pagamento')
 
 # Candidatura
 router.register(r'candidaturas', CandidaturaViewSet, basename='candidatura')
+router.register(r'lista-espera', ListaEsperaViewSet, basename='lista-espera')
 
 # Matriculas
 from apis.views.matricula_views import MatriculaViewSet
 router.register(r'matriculas', MatriculaViewSet, basename='matricula')
+
+# Configuração
+from apis.views.configuracao_views import ConfiguracaoViewSet
+router.register(r'config', ConfiguracaoViewSet, basename='config')
+
+# Notificações
+from apis.views.notificacao import NotificacaoViewSet
+router.register(r'notificacoes', NotificacaoViewSet, basename='notificacao')
+
+# Relatórios
+router.register(r'relatorios', RelatorioViewSet, basename='relatorio')
 
 # URLs
 urlpatterns = [
@@ -79,6 +95,7 @@ urlpatterns = [
     path('auth/logout/', logout_view, name='logout'),
     path('auth/me/', me_view, name='me'),
     path('auth/profile/update/', update_profile_view, name='update_profile'),
+    path('auth/define-password/', define_password_view, name='define_password'),
     
     # Incluir rotas do router
     path('', include(router.urls)),

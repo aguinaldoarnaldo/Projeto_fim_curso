@@ -1,7 +1,8 @@
 # Importar todas as views para facilitar o uso
-from .auth_views import login_view, logout_view, me_view, update_profile_view
+from .auth_views import login_view, logout_view, me_view, update_profile_view, define_password_view
 from .usuario_views import (
-    CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet
+    CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
+    UsuarioViewSet
 )
 from .aluno_views import AlunoViewSet, AlunoEncarregadoViewSet
 from .academico_views import (
@@ -16,13 +17,15 @@ from .avaliacao_views import (
 from .documento_views import DocumentoViewSet, SolicitacaoDocumentoViewSet
 from .biblioteca_views import CategoriaViewSet, LivroViewSet
 from .financeiro_views import FaturaViewSet, PagamentoViewSet
-from .candidatura_views import CandidaturaViewSet
+from .candidatura_views import CandidaturaViewSet, ListaEsperaViewSet
+from .relatorio_views import RelatorioViewSet
 
 __all__ = [
     # Auth
-    'login_view', 'logout_view', 'me_view', 'update_profile_view',
+    'login_view', 'logout_view', 'me_view', 'update_profile_view', 'define_password_view',
     # Usuários
     'CargoViewSet', 'FuncionarioViewSet', 'EncarregadoViewSet', 'CargoFuncionarioViewSet',
+    'UsuarioViewSet',
     # Alunos
     'AlunoViewSet', 'AlunoEncarregadoViewSet',
     # Acadêmico
@@ -38,4 +41,6 @@ __all__ = [
     'CategoriaViewSet', 'LivroViewSet',
     # Financeiro
     'FaturaViewSet', 'PagamentoViewSet',
+    'CandidaturaViewSet', 'ListaEsperaViewSet',
+    'RelatorioViewSet',
 ]

@@ -170,35 +170,74 @@
     margin-bottom: 8px;
 }
 
+/* Group Container */
 .input-group {
     position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
 }
 
+/* Icon Positioning - Ícones à esquerda (Carta/Cadeado) */
 .input-icon {
     position: absolute;
     left: 16px;
     top: 50%;
     transform: translateY(-50%);
     color: #94a3b8;
-    z-index: 2;
+    z-index: 10;
+    pointer-events: none; /* O clique passa através do ícone para o input */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* Input Styling - Campo de Texto */
 .form-input {
     width: 100%;
-    padding: 16px 16px 16px 48px;
+    height: 52px; /* Altura fixa */
+    /* Padding: Top Right Bottom Left */
+    /* Esquerda 48px GARANTE espaço para o ícone */
+    padding: 0 48px 0 48px !important; 
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     font-size: 15px;
+    line-height: normal;
     outline: none;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     background: #f8fafc;
     color: #0f172a;
+    box-sizing: border-box !important;
+    display: block;
+    font-family: inherit;
 }
 
 .form-input:focus {
     border-color: #2563eb;
     background: white;
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+/* Botão de Ver Senha (Olho) */
+.password-toggle-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: color 0.2s;
+}
+
+.password-toggle-btn:hover {
+    color: #3b82f6;
 }
 
 .password-label-row {

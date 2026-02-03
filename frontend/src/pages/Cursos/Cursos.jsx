@@ -11,8 +11,11 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
+import { usePermission } from '../../hooks/usePermission';
+import { PERMISSIONS } from '../../utils/permissions';
 
 const Cursos = () => {
+    const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
 
     // State for courses
@@ -193,10 +196,12 @@ const Cursos = () => {
                         <h1>Gestão de Cursos</h1>
                         <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
-                    <button className="btn-new-course" onClick={() => { resetForm(); setShowCreateModal(true); }}>
-                        <Plus size={18} />
-                        Novo Curso
-                    </button>
+                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && ( // Using MANAGE_TURMAS as proxy for general academic config or we can use a generic one
+                        <button className="btn-new-course" onClick={() => { resetForm(); setShowCreateModal(true); }}>
+                            <Plus size={18} />
+                            Novo Curso
+                        </button>
+                    )}
                 </div>
             </header>
             
@@ -275,14 +280,16 @@ const Cursos = () => {
                                             </td>
                                             <td style={{textAlign: 'center'}}>{course.totalTurmas}</td>
                                             <td style={{ textAlign: 'center' }}>
-                                                <button
-                                                    onClick={() => handleEdit(course)}
-                                                    className="btn-edit-course"
-                                                    title="Editar Curso"
-                                                >
-                                                    <Edit3 size={16} />
-                                                    Editar
-                                                </button>
+                                                {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                                                    <button
+                                                        onClick={() => handleEdit(course)}
+                                                        className="btn-edit-course"
+                                                        title="Editar Curso"
+                                                    >
+                                                        <Edit3 size={16} />
+                                                        Editar
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))

@@ -87,11 +87,44 @@
 }
 
 /* KPI GRID (5 Cards) - Premium Look */
+/* Responsive Grid handling for 1366x768 Laptops */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
+    /* Allows 5 cards to fit on 1366px screen (approx 200px per card) */
+    grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1440px) {
+    .kpi-grid {
+        gap: 12px; /* Tighter gap for small laptops */
+    }
+
+    .kpi-card {
+        padding: 16px; /* Compact padding */
+    }
+    
+    .kpi-content h3 {
+        font-size: 24px !important; /* Prevent text wrapping */
+        margin-bottom: 2px;
+    }
+    
+    .kpi-label {
+        font-size: 11px;
+    }
+
+    .kpi-icon-floating {
+        width: 36px; /* Smaller icon */
+        height: 36px;
+        top: 12px;
+        right: 12px;
+        opacity: 0.6; /* Less obtrusive */
+    }
+    
+    .mini-stat {
+        font-size: 11px;
+    }
 }
 
 .kpi-card {
@@ -333,7 +366,7 @@
     height: 300px;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1200px) {
     .dashboard-charts-row {
         grid-template-columns: 1fr;
     }

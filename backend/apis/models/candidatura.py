@@ -29,20 +29,26 @@ class Candidato(BaseModel):
     data_nascimento = models.DateField()
     numero_bi = models.CharField(max_length=20, unique=True)
     nacionalidade = models.CharField(max_length=50, default='Angolana')
+    naturalidade = models.CharField(max_length=100, default='Luanda', verbose_name="Naturalidade (Local de Nascimento)")
+    # Novo Campo
+    deficiencia = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não')
+    provincia = models.CharField(max_length=100, null=True, blank=True)
+    municipio = models.CharField(max_length=100, null=True, blank=True)
     residencia = models.CharField(max_length=200)
     telefone = models.CharField(max_length=30)
     email = models.EmailField(null=True, blank=True)
     
     # Dados Academicos (9a classe)
+    tipo_escola = models.CharField(max_length=20, choices=[('Pública', 'Pública'), ('Privada', 'Privada')], default='Pública')
     escola_proveniencia = models.CharField(max_length=150)
     municipio_escola = models.CharField(max_length=100)
     ano_conclusao = models.IntegerField()
     media_final = models.DecimalField(max_digits=4, decimal_places=2)
     
     # Opcoes de Curso
-    curso_primeira_opcao = models.ForeignKey(Curso, on_delete=models.SET_NULL, null=True, related_name='candidatos_opcao1')
-    curso_segunda_opcao = models.ForeignKey(Curso, on_delete=models.SET_NULL, null=True, blank=True, related_name='candidatos_opcao2')
-    turno_preferencial = models.CharField(max_length=20, choices=[('Manhã', 'Manhã'), ('Tarde', 'Tarde'), ('Noite', 'Noite')])
+    curso_primeira_opcao = models.ForeignKey(Curso, on_delete=models.PROTECT, null=True, related_name='candidatos_opcao1')
+    curso_segunda_opcao = models.ForeignKey(Curso, on_delete=models.PROTECT, null=True, blank=True, related_name='candidatos_opcao2')
+    turno_preferencial = models.CharField(max_length=20, choices=[('Manhã', 'Manhã'), ('Tarde', 'Tarde'), ('Noite', 'Noite')], null=True, blank=True)
     
     # Documentos
     foto_passe = models.ImageField(upload_to='candidatos/fotos/', null=True, blank=True)
@@ -53,6 +59,11 @@ class Candidato(BaseModel):
     nome_encarregado = models.CharField(max_length=150)
     parentesco_encarregado = models.CharField(max_length=50)
     telefone_encarregado = models.CharField(max_length=30)
+    telefone_alternativo_encarregado = models.CharField(max_length=30, null=True, blank=True)
+    email_encarregado = models.EmailField(null=True, blank=True)
+    numero_bi_encarregado = models.CharField(max_length=20, null=True, blank=True)
+    profissao_encarregado = models.CharField(max_length=100, null=True, blank=True)
+    residencia_encarregado = models.CharField(max_length=200, null=True, blank=True)
     
     # Ano Lectivo
     ano_lectivo = models.ForeignKey(
@@ -120,7 +131,7 @@ class ExameAdmissao(BaseModel):
     id_exame = models.AutoField(primary_key=True)
     candidato = models.OneToOneField(Candidato, on_delete=models.CASCADE, related_name='exame')
     data_exame = models.DateTimeField()
-    sala = models.ForeignKey(Sala, on_delete=models.SET_NULL, null=True)
+    sala = models.ForeignKey(Sala, on_delete=models.PROTECT, null=True)
     nota = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     realizado = models.BooleanField(default=False)
     
@@ -152,6 +163,36 @@ class RupeCandidato(BaseModel):
     
     class Meta:
         db_table = 'rupe_candidato'
+
+    def clean(self):
+        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+             raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
+        super().delete(*args, **kwargs)
+
+class ListaEspera(BaseModel):
+    """Candidatos em lista de espera"""
+    candidato = models.OneToOneField(Candidato, on_delete=models.CASCADE, related_name='lista_espera')
+    data_entrada = models.DateTimeField(auto_now_add=True)
+    prioridade = models.IntegerField(default=0, help_text="Maior numero = maior prioridade")
+    observacao = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[('Aguardando', 'Aguardando'), ('Chamado', 'Chamado'), ('Expirado', 'Expirado')], default='Aguardando')
+    
+    class Meta:
+        db_table = 'lista_espera'
+        verbose_name = 'Lista de Espera'
+        verbose_name_plural = 'Listas de Espera'
+        ordering = ['-prioridade', 'data_entrada']
+    
+    def __str__(self):
+        return f"Espera: {self.candidato.nome_completo}"
 
     def clean(self):
         if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:

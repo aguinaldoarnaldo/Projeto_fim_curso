@@ -1,11 +1,19 @@
 from django.db import models
-from .usuarios import Funcionario, Encarregado
+from .usuarios import Funcionario, Encarregado, Usuario
 from .alunos import Aluno
 
 
 class Historico(models.Model):
     """Histórico de ações do sistema"""
     id_historico = models.AutoField(primary_key=True)
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Usuário',
+        editable=False
+    )
     id_funcionario = models.ForeignKey(
         Funcionario,
         on_delete=models.SET_NULL,
@@ -41,6 +49,14 @@ class Historico(models.Model):
 class HistoricoLogin(models.Model):
     """Histórico de logins"""
     id_historico_login = models.AutoField(primary_key=True)
+    id_usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Usuário',
+        editable=False
+    )
     id_funcionario = models.ForeignKey(
         Funcionario,
         on_delete=models.SET_NULL,

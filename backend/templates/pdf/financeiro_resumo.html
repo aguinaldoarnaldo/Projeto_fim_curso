@@ -1,0 +1,41 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Resumo de Arrecadação Financeira</div>
+
+<div style="margin-bottom: 20px;">
+    <p>Este relatório apresenta os últimos pagamentos registrados no sistema e o balanço geral da instituição até a presente data.</p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt;">
+    <thead>
+        <tr style="background-color: #059669; color: white;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">DATA</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ALUNO</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">CONCEITO</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">RECEBEDOR</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">VALOR (AKZ)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pag in pagamentos %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ pag.criado_em|date:"d/m/Y" }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ pag.id_fatura.id_aluno.nome_completo }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ pag.id_fatura.descricao|default:"Mensalidade/Taxa" }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ pag.id_recebedor.nome_completo|default:"Sistema" }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">{{ pag.valor_pago }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background-color: #f8fafc; font-weight: bold;">
+            <td colspan="4" style="border: 1px solid #ddd; padding: 10px; text-align: right;">TOTAL GERAL:</td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">{{ total_geral }} AKZ</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>O Responsável Financeiro</p>
+</div>
+{% endblock %}

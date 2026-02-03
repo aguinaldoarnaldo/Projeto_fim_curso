@@ -1,67 +1,213 @@
 /* Inscritos.css */
-.page-container {
+/* SCOPED STYLES para evitar conflitos globais */
+
+.inscritos-page.page-container {
     padding: 24px;
     background-color: #f8fafc;
-    min-height: 100vh;
+    /* min-height removido para evitar forçar scroll global desnecessário no layout pai */
+    height: 100%; /* Ocupa a altura disp do content-wrapper */
 }
 
 .page-header {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+    padding: 10px 0;
 }
 
-.page-header h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 8px;
+.inscritos-page .table-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
 }
 
-.page-header p {
-    color: #64748b;
-    font-size: 14px;
-}
 
-
-
+/* Table Wrapper for Horizontal Scroll */
 .table-wrapper {
+    width: 100%;
     overflow-x: auto;
-    overflow-y: auto;
-    max-height: 65vh; /* Enable vertical scroll */
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0 0 16px 16px;
+    padding-bottom: 8px; /* Scrollbar space */
+    /* Scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
 }
 
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+/* Data Table Core */
 .data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     text-align: left;
+    margin-bottom: 0;
+    table-layout: auto; /* Allow columns to size based on content */
 }
 
 .data-table th {
-    background-color: #f8fafc;
-    padding: 12px 16px;
+    background: #f8fafc;
+    padding: 16px 20px;
     font-size: 11px;
-    font-weight: 700;
-    color: #334155; /* Darker grey */
-    border-bottom: 2px solid #e2e8f0;
+    font-weight: 800;
+    color: #475569;
+    border-bottom: 1px solid #e2e8f0;
     text-transform: uppercase;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.08em;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    height: 50px;
+    z-index: 100;
 }
 
-.data-table td {
-    padding: 12px 16px;
-    font-size: 14px; /* Slightly larger */
-    font-weight: 550; /* Thicker font */
-    color: #1e293b;
-    border-bottom: 1px solid #e2e8f0;
-    white-space: nowrap;
+/* Sortable Headers */
+.sortable-header {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    padding-right: 28px !important;
 }
+
+.sortable-header:hover {
+    color: var(--primary-color);
+    background-color: #f1f5f9;
+}
+
+.sortable-header.active-sort {
+    color: var(--primary-color);
+    background-color: #eff6ff;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.sort-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.sortable-header:hover .sort-icon,
+.sortable-header.active-sort .sort-icon {
+    opacity: 1;
+}
+
+/* Data Cells - Responsive & Truncated */
+.inscritos-page .data-table td {
+    padding: 12px 20px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    height: 60px;
+    background: white;
+    /* Truncation Logic */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px; /* Default max width to prevent leaking */
+}
+
+/* Sticky Columns Local Overrides */
+.inscritos-page .data-table .sticky-col-1 {
+    position: sticky;
+    left: 0;
+    z-index: 80; /* Match Global */
+    width: 60px; /* Match Global/Inline */
+    text-align: center;
+    border-right: 1px solid #f1f5f9;
+    background: white;
+}
+
+.inscritos-page .data-table .sticky-col-2 {
+    position: sticky;
+    left: 60px; /* Match Global/Inline */
+    z-index: 80; /* Match Global */
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.05); /* Local specific shadow */
+    background: white;
+}
+
+/* Header Sticky Overrides */
+.inscritos-page .data-table th.sticky-col-1 {
+    z-index: 100; /* Higher than content */
+    left: 0;
+    text-align: center;
+    width: 60px;
+}
+.inscritos-page .data-table th.sticky-col-2 {
+    z-index: 100;
+    left: 60px;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* Specific Column Widths */
+.inscritos-page .data-table td:nth-child(2),
+.inscritos-page .data-table th:nth-child(2) {
+    min-width: 200px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.inscritos-page .data-table td:nth-child(3),
+.inscritos-page .data-table th:nth-child(3) {
+    min-width: 150px;
+}
+
+/* Only apply max-width on very long text fields */
+.inscritos-page .data-table td:nth-child(2) {
+    max-width: 350px;
+}
+
+.inscritos-page .data-table td:nth-child(3) {
+    max-width: 300px;
+}
+
+.inscritos-page .data-table td:last-child {
+    overflow: visible; /* Actions need to be visible */
+    text-align: center;
+    width: 140px;
+}
+
+/* Actions Cell Specific Alignment */
+.inscritos-page .actions-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Consistent gap */
+    height: 100%;
+}
+
 
 .clickable-row {
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
-.clickable-row:hover {
+tbody .clickable-row:hover {
     background-color: #f1f5f9;
 }
 
@@ -92,62 +238,130 @@
     color: #991b1b;
 }
 
-.actions-cell {
+/* Botões de Ação na Tabela - REDESIGNED ICON ONLY */
+.inscritos-page .btn-action {
+  /* Legacy cleanup - can be removed eventually if no conflicts */
+  display: none;
+}
+
+.inscritos-page .btn-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px; /* Slightly rounded square */
     display: flex;
-    gap: 8px;
-}
-
-.btn-action {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-}
-
-.btn-evaluate {
-    background-color: #e2e8f0;
-    color: #475569;
-}
-
-.btn-evaluate:hover {
-    background-color: #cbd5e1;
-}
-
-.btn-enroll {
-    background-color: #2563eb;
-    color: white;
-}
-
-.btn-enroll:hover {
-    background-color: #1d4ed8;
-}
-
-.btn-enroll:disabled {
-    background-color: #94a3b8;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-    padding: 20px;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
+    color: #64748b; /* Slate 500 default */
 }
 
-.detail-modal-card {
+.inscritos-page .btn-icon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.inscritos-page .btn-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+    background: #f1f5f9 !important;
+    color: #cbd5e1 !important;
+}
+
+/* 1. VIEW DETALHES (Azul) */
+.inscritos-page .btn-view {
+    background-color: #eff6ff; /* blue-50 */
+    color: #3b82f6; /* blue-500 */
+}
+.inscritos-page .btn-view:hover {
+    background-color: #dbeafe; /* blue-100 */
+    color: #2563eb; /* blue-600 */
+}
+
+/* 2. EDITAR (Cinza/Neutro ou Amarelo subtil) */
+.inscritos-page .btn-edit {
+    background-color: #f8fafc; /* slate-50 */
+    color: #64748b; /* slate-500 */
+}
+.inscritos-page .btn-edit:hover {
+    background-color: #f1f5f9; /* slate-100 */
+    color: #475569; /* slate-600 */
+}
+
+/* 3. AVALIAR (Roxo) */
+.inscritos-page .btn-evaluate {
+    background-color: #f5f3ff; /* violet-50 */
+    color: #8b5cf6; /* violet-500 */
+}
+.inscritos-page .btn-evaluate:hover {
+    background-color: #ede9fe; /* violet-100 */
+    color: #7c3aed; /* violet-600 */
+}
+
+/* 4. MATRICULAR (Verde/Teal) - Default Disabled State handled generally */
+.inscritos-page .btn-enroll {
+    background-color: #f0fdf4; /* green-50 - placeholder logic */
+    color: #cbd5e1; /* slate-300 disabled logic override */
+}
+
+/* MATRICULAR - ACTIVE (Aprovado) */
+.inscritos-page .btn-enroll.can-enroll {
+    background-color: #ecfdf5; /* emerald-50 */
+    color: #10b981; /* emerald-500 */
+}
+.inscritos-page .btn-enroll.can-enroll:hover {
+    background-color: #d1fae5; /* emerald-100 */
+    color: #059669; /* emerald-600 */
+}
+
+/* Botão Atualizar (Header) */
+.btn-refresh {
+    background-color: #3b82f6; 
+    color: white; 
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.btn-refresh:hover {
+    background-color: #2563eb;
+}
+
+.btn-primary {
+    background-color: #1e40af;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal Overlay agora é controlado globalmente em Global.css */
+
+.inscritos-page .detail-modal-card {
     background: white;
     width: 100%;
     max-width: 900px;
@@ -178,11 +392,11 @@
 }
 
 .modal-header-banner {
-    background: #1e293b; /* Slate 800 */
+    background: var(--sidebar-bg); /* Use System Sidebar color as base */
     padding: 32px 40px;
     color: white;
     position: relative;
-    border-bottom: 4px solid #3b82f6; /* Accent line */
+    border-bottom: 4px solid var(--primary-light); /* Dynamic Accent line */
 }
 
 /* Remove the gradient overlay/shapes for a cleaner look or keep them subtle */
@@ -225,8 +439,8 @@
     padding: 0 0 12px 0;
     font-size: 14px;
     font-weight: 800;
-    color: #1e293b;
-    border-bottom: 1px solid #e2e8f0;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -264,8 +478,8 @@
 }
 
 .info-item:hover {
-    background-color: #f8fafc;
-    border-left-color: #3b82f6; /* Blue accent on hover */
+    background-color: var(--primary-light-bg);
+    border-left-color: var(--primary-light); /* Dynamic accent on hover */
     transform: translateX(4px); /* Slight nudge right */
     box-shadow: none;
     border-color: transparent;
@@ -372,7 +586,7 @@
 
 .btn-finish {
     width: 100%;
-    background: #1e40af;
+    background: var(--primary-color);
     color: white;
     padding: 14px;
     border-radius: 8px;
@@ -384,7 +598,7 @@
 }
 
 .btn-finish:hover {
-    background: #1e3a8a;
+    background: var(--primary-hover);
 }
 
 /* Pagination Styles */
@@ -535,89 +749,98 @@
 }
 
 /* Evaluation Modal Styles */
+/* Evaluation Modal Styles Redesigned */
 .evaluation-modal-card {
     background: white;
     width: 100%;
-    max-width: 500px;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    max-width: 480px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    overflow: hidden;
 }
 
 .evaluation-header {
+    /* Changed from Violet to Professional Blue Gradient */
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    padding: 24px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    color: white;
 }
 
 .evaluation-header h3 {
     margin: 0;
     font-size: 18px;
+    font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: #1e3a8a;
+    gap: 10px;
+    color: white;
+}
+
+.evaluation-header svg {
+    color: white !important;
 }
 
 .evaluation-body {
-    margin-bottom: 24px;
+    padding: 32px;
+    text-align: center;
 }
 
 .evaluation-info-text {
-    margin: 0 0 12px 0;
-    font-size: 14px;
+    margin: 0 0 24px 0;
+    font-size: 15px;
     color: #475569;
 }
 
 .evaluation-input-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    align-items: center;
 }
 
 .evaluation-label {
     font-size: 12px;
-    font-weight: 600;
-    color: #334155;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
 .evaluation-input {
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    font-size: 16px;
-    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: 2px solid #e2e8f0;
+    font-size: 32px;
+    font-weight: 800;
+    width: 120px;
+    text-align: center;
+    color: #1e293b;
     transition: all 0.2s;
 }
 
 .evaluation-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px var(--primary-shadow);
     outline: none;
+    transform: scale(1.05);
 }
 
 .evaluation-hint {
-    font-size: 12px;
-    color: #94a3b8;
-    margin-top: 8px;
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 12px;
 }
 
 .evaluation-actions {
+    padding: 24px 32px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: flex-end;
 }
 
@@ -638,7 +861,7 @@
 
 .btn-confirm {
     padding: 8px 16px;
-    background: #1e40af;
+    background: var(--primary-color);
     color: white;
     border: none;
     border-radius: 6px;
@@ -648,7 +871,7 @@
 }
 
 .btn-confirm:hover {
-    background: #1e3a8a;
+    background: var(--primary-hover);
 }
 
 .btn-download {
@@ -705,4 +928,309 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
     border-top-color: var(--primary-color);
     border-radius: 50%;
     animation: spinner 0.8s linear infinite;
+}
+
+/* Styles ported from Alunos.css for the "Pretty" Modal - WITH CUSTOM CANDIDATE THEME */
+
+.inscritos-page .detail-modal-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: 100%;
+    overflow: hidden;
+}
+
+.inscritos-page .profile-sidebar {
+    /* Dynamic Theme Gradient */
+    background: linear-gradient(135deg, var(--sidebar-bg) 0%, var(--primary-color) 100%);
+    padding: 48px 32px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Add a subtle pattern overlay */
+.inscritos-page .profile-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.inscritos-page .profile-avatar-large {
+    width: 180px; /* Increased from 140px for better visibility */
+    height: 180px;
+    border-radius: 40px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    border: 4px solid rgba(255,255,255,0.3); /* Thicker border */
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+
+.inscritos-page .profile-avatar-large:hover {
+    transform: scale(1.05);
+}
+
+.inscritos-page .profile-name {
+    font-size: 20px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.inscritos-page .profile-id {
+    opacity: 0.8;
+    font-size: 13px;
+    margin-bottom: 24px;
+    font-family: monospace;
+}
+
+.inscritos-page .profile-status {
+    background: rgba(255,255,255,0.15);
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 32px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.inscritos-page .profile-footer {
+    margin-top: auto;
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 24px;
+}
+
+.inscritos-page .profile-footer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    opacity: 0.9;
+    font-size: 13px;
+}
+
+.inscritos-page .content-area {
+    padding: 40px;
+    overflow-y: auto;
+    background: white;
+    max-height: 90vh; /* fallback */
+    height: 100%;
+}
+
+.inscritos-page .info-section {
+    margin-bottom: 40px;
+}
+
+.inscritos-page .section-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Grids inside content area */
+.inscritos-page .info-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.inscritos-page .info-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.inscritos-page .info-value {
+    font-size: 15px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+/* Document List styling in new layout */
+.inscritos-page .doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.inscritos-page .doc-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+}
+
+.inscritos-page .doc-card:hover {
+    border-color: var(--primary-light);
+    background: var(--primary-light-bg);
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .modal-overlay, .modal-overlay * {
+        visibility: visible;
+    }
+    .modal-overlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+    .detail-modal-card {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    .evaluation-header, .btn-close-modal, .btn-confirm {
+        display: none !important;
+    }
+    .modal-body {
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    .page-break {
+        page-break-after: always;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+    .data-table {
+        border: 1px solid #000 !important;
+    }
+
+    .data-table th, .data-table td {
+        border: 1px solid #000 !important;
+        color: #000 !important;
+    }
+}
+
+/* --- Collapsible Form Sections (Added for Edit Modal) --- */
+
+.form-collapse-section {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.form-collapse-section:last-child {
+    border-bottom: none;
+}
+
+.collapse-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: white;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.2s ease;
+}
+
+.collapse-header:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.collapse-header.active {
+    background: #f0f9ff;
+    color: #0284c7;
+}
+
+.collapse-content {
+    background: #f8fafc;
+    padding: 24px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* Animations */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form Grids within Sections */
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 600px) {
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Smaller Inputs for the Edit Form */
+.evaluation-input-small {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    transition: all 0.2s;
+    background: white;
+    outline: none;
+}
+
+.evaluation-input-small:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Alignment Fixes for Labels in Grid */
+.collapse-content .evaluation-input-group {
+    align-items: flex-start; /* Left align labels */
+    gap: 8px;
+}
+
+.collapse-content .evaluation-label {
+    font-size: 11px;
+    margin-bottom: 0;
 }

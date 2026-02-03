@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import exceptions
-from apis.models import Funcionario, Aluno, Encarregado
+from apis.models import Funcionario, Aluno, Encarregado, Usuario
 
 class SchoolJWTAuthentication(JWTAuthentication):
     """
@@ -49,6 +49,10 @@ class SchoolJWTAuthentication(JWTAuthentication):
             user = None
             if user_type == 'funcionario':
                 user = Funcionario.objects.get(id_funcionario=user_id)
+            elif user_type == 'usuario':
+                # Para o tipo 'usuario', retornamos o perfil 'Usuario'
+                # mas garantimos que as propriedades is_staff e is_superuser sejam acessíveis
+                user = Usuario.objects.select_related('user').get(id_usuario=user_id)
             elif user_type == 'aluno':
                 user = Aluno.objects.get(id_aluno=user_id)
             elif user_type == 'encarregado':

@@ -3,8 +3,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.hashers import check_password
-from apis.models import Funcionario, Aluno, Encarregado, HistoricoLogin
+from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import User
+from apis.models import Usuario, Funcionario, Aluno, Encarregado, HistoricoLogin
 
 
 def get_client_ip(request):
@@ -55,20 +56,70 @@ def login_view(request):
     
     try:
         # Buscar usuário baseado no tipo
-        if tipo_usuario == 'funcionario':
-            user = Funcionario.objects.get(email=email)
-            if check_password(senha, user.senha_hash):
+        if tipo_usuario == 'funcionario' or tipo_usuario == 'usuario':
+            user_profile = None
+            try:
+                user_profile = Usuario.objects.get(email=email)
+            except Usuario.DoesNotExist:
+                # Tenta buscar no User nativo caso o perfil não exista
+                try:
+                    django_user = User.objects.get(email=email)
+                    user_profile = Usuario.objects.create(
+                        user=django_user,
+                        email=django_user.email,
+                        nome_completo=django_user.get_full_name() or django_user.username,
+                        papel='Admin' if django_user.is_superuser else 'Comum',
+                        is_superuser=django_user.is_superuser
+                    )
+                except User.DoesNotExist:
+                    # Tenta buscar por username se email falhar
+                    try:
+                        django_user = User.objects.get(username=email)
+                        user_profile, _ = Usuario.objects.get_or_create(
+                            user=django_user,
+                            defaults={
+                                'email': django_user.email or f"{django_user.username}@sistema.local",
+                                'nome_completo': django_user.get_full_name() or django_user.username,
+                                'papel': 'Admin' if django_user.is_superuser else 'Comum',
+                                'is_superuser': django_user.is_superuser
+                            }
+                        )
+                    except User.DoesNotExist:
+                        return Response(
+                            {'error': 'Usuário não encontrado'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+            
+            user = user_profile
+            
+            # Verificar senha (prioriza User do Django se existir)
+            password_valid = False
+            if user.user:
+                password_valid = user.user.check_password(senha)
+            else:
+                password_valid = check_password(senha, user.senha_hash)
+
+            if password_valid:
                 user_data = {
-                    'id': user.id_funcionario,
-                    'tipo': 'funcionario',
+                    'id': user.id_usuario,
+                    'tipo': 'usuario',
                     'nome': user.nome_completo,
                     'email': user.email,
-                    'cargo': user.id_cargo.nome_cargo if user.id_cargo else None,
-                    'status': user.status_funcionario
+                    'cargo': user.cargo.nome_cargo if user.cargo else None,
+                    'status': 'Activo' if user.is_active else 'Inactivo',
+                    'papel': user.papel,
+                    'permissoes': user.permissoes,
+                    'is_superuser': user.is_superuser or (user.user.is_superuser if user.user else False),
+                    'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None
                 }
+                # Se for superuser, garantir papel Admin
+                if user_data['is_superuser']:
+                    user_data['papel'] = 'Admin'
+                
                 # Atualizar status online
                 user.is_online = True
                 user.save()
+
             else:
                 return Response(
                     {'error': 'Senha incorreta'},
@@ -137,8 +188,8 @@ def login_view(request):
             'navegador': user_agent_info['navegador']
         }
         
-        if tipo_usuario == 'funcionario':
-            historico_data['id_funcionario'] = user
+        if tipo_usuario == 'funcionario' or tipo_usuario == 'usuario':
+            historico_data['id_usuario'] = user
         elif tipo_usuario == 'aluno':
             historico_data['id_aluno'] = user
         elif tipo_usuario == 'encarregado':
@@ -152,7 +203,7 @@ def login_view(request):
             'user': user_data
         }, status=status.HTTP_200_OK)
         
-    except (Funcionario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
+    except (Usuario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
         return Response(
             {'error': 'Usuário não encontrado'},
             status=status.HTTP_404_NOT_FOUND
@@ -180,8 +231,8 @@ def logout_view(request):
     
     try:
         # Atualizar status online
-        if user_type == 'funcionario':
-            user = Funcionario.objects.get(id_funcionario=user_id)
+        if user_type == 'funcionario' or user_type == 'usuario':
+            user = Usuario.objects.get(id_usuario=user_id)
             user.is_online = False
             user.save()
         elif user_type == 'aluno':
@@ -247,17 +298,22 @@ def me_view(request):
         
         user_data = {}
         
-        if user_type == 'funcionario':
-            user = Funcionario.objects.get(id_funcionario=user_id)
+        if user_type == 'funcionario' or user_type == 'usuario':
+            user = Usuario.objects.get(id_usuario=user_id)
             user_data = {
-                'id': user.id_funcionario,
-                'tipo': 'funcionario',
+                'id': user.id_usuario,
+                'tipo': 'usuario',
                 'nome': user.nome_completo,
                 'email': user.email,
-                'cargo': user.id_cargo.nome_cargo if user.id_cargo else None,
-                'status': user.status_funcionario,
-                'is_online': True
+                'cargo': user.cargo.nome_cargo if user.cargo else None,
+                'status': 'Activo' if user.is_active else 'Inactivo',
+                'papel': user.papel,
+                'permissoes': user.permissoes,
+                'is_superuser': user.is_superuser or (user.user.is_superuser if user.user else False),
+                'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None
             }
+            if user_data['is_superuser']:
+                user_data['papel'] = 'Admin'
         elif user_type == 'aluno':
             user = Aluno.objects.get(id_aluno=user_id)
             user_data = {
@@ -343,8 +399,11 @@ def update_profile_view(request):
         if not check_password(senha_atual, user.senha_hash):
             return Response({'error': 'A senha atual está incorreta.'}, status=status.HTTP_400_BAD_REQUEST)
             
-        # A senha será hasheada no método .save() do modelo
+        # A senha será hasheada no método .save() do modelo Usuario
         user.senha_hash = nova_senha 
+        if user.user:
+            user.user.set_password(nova_senha)
+            user.user.save()
 
     # Atualizar Outros campos
     if 'nome' in data and data['nome']:
@@ -356,8 +415,12 @@ def update_profile_view(request):
         
     # Telefone
     if 'telefone' in data:
-        if user_type != 'encarregado':
+        if hasattr(user, 'telefone') and user_type != 'encarregado':
             user.telefone = data['telefone']
+    
+    # Foto de Perfil
+    if 'foto' in request.FILES:
+        user.img_path = request.FILES['foto']
 
     try:
         user.save()
@@ -366,6 +429,7 @@ def update_profile_view(request):
         user_resp = {
             'nome': user.nome_completo,
             'email': user.email,
+            'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None
         }
         
         if hasattr(user, 'bairro_residencia'):
@@ -380,3 +444,48 @@ def update_profile_view(request):
         
     except Exception as e:
         return Response({'error': f'Erro ao salvar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def define_password_view(request):
+    """
+    Endpoint para definir senha através do link enviado por email
+    Body: { "token": "...", "password": "..." }
+    """
+    token = request.data.get('token')
+    password = request.data.get('password')
+    
+    if not token or not password:
+        return Response({'error': 'Token e senha são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    from apis.utils.auth_utils import decode_password_token
+    payload = decode_password_token(token)
+    
+    if not payload:
+        return Response({'error': 'Token inválido ou expirado'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user_id = payload['user_id']
+    user_type = payload['user_type']
+    
+    try:
+        user = None
+        if user_type == 'funcionario' or user_type == 'usuario':
+            user = Usuario.objects.get(id_usuario=user_id)
+        elif user_type == 'encarregado':
+            user = Encarregado.objects.get(id_encarregado=user_id)
+        elif user_type == 'aluno':
+            user = Aluno.objects.get(id_aluno=user_id)
+            
+        if user:
+            # A senha será hasheada pelo método save() do modelo (se lógica customizada existir)
+            # Mas wait, Funcionario.save() calls make_password ONLY if it doesn't start with pbkdf2...
+            # If we send plain text "123456", it triggers make_password.
+            user.senha_hash = password 
+            user.save()
+            return Response({'message': 'Senha definida com sucesso!'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

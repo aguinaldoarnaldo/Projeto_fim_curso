@@ -45,7 +45,8 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'curso_nome',
             'sala_numero',
             'periodo_nome',
-            'data_matricula', 'ativo'
+            'data_matricula', 'ativo',
+            'tipo', 'status', 'doc_bi', 'doc_certificado'
         ]
         read_only_fields = ['id_matricula', 'data_matricula']
         extra_kwargs = {
@@ -112,17 +113,43 @@ class MatriculaSerializer(serializers.ModelSerializer):
                     aluno = existing_aluno
                 else:
                     with transaction.atomic():
+                        # criar aluno com TODOS os dados
                         aluno = Aluno.objects.create(
                             nome_completo=candidato.nome_completo,
                             numero_bi=candidato.numero_bi,
                             email=candidato.email,
                             telefone=candidato.telefone,
                             genero=candidato.genero,
-                            bairro_residencia=candidato.residencia,
+                            data_nascimento=candidato.data_nascimento,
+                            provincia_residencia=candidato.residencia, # Ajuste conforme lógica de endereço
                             municipio_residencia=candidato.municipio_escola,
+                            bairro_residencia=candidato.residencia,
+                            nacionalidade=candidato.nacionalidade,
+                            escola_anterior=candidato.escola_proveniencia,
+                            img_path=candidato.foto_passe,
                             id_turma=validated_data.get('id_turma'),
                             status_aluno='Activo'
                         )
+                        
+                        # Criar Encarregado e Vínculo
+                        from apis.models import Encarregado, AlunoEncarregado
+                        
+                        enc = Encarregado.objects.create(
+                            nome_completo=candidato.nome_encarregado,
+                            telefone=[candidato.telefone_encarregado], # Store as list/JSON
+                            email=candidato.email_encarregado,
+                            # Adicionar BI do encarregado se houver campo no modelo Encarregado (se nao houver, adicionar como observação ou criar campo)
+                            # Assumindo que Encarregado não tem campo BI explícito no modelo atual mostrado (tem numero_casa, etc)
+                            # Se tiver BI no modelo Encarregado, adicione aqui.
+                        )
+                        
+                        AlunoEncarregado.objects.create(
+                            id_aluno=aluno,
+                            id_encarregado=enc,
+                            grau_parentesco=candidato.parentesco_encarregado,
+                            principal=True
+                        )
+
                         candidato.status = 'Matriculado'
                         candidato.save()
             except Candidato.DoesNotExist:

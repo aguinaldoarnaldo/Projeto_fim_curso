@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import IsProfessor, IsDirecao, IsFuncionario
+from apis.permissions.custom_permissions import HasAdditionalPermission
 from apis.services.academic_service import AcademicService
 
 from apis.models import (
@@ -23,7 +23,8 @@ class TipoDisciplinaViewSet(viewsets.ModelViewSet):
     """ViewSet para TipoDisciplina"""
     queryset = TipoDisciplina.objects.all()
     serializer_class = TipoDisciplinaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {'list': 'view_cursos', 'create': 'manage_disciplinas'}
 
 
 class DisciplinaViewSet(viewsets.ModelViewSet):
@@ -31,7 +32,13 @@ class DisciplinaViewSet(viewsets.ModelViewSet):
     queryset = Disciplina.objects.select_related(
         'id_tipo_disciplina', 'id_coordenador'
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {
+        'list': 'view_cursos',
+        'retrieve': 'view_cursos',
+        'create': 'manage_disciplinas',
+        'update': 'manage_disciplinas',
+    }
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['id_tipo_disciplina']
     search_fields = ['nome']
@@ -50,9 +57,9 @@ class DisciplinaCursoViewSet(viewsets.ModelViewSet):
         'id_curso', 'id_disciplina'
     ).all()
     serializer_class = DisciplinaCursoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {'list': 'view_cursos', 'create': 'manage_disciplinas'}
     filter_backends = [DjangoFilterBackend]
-    #filterset_fields = ['id_curso', 'id_disciplina']
 
 
 class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
@@ -61,9 +68,9 @@ class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
         'id_funcionario', 'id_disciplina', 'id_turma'
     ).all()
     serializer_class = ProfessorDisciplinaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {'list': 'view_turmas', 'create': 'manage_turmas'}
     filter_backends = [DjangoFilterBackend]
-    #filterset_fields = ['id_funcionario', 'id_disciplina', 'id_turma']
 
 
 class NotaViewSet(viewsets.ModelViewSet):
@@ -71,7 +78,13 @@ class NotaViewSet(viewsets.ModelViewSet):
     queryset = Nota.objects.select_related(
         'id_aluno', 'id_disciplina', 'id_professor', 'id_turma'
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {
+        'list': 'view_notas',
+        'retrieve': 'view_notas',
+        'create': 'manage_notas',
+        'lancar_lote': 'manage_notas',
+    }
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     #filterset_fields = ['id_aluno', 'id_disciplina', 'id_turma', 'tipo_avaliacao']
     ordering_fields = ['data_lancamento', 'valor']
@@ -84,9 +97,9 @@ class NotaViewSet(viewsets.ModelViewSet):
             return NotaLancamentoLoteSerializer
         return NotaSerializer
     
-    @action(detail=False, methods=['post'], permission_classes=[IsProfessor | IsDirecao])
+    @action(detail=False, methods=['post'])
     def lancar_lote(self, request):
-        """Lançamento de notas em lote usando AcademicService"""
+        """Lançamento de notas em lote"""
         serializer = NotaLancamentoLoteSerializer(data=request.data)
         if serializer.is_valid():
             id_turma = serializer.validated_data['id_turma']
@@ -96,10 +109,7 @@ class NotaViewSet(viewsets.ModelViewSet):
             notas_data = serializer.validated_data['notas']
             
             try:
-                # Nota: Na vida real, o AcademicService lidaria com a iteração
-                # Aqui simplificamos a lógica repetitiva
                 from apis.models import Nota, Aluno, Disciplina, Funcionario, Turma
-                
                 turma = Turma.objects.get(id_turma=id_turma)
                 disciplina = Disciplina.objects.get(id_disciplina=id_disciplina)
                 professor = Funcionario.objects.get(id_funcionario=id_professor)
@@ -117,7 +127,7 @@ class NotaViewSet(viewsets.ModelViewSet):
                     notas_criadas.append(nota)
                 
                 return Response({
-                    'message': f'{len(notas_criadas)} notas lançadas via AcademicService',
+                    'message': f'{len(notas_criadas)} notas lançadas.',
                     'count': len(notas_criadas)
                 }, status=status.HTTP_201_CREATED)
                 
@@ -132,7 +142,12 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
     queryset = FaltaAluno.objects.select_related(
         'id_aluno', 'id_disciplina', 'id_turma'
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {
+        'list': 'view_faltas',
+        'create': 'manage_faltas',
+        'registrar_lote': 'manage_faltas',
+    }
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     #filterset_fields = ['id_aluno', 'id_disciplina', 'id_turma', 'justificada']
     ordering_fields = ['data_falta']
@@ -143,9 +158,9 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
             return FaltaAlunoListSerializer
         return FaltaAlunoSerializer
     
-    @action(detail=False, methods=['post'], permission_classes=[IsProfessor | IsDirecao])
+    @action(detail=False, methods=['post'])
     def registrar_lote(self, request):
-        """Registro de faltas em lote usando AcademicService"""
+        """Registro de faltas em lote"""
         aluno_ids = request.data.get('aluno_ids', [])
         disciplina_id = request.data.get('disciplina_id')
         turma_id = request.data.get('turma_id')
@@ -157,7 +172,7 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
                 aluno_ids, disciplina_id, turma_id, data_falta, observacao
             )
             return Response({
-                'message': f'{total} faltas registradas com sucesso',
+                'message': f'{total} faltas registradas.',
                 'count': total
             }, status=status.HTTP_201_CREATED)
         except Exception as e:

@@ -1,70 +1,127 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePermission } from "../hooks/usePermission";
+import { PERMISSIONS } from "../utils/permissions";
 import Layout from "../components/Layout/Layout";
-
 import Loader from "../components/Common/Loader";
 
 import Login from "../pages/Login/Login";
 
-// Lazy Loaded Pages
-const Alunos = lazy(() => import("../pages/Alunos/Alunos"));
-const Dashboard = lazy(() => import("../pages/Dashboard/Dashboard"));
-const Inscrito = lazy(() => import("../pages/Inscritos/Inscritos"));
+// Imports diretos para páginas principais (Navegação Instantânea)
+import Dashboard from "../pages/Dashboard/Dashboard";
+import Alunos from "../pages/Alunos/Alunos";
+import Inscrito from "../pages/Inscritos/Inscritos";
+import Matriculas from "../pages/Matriculas/Matriculas";
+import Turma from "../pages/Turmas/Turmas";
 
-const Candidatura = lazy(() => import("../pages/Public/Candidatura/Candidatura"));
-const Matriculas = lazy(() => import("../pages/Matriculas/Matriculas"));
-const Salas = lazy(() => import("../pages/Salas/Salas"));
-const Turma = lazy(() => import("../pages/Turmas/Turmas"));
-const Cursos = lazy(() => import("../pages/Cursos/Cursos"));
-const Configuracoes = lazy(() => import("../pages/Configuracoes/Configuracoes"));
-const NovaMatricula = lazy(() => import("../pages/Matriculas/NovaMatricula"));
-const Relatorios = lazy(() => import("../pages/Relatorios/Relatorios"));
-const Perfil = lazy(() => import("../pages/Perfil/Perfil"));
-const Ajuda = lazy(() => import("../pages/Ajuda/Ajuda"));
+// Static Imports for seamless navigation (No White Flash)
+import DefinirSenha from "../pages/Login/DefinirSenha";
+import Candidatura from "../pages/Public/Candidatura/Candidatura";
+import Salas from "../pages/Salas/Salas";
+import Cursos from "../pages/Cursos/Cursos";
+import Configuracoes from "../pages/Configuracoes/Configuracoes";
+import NovaMatricula from "../pages/Matriculas/NovaMatricula";
+import Relatorios from "../pages/Relatorios/Relatorios";
+import Ajuda from "../pages/Ajuda/Ajuda";
+import ListaEspera from "../pages/ListaEspera/ListaEspera";
+import Perfil from "../pages/Perfil/Perfil";
 
+// PrivateRoute now keeps the layout mounted even during loading
 const PrivateRoute = ({ children }) => {
     const { signed, loading } = useAuth();
-
+    
+    // If still loading auth, show the Loader
     if (loading) {
         return <Loader />;
     }
-
-    if (!signed) {
-        return <Navigate to="/login" replace />;
-    }
-
-    return children;
+    
+    return signed ? (children || <Outlet />) : <Navigate to="/login" replace />;
 };
 
-export default function Routers(params) {
-    return (
-        <BrowserRouter>
-            <Suspense fallback={<Loader />}>
-                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/candidatura" element={<Candidatura />} />
-                    <Route path="/candidatos" element={<Candidatura />} />
-                    
-                    {/* Root path now points to Login. Login component handles redirect if already authenticated. */}
-                    <Route path="/" element={<Login />} />
+// Permission Guard
+const PermissionRoute = ({ children, permission }) => {
+    const { hasPermission } = usePermission();
+    const { loading } = useAuth();
+    
+    // Show Loader while checking auth/permissions
+    if (loading) return <Loader />;
+    
+    return hasPermission(permission) ? children : <Navigate to="/dashboard" replace />;
+};
 
-                    {/* Protected Routes (Wrapped in Layout and PrivateRoute) */}
-                    <Route path="/dashboard" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
-                    <Route path="/alunos" element={<PrivateRoute><Layout><Alunos /></Layout></PrivateRoute>} />
-                    <Route path="/inscrito" element={<PrivateRoute><Layout><Inscrito /></Layout></PrivateRoute>} />
-                    <Route path="/matriculas" element={<PrivateRoute><Layout><Matriculas /></Layout></PrivateRoute>} />
-                    <Route path="/salas" element={<PrivateRoute><Layout><Salas /></Layout></PrivateRoute>} />
-                    <Route path="/turma" element={<PrivateRoute><Layout><Turma /></Layout></PrivateRoute>} />
-                    <Route path="/cursos" element={<PrivateRoute><Layout><Cursos /></Layout></PrivateRoute>} />
-                    <Route path="/configuracoes" element={<PrivateRoute><Layout><Configuracoes /></Layout></PrivateRoute>} />
-                    <Route path="/matriculas/nova" element={<PrivateRoute><Layout><NovaMatricula /></Layout></PrivateRoute>} />
-                    <Route path="/relatorios" element={<PrivateRoute><Layout><Relatorios /></Layout></PrivateRoute>} />
-                    <Route path="/perfil" element={<PrivateRoute><Layout><Perfil /></Layout></PrivateRoute>} />
-                    <Route path="/ajuda" element={<PrivateRoute><Layout><Ajuda /></Layout></PrivateRoute>} />
-                </Routes>
-            </Suspense>
-        </BrowserRouter>
-    )
+// Persistent Layout Wrapper
+const ProtectedLayout = () => {
+    return (
+        <PrivateRoute>
+            <Layout>
+                <Suspense fallback={<Loader />}> 
+                    <Outlet />
+                </Suspense>
+            </Layout>
+        </PrivateRoute>
+    );
+};
+
+export default function Routers() {
+    return (
+        <Suspense fallback={<Loader />}>
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/definir-senha" element={<DefinirSenha />} />
+                <Route path="/candidatura" element={<Candidatura />} />
+                <Route path="/candidatos" element={<Candidatura />} />
+                <Route path="/" element={<Login />} />
+
+                {/* Persistent Layout and Protected Routes */}
+                <Route element={<ProtectedLayout />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    
+                    <Route path="/alunos" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_ALUNOS}><Alunos /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/inscrito" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_INSCRITOS}><Inscrito /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/matriculas" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_MATRICULAS}><Matriculas /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/matriculas/nova" element={
+                        <PermissionRoute permission={PERMISSIONS.CREATE_MATRICULA}><NovaMatricula /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/salas" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_SALAS}><Salas /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/turma" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_TURMAS}><Turma /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/cursos" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_CURSOS}><Cursos /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/configuracoes" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_CONFIGURACOES}><Configuracoes /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/relatorios" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_RELATORIOS}><Relatorios /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/lista-espera" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_INSCRITOS}><ListaEspera /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/perfil" element={<Perfil />} />
+                    <Route path="/ajuda" element={<Ajuda />} />
+                </Route>
+            </Routes>
+        </Suspense>
+    );
 }
