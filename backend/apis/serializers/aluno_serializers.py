@@ -11,7 +11,7 @@ class AlunoSerializer(serializers.ModelSerializer):
         fields = [
             'id_aluno', 'numero_bi', 'nome_completo', 'email', 'numero_matricula',
             'telefone', 'provincia_residencia', 'municipio_residencia',
-            'bairro_residencia', 'numero_casa', 'senha_hash', 'genero',
+            'bairro_residencia', 'numero_casa', 'senha_hash', 'genero', 'data_nascimento',
             'status_aluno', 'modo_user', 'id_turma', 'turma_codigo',
             'img_path', 'is_online', 'criado_em', 'atualizado_em'
         ]
@@ -29,6 +29,9 @@ class AlunoListSerializer(serializers.ModelSerializer):
     classe_nivel = serializers.IntegerField(source='id_turma.id_classe.nivel', read_only=True)
     periodo_nome = serializers.CharField(source='id_turma.id_periodo.periodo', read_only=True)
     encarregado_principal = serializers.SerializerMethodField()
+    sugerido_tipo_matricula = serializers.SerializerMethodField()
+    from .historico_serializers import HistoricoEscolarSerializer
+    historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
     
     class Meta:
         model = Aluno
@@ -38,7 +41,8 @@ class AlunoListSerializer(serializers.ModelSerializer):
             'sala_numero', 'curso_nome', 'classe_nivel', 'periodo_nome',
             'numero_bi', 'telefone', 'img_path', 
             'municipio_residencia', 'provincia_residencia',
-            'data_nascimento', 'criado_em', 'encarregado_principal'
+            'data_nascimento', 'criado_em', 'encarregado_principal',
+            'sugerido_tipo_matricula', 'historico_escolar'
         ]
 
     def get_encarregado_principal(self, obj):
@@ -48,28 +52,43 @@ class AlunoListSerializer(serializers.ModelSerializer):
             return first.id_encarregado.nome_completo
         return 'N/A'
 
+    def get_sugerido_tipo_matricula(self, obj):
+        from apis.services.academic_service import AcademicService
+        return AcademicService.determinar_tipo_matricula(obj.id_aluno)
+
 
 class AlunoDetailSerializer(serializers.ModelSerializer):
     """Serializer detalhado para Aluno com encarregados"""
     from .usuario_serializers import EncarregadoListSerializer
+    from .historico_serializers import HistoricoEscolarSerializer
     
     turma_codigo = serializers.CharField(source='id_turma.codigo_turma', read_only=True)
     encarregados = serializers.SerializerMethodField()
+    historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
     
     class Meta:
         model = Aluno
         fields = [
             'id_aluno', 'numero_bi', 'nome_completo', 'email', 'numero_matricula',
             'telefone', 'provincia_residencia', 'municipio_residencia',
-            'bairro_residencia', 'numero_casa', 'genero', 'status_aluno',
+            'bairro_residencia', 'numero_casa', 'genero', 'data_nascimento', 'status_aluno',
             'modo_user', 'id_turma', 'turma_codigo', 'img_path', 'is_online',
-            'encarregados', 'criado_em', 'atualizado_em'
+            'encarregados', 'historico_escolar', 'criado_em', 'atualizado_em'
         ]
     
     def get_encarregados(self, obj):
-        from .usuario_serializers import EncarregadoListSerializer
         aluno_encarregados = AlunoEncarregado.objects.filter(id_aluno=obj).select_related('id_encarregado')
-        return EncarregadoListSerializer([ae.id_encarregado for ae in aluno_encarregados], many=True).data
+        data = []
+        for ae in aluno_encarregados:
+            e = ae.id_encarregado
+            data.append({
+                'id_encarregado': e.id_encarregado,
+                'nome_completo': e.nome_completo,
+                'email': e.email,
+                'telefone': e.telefone,
+                'grau_parentesco': ae.grau_parentesco
+            })
+        return data
 
 
 class AlunoEncarregadoSerializer(serializers.ModelSerializer):

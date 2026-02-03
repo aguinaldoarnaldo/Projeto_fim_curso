@@ -9,11 +9,10 @@ const Pagination = ({
     onPageChange,
     showingText = "Mostrando"
 }) => {
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
     
-    // if (totalPages <= 1) return null;
-
-    const indexOfFirstItem = (currentPage - 1) * itemsPerPage + 1;
+    // Calculate indices
+    const indexOfFirstItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const indexOfLastItem = Math.min(currentPage * itemsPerPage, totalItems);
 
     const getPageNumbers = () => {
@@ -30,11 +29,11 @@ const Pagination = ({
             let endPage = Math.min(totalPages, currentPage + 1);
 
             if (currentPage <= 2) {
-                endPage = Math.min(totalPages, maxPagesToShow - 1); // e.g. 1 2 3 4 ... 10
+                endPage = Math.min(totalPages, maxPagesToShow - 1);
             }
             
             if (currentPage >= totalPages - 1) {
-                startPage = Math.max(1, totalPages - (maxPagesToShow - 2)); // e.g. 1 ... 7 8 9 10
+                startPage = Math.max(1, totalPages - (maxPagesToShow - 2));
             }
 
             if (startPage > 1) {

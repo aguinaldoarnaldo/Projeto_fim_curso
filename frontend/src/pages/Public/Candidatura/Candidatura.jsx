@@ -20,6 +20,10 @@ const Candidatura = () => {
     const [createdCandidate, setCreatedCandidate] = useState(null);
     const [rupeData, setRupeData] = useState(null);
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
+    
+    // Config State
+    const [config, setConfig] = useState({ candidaturas_abertas: true, mensagem_candidaturas_fechadas: '' });
+    const [checkingConfig, setCheckingConfig] = useState(true);
 
     const [formData, setFormData] = useState({
         nome_completo: '',
@@ -29,8 +33,9 @@ const Candidatura = () => {
         numero_bi: '',
         telefone: '',
         email: '',
-        residencia: '',
-        escola_proveniencia: 'Pública',
+        provincia: '',
+        municipio: '',
+        residencia: '', // Bairro / Endereço
         nome_escola_origem: '', // frontend field mapping mismatch check
         municipio_escola: '',
         ano_conclusao: '',
@@ -48,9 +53,13 @@ const Candidatura = () => {
     useEffect(() => {
         // Initial fetch
         fetchCourses();
+        fetchConfig();
 
         // Polling every 3 seconds for real-time updates
-        const interval = setInterval(fetchCourses, 3000);
+        const interval = setInterval(() => {
+            fetchCourses();
+            fetchConfig();
+        }, 3000);
         return () => clearInterval(interval);
     }, []);
 
@@ -62,6 +71,17 @@ const Candidatura = () => {
             setCursosDisponiveis(data);
         }).catch(console.error);
     };
+
+    const fetchConfig = () => {
+        api.get('config/').then(res => {
+            if (res.data) setConfig(res.data);
+            setCheckingConfig(false);
+        }).catch(err => {
+            console.error("Erro ao carregar config:", err);
+            setCheckingConfig(false);
+        });
+    };
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -153,19 +173,43 @@ const Candidatura = () => {
                     </div>
                     <div className="form-control">
                         <label>Nacionalidade</label>
-                        <input name="nacionalidade" value={formData.nacionalidade} onChange={handleChange} />
+                        <input name="nacionalidade" value={formData.nacionalidade} onChange={handleChange} placeholder="Ex: Angolana" />
                     </div>
+
+                    {/* Novo Campo Solicitado */}
+                    <div className="form-control">
+                        <label>Naturalidade (Local de Nascimento)</label>
+                        <input name="naturalidade" value={formData.naturalidade || ''} onChange={handleChange} placeholder="Ex: Luanda" />
+                    </div>
+
+                    {/* Novo Campo Solicitado */}
+                    <div className="form-control">
+                        <label>Portador de Deficiência?</label>
+                        <select name="deficiencia" value={formData.deficiencia || 'Não'} onChange={handleChange} required>
+                            <option value="Não">Não</option>
+                            <option value="Sim">Sim</option>
+                        </select>
+                    </div>
+
                     <div className="form-control">
                         <label>Telefone</label>
-                        <input name="telefone" value={formData.telefone} onChange={handleChange} required />
+                        <input name="telefone" value={formData.telefone} onChange={handleChange} required placeholder="Ex: 946464376"/>
                     </div>
                      <div className="form-control">
                         <label>Email</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Ex: aguinaldoarnaldo5@gmail.com"/>
+                    </div>
+                    <div className="form-control">
+                        <label>Província</label>
+                        <input name="provincia" value={formData.provincia} onChange={handleChange} required placeholder="Ex: Luanda" />
+                    </div>
+                    <div className="form-control">
+                        <label>Município</label>
+                        <input name="municipio" value={formData.municipio} onChange={handleChange} required placeholder="Ex: Sequele" />
                     </div>
                     <div className="form-control full-width">
-                        <label>Residência</label>
-                        <input name="residencia" value={formData.residencia} onChange={handleChange} required />
+                        <label>Bairro / Endereço</label>
+                        <input name="residencia" value={formData.residencia} onChange={handleChange} required placeholder="Ex: Bairro Vidrul" />
                     </div>
                     
                     {/* Documents Upload Section */}
@@ -190,6 +234,13 @@ const Candidatura = () => {
             <div className="form-section">
                 <div className="section-title"><BookOpen size={24} /> Dados Académicos (9ª Classe)</div>
                 <div className="form-grid">
+                     <div className="form-control">
+                        <label>Tipo de Escola</label>
+                        <select name="tipo_escola" value={formData.tipo_escola || 'Pública'} onChange={handleChange} required>
+                            <option value="Pública">Pública</option>
+                            <option value="Privada">Privada</option>
+                        </select>
+                    </div>
                     <div className="form-control">
                         <label>Nome da Escola</label>
                         <input name="escola_proveniencia" value={formData.escola_proveniencia} onChange={handleChange} required />
@@ -226,40 +277,61 @@ const Candidatura = () => {
                             {cursosDisponiveis.map(c => <option key={c.id_curso} value={c.id_curso}>{c.nome_curso}</option>)}
                         </select>
                     </div>
+                    {/* 
                     <div className="form-control">
-                        <label>Turno</label>
+                        <label>Turno (Período)</label>
                         <select name="turno_preferencial" value={formData.turno_preferencial} onChange={handleChange} required>
                             <option value="">Selecione</option>
                             <option value="Manhã">Manhã</option>
                             <option value="Tarde">Tarde</option>
                             <option value="Noite">Noite</option>
                         </select>
-                    </div>
+                    </div> 
+                    */}
                 </div>
             </div>
 
             <div className="form-section">
-                <div className="section-title"><ClipboardList size={24} /> Encarregado</div>
-                <div class="form-grid">
+                <div className="section-title"><ClipboardList size={24} /> Encarregado de Educação</div>
+                <div className="form-grid">
                     <div className="form-control full-width">
-                        <label>Nome Completo</label>
+                        <label>Nome Completo do Encarregado</label>
                         <input name="nome_encarregado" value={formData.nome_encarregado} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
-                        <label>Parentesco</label>
-                        <input name="parentesco_encarregado" value={formData.parentesco_encarregado} onChange={handleChange} required />
+                        <label>Grau de Parentesco</label>
+                        <select name="parentesco_encarregado" value={formData.parentesco_encarregado} onChange={handleChange} required>
+                            <option value="">Selecione</option>
+                            <option value="Pai">Pai</option>
+                            <option value="Mãe">Mãe</option>
+                            <option value="Tio(a)">Tio(a)</option>
+                            <option value="Irmão(ã)">Irmão(ã)</option>
+                            <option value="Outro">Outro</option>
+                        </select>
                     </div>
                     <div className="form-control">
-                        <label>Telefone</label>
-                        <input name="telefone_encarregado" value={formData.telefone_encarregado} onChange={handleChange} required />
+                        <label>Nº do Bilhete (Encarregado)</label>
+                        <input name="numero_bi_encarregado" value={formData.numero_bi_encarregado || ''} onChange={handleChange} required placeholder="Ex: 006475839LA045" />
+                    </div>
+                    <div className="form-control">
+                        <label>Telefone Principal</label>
+                        <input name="telefone_encarregado" value={formData.telefone_encarregado} onChange={handleChange} required placeholder="Ex: 923456789" />
+                    </div>
+                    <div className="form-control">
+                        <label>Telefone Alternativo (Opcional)</label>
+                        <input name="telefone_alternativo_encarregado" value={formData.telefone_alternativo_encarregado || ''} onChange={handleChange} placeholder="Ex: 998765432" />
                     </div>
                     <div className="form-control">
                         <label>Email (Opcional)</label>
-                        <input type="email" name="email_encarregado" value={formData.email_encarregado || ''} onChange={handleChange} />
+                        <input type="email" name="email_encarregado" value={formData.email_encarregado || ''} onChange={handleChange} placeholder="Ex: encarregado@email.com" />
                     </div>
                     <div className="form-control">
-                         <label>Nº BI (Opcional)</label>
-                         <input name="numero_bi_encarregado" value={formData.numero_bi_encarregado || ''} onChange={handleChange} />
+                        <label>Profissão</label>
+                        <input name="profissao_encarregado" value={formData.profissao_encarregado || ''} onChange={handleChange} placeholder="Ex: Professor" />
+                    </div>
+                    <div className="form-control full-width">
+                        <label>Residência do Encarregado</label>
+                        <input name="residencia_encarregado" value={formData.residencia_encarregado || ''} onChange={handleChange} required placeholder="Ex: Bairro Vidrul, Rua 5" />
                     </div>
                 </div>
             </div>
@@ -270,58 +342,70 @@ const Candidatura = () => {
 
     const renderConfirm = () => (
         <div className="confirm-step">
-            <h2>Confirme os seus dados</h2>
+            <h2 className="card-title">Confirme os seus dados</h2>
             <div className="review-container">
                 <div className="review-section">
                     <h3><User size={18} /> Dados Pessoais</h3>
                     <div className="review-grid">
-                        <p><strong>Nome:</strong> {formData.nome_completo}</p>
-                        <p><strong>Género:</strong> {formData.genero === 'M' ? 'Masculino' : 'Feminino'}</p>
-                        <p><strong>Nascimento:</strong> {formData.data_nascimento}</p>
-                        <p><strong>Nacionalidade:</strong> {formData.nacionalidade}</p>
-                        <p><strong>BI:</strong> {formData.numero_bi}</p>
-                        <p><strong>Telefone:</strong> {formData.telefone}</p>
-                        <p><strong>Email:</strong> {formData.email}</p>
-                        <p><strong>Residência:</strong> {formData.residencia}</p>
+                        <p><strong>Nome Completo</strong> <span>{formData.nome_completo}</span></p>
+                        <p><strong>Género</strong> <span>{formData.genero === 'M' ? 'Masculino' : 'Feminino'}</span></p>
+                        <p><strong>Nascimento</strong> <span>{formData.data_nascimento}</span></p>
+                        <p><strong>Nacionalidade</strong> <span>{formData.nacionalidade}</span></p>
+                        <p><strong>Naturalidade</strong> <span>{formData.naturalidade || 'N/A'}</span></p>
+                        <p><strong>Deficiência</strong> <span>{formData.deficiencia || 'Não'}</span></p>
+                        <p><strong>Nº Bilhete (BI)</strong> <span>{formData.numero_bi}</span></p>
+                        <p><strong>Telefone</strong> <span>{formData.telefone}</span></p>
+                        <p><strong>Email</strong> <span>{formData.email}</span></p>
+                        <p><strong>Província</strong> <span>{formData.provincia}</span></p>
+                        <p><strong>Município</strong> <span>{formData.municipio}</span></p>
+                        <p><strong>Endereço</strong> <span>{formData.residencia}</span></p>
                     </div>
                 </div>
 
                 <div className="review-section">
                     <h3><BookOpen size={18} /> Dados Académicos</h3>
                     <div className="review-grid">
-                        <p><strong>Escola:</strong> {formData.escola_proveniencia}</p>
-                        <p><strong>Município:</strong> {formData.municipio_escola}</p>
-                        <p><strong>Ano Conclusão:</strong> {formData.ano_conclusao}</p>
-                        <p><strong>Média Final:</strong> {formData.media_final}</p>
+                        <p><strong>Tipo de Escola</strong> <span>{formData.tipo_escola || 'Pública'}</span></p>
+                        <p><strong>Escola</strong> <span>{formData.escola_proveniencia}</span></p>
+                        <p><strong>Município Escola</strong> <span>{formData.municipio_escola}</span></p>
+                        <p><strong>Ano Conclusão</strong> <span>{formData.ano_conclusao}</span></p>
+                        <p><strong>Média Final</strong> <span>{formData.media_final} Val.</span></p>
                     </div>
                 </div>
 
                 <div className="review-section">
-                    <h3><GraduationCap size={18} /> Cursos Escolhidos</h3>
+                    <h3><GraduationCap size={18} /> Opções de Curso</h3>
                     <div className="review-grid">
-                        <p><strong>1ª Opção:</strong> {cursosDisponiveis.find(c => c.id_curso == formData.curso_primeira_opcao)?.nome_curso || 'Não selecionado'}</p>
-                        <p><strong>2ª Opção:</strong> {formData.curso_segunda_opcao ? cursosDisponiveis.find(c => c.id_curso == formData.curso_segunda_opcao)?.nome_curso : 'Nenhuma'}</p>
-                        <p><strong>Turno:</strong> {formData.turno_preferencial}</p>
+                        <p><strong>1ª Opção</strong> <span>{cursosDisponiveis.find(c => c.id_curso == formData.curso_primeira_opcao)?.nome_curso || 'Não selecionado'}</span></p>
+                        <p><strong>2ª Opção</strong> <span>{formData.curso_segunda_opcao ? cursosDisponiveis.find(c => c.id_curso == formData.curso_segunda_opcao)?.nome_curso : 'Nenhuma'}</span></p>
+                        {/* <p><strong>Turno</strong> <span>{formData.turno_preferencial}</span></p> */}
                     </div>
                 </div>
 
                 <div className="review-section">
-                    <h3><ClipboardList size={18} /> Encarregado</h3>
+                    <h3><ClipboardList size={18} /> Encarregado de Educação</h3>
                     <div className="review-grid">
-                        <p><strong>Nome:</strong> {formData.nome_encarregado}</p>
-                        <p><strong>Parentesco:</strong> {formData.parentesco_encarregado}</p>
-                        <p><strong>Telefone:</strong> {formData.telefone_encarregado}</p>
-                        <p><strong>Email:</strong> {formData.email_encarregado || 'N/A'}</p>
-                        <p><strong>BI:</strong> {formData.numero_bi_encarregado || 'N/A'}</p>
+                        <p><strong>Nome Completo</strong> <span>{formData.nome_encarregado || 'N/A'}</span></p>
+                        <p><strong>Parentesco</strong> <span>{formData.parentesco_encarregado || 'N/A'}</span></p>
+                        <p><strong>Nº Bilhete</strong> <span>{formData.numero_bi_encarregado || 'N/A'}</span></p>
+                        <p><strong>Telefone Principal</strong> <span>{formData.telefone_encarregado || 'N/A'}</span></p>
+                        <p><strong>Email</strong> <span>{formData.email_encarregado || 'N/A'}</span></p>
+                        <p><strong>Residência</strong> <span>{formData.residencia_encarregado || 'N/A'}</span></p>
                     </div>
                 </div>
 
                 <div className="review-section">
-                    <h3><UploadCloud size={18} /> Documentos</h3>
+                    <h3><UploadCloud size={18} /> Documentos Anexados</h3>
                     <div className="review-docs">
-                        <span className={formData.foto_passe ? 'doc-ok' : 'doc-missing'}>Foto Passe: {formData.foto_passe ? 'Anexado' : 'Falta'}</span>
-                        <span className={formData.comprovativo_bi ? 'doc-ok' : 'doc-missing'}>Cópia BI: {formData.comprovativo_bi ? 'Anexado' : 'Falta'}</span>
-                        <span className={formData.certificado ? 'doc-ok' : 'doc-missing'}>Certificado: {formData.certificado ? 'Anexado' : 'Falta'}</span>
+                        <span className={formData.foto_passe ? 'doc-ok' : 'doc-missing'}>
+                            {formData.foto_passe ? <CheckCircle size={14}/> : <X size={14}/>} Foto Passe: {formData.foto_passe ? 'OK' : 'Falta'}
+                        </span>
+                        <span className={formData.comprovativo_bi ? 'doc-ok' : 'doc-missing'}>
+                             {formData.comprovativo_bi ? <CheckCircle size={14}/> : <X size={14}/>} Cópia BI: {formData.comprovativo_bi ? 'OK' : 'Falta'}
+                        </span>
+                        <span className={formData.certificado ? 'doc-ok' : 'doc-missing'}>
+                             {formData.certificado ? <CheckCircle size={14}/> : <X size={14}/>} Certificado: {formData.certificado ? 'OK' : 'Falta'}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -339,63 +423,215 @@ const Candidatura = () => {
 
     const renderPayment = () => {
         if (!rupeData) {
-            // Auto generate RUPE on mount of this step usually, but button for now
             return (
-                <div className="payment-step">
-                    <h2>Inscrição Realizada: #{createdCandidate?.numero_inscricao}</h2>
-                    <p>Para concluir, gere o RUPE e proceda ao pagamento.</p>
-                    <button className="btn-submit-candidatura" onClick={handleGenerateRupe} disabled={loading}>
-                        {loading ? 'Gerando...' : 'Gerar RUPE'}
+                <div className="payment-step" style={{textAlign: 'center', padding: '40px 0'}}>
+                    <div style={{
+                        width: '80px', height: '80px', background: '#eff6ff', 
+                        borderRadius: '50%', display: 'flex', alignItems: 'center', 
+                        justifyContent: 'center', margin: '0 auto 24px', color: '#2563eb'
+                    }}>
+                        <ClipboardList size={40}/>
+                    </div>
+                    <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
+                        Inscrição Iniciada!
+                    </h2>
+                    <p style={{ color: '#64748b', fontSize: '16px', maxWidth: '400px', margin: '0 auto 32px' }}>
+                        A sua pré-inscrição sob o nº <strong style={{color: '#0f172a'}}>#{createdCandidate?.numero_inscricao}</strong> foi recebida.
+                        Para validar, gere a referência de pagamento e proceda à liquidação.
+                    </p>
+                    <button 
+                        className="btn-submit-candidatura" 
+                        onClick={handleGenerateRupe} 
+                        disabled={loading}
+                        style={{ maxWidth: '300px', margin: '0 auto' }}
+                    >
+                        {loading ? 'Processando Documento...' : 'Gerar Referência de Pagamento'}
                     </button>
+                    <p style={{fontSize: '13px', color: '#94a3b8', marginTop: '16px'}}>
+                        Este processo é oficial e gerado pelo sistema.
+                    </p>
                 </div>
             );
         }
+
         return (
             <div className="payment-step">
-                <h2>Pagamento do RUPE</h2>
-                <div className="rupe-card">
-                    <div className="rupe-header">
-                        REFERÊNCIA ÚNICA DE PAGAMENTO AO ESTADO
+                <div style={{textAlign: 'center', marginBottom: '32px'}}>
+                    <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b' }}>Pagamento da Taxa</h2>
+                    <p style={{ color: '#64748b' }}>Utilize os dados abaixo para efectuar o pagamento via Multicaixa ou Internet Banking.</p>
+                </div>
+
+                <div className="rupe-card" style={{
+                    background: 'white',
+                    borderRadius: '24px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)',
+                    overflow: 'hidden',
+                    maxWidth: '450px',
+                    margin: '0 auto'
+                }}>
+                    <div className="rupe-header" style={{
+                        background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
+                        padding: '24px',
+                        color: 'white',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{fontSize: '12px', letterSpacing: '2px', opacity: 0.8, marginBottom: '8px'}}>DOCUMENTO DE PAGAMENTO</div>
+                        <div style={{fontSize: '20px', fontWeight: '700'}}>RUPE</div>
                     </div>
-                    <div className="rupe-body">
-                        <div className="rupe-row">
-                            <span>Referência:</span>
-                            <strong>{rupeData.referencia}</strong>
+                    <div className="rupe-body" style={{padding: '32px'}}>
+                        <div style={{marginBottom: '24px'}}>
+                            <span style={{display: 'block', fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>ENTIDADE</span>
+                            <strong style={{display: 'block', fontSize: '18px', color: '#1e293b'}}>ESCOLA X (SIGLA)</strong>
                         </div>
-                        <div className="rupe-row">
-                            <span>Valor a Pagar:</span>
-                            <strong>{rupeData.valor} Kz</strong>
+                        <div style={{marginBottom: '24px'}}>
+                            <span style={{display: 'block', fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>REFERÊNCIA DE PAGAMENTO</span>
+                            <div style={{
+                                background: '#f1f5f9', 
+                                padding: '16px', 
+                                borderRadius: '12px', 
+                                fontSize: '22px', 
+                                fontWeight: '800', 
+                                color: '#334155',
+                                letterSpacing: '1px',
+                                textAlign: 'center',
+                                border: '2px dashed #cbd5e1'
+                            }}>
+                                {rupeData.referencia}
+                            </div>
                         </div>
-                        <div className="rupe-row">
-                            <span>Estado:</span>
-                            <span className="badge-pending">Pendente</span>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '24px'}}>
+                            <span style={{fontSize: '14px', color: '#64748b'}}>Total a Pagar</span>
+                            <strong style={{fontSize: '28px', color: '#2563eb', fontWeight: '800'}}>{parseFloat(rupeData.valor).toLocaleString()} Kz</strong>
+                        </div>
+                    </div>
+                    <div style={{background: '#f8fafc', padding: '16px', textAlign: 'center', borderTop: '1px solid #e2e8f0'}}>
+                        <div style={{display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#d97706', fontWeight: '600', background: '#fffbeb', padding: '6px 12px', borderRadius: '20px'}}>
+                            <div style={{width: '8px', height: '8px', background: '#d97706', borderRadius: '50%'}}></div>
+                            Aguardando Pagamento
                         </div>
                     </div>
                 </div>
-                <p className="payment-hint">Dirija-se a um multicaixa ou use o Internet Banking para pagar.</p>
-                
-                <button className="btn-pay-simulate" onClick={handleSimulatePayment}>
-                    <CreditCard size={18} /> Simular Pagamento (Demo)
-                </button>
+
+                <div style={{maxWidth: '450px', margin: '32px auto 0', textAlign: 'center'}}>
+                    <p className="payment-hint" style={{fontSize: '14px', color: '#94a3b8', marginBottom: '16px'}}>
+                        O sistema irá confirmar automaticamente após a transação.
+                    </p>
+                    
+                    <button 
+                        className="btn-pay-simulate" 
+                        onClick={handleSimulatePayment}
+                        style={{
+                            background: 'white',
+                            border: '2px solid #2563eb',
+                            color: '#2563eb',
+                            padding: '16px',
+                            fontWeight: '700',
+                            borderRadius: '16px',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <CreditCard size={20} /> Simular Pagamento em Tempo Real
+                    </button>
+                </div>
             </div>
         );
     };
 
     const renderSuccess = () => (
-        <div className="success-step">
-            <CheckCircle size={80} className="success-icon" />
-            <h2>Tudo Pronto!</h2>
-            <p>O seu pagamento foi confirmado.</p>
+        <div className="success-step" style={{textAlign: 'center', padding: '20px 0'}}>
+            <div style={{
+                width: '100px', height: '100px', background: '#dcfce7', 
+                borderRadius: '50%', display: 'flex', alignItems: 'center', 
+                justifyContent: 'center', margin: '0 auto 24px', color: '#16a34a',
+                boxShadow: '0 10px 30px -10px rgba(22, 163, 74, 0.4)'
+            }}>
+                <CheckCircle size={50} strokeWidth={3} />
+            </div>
             
-            <div className="exam-card">
-                <h3><Calendar size={20}/> Agendamento do Exame</h3>
-                <p><strong>Data:</strong> 25 de Janeiro de 2026</p>
-                <p><strong>Hora:</strong> 08:00</p>
-                <p><strong>Sala:</strong> Sala 12 (Bloco Administrativo)</p>
-                <p className="warning-text">Traga o seu Bilhete de Identidade e o Comprovativo de Inscrição.</p>
+            <h2 style={{fontSize: '32px', fontWeight: '800', color: '#1e293b', marginBottom: '8px'}}>Tudo Pronto!</h2>
+            <p style={{fontSize: '18px', color: '#64748b', maxWidth: '500px', margin: '0 auto 40px'}}>
+                A sua inscrição foi confirmada com sucesso. Prepare-se para o exame de admissão.
+            </p>
+            
+            <div className="exam-card" style={{
+                background: 'white',
+                borderRadius: '24px',
+                border: '1px solid #e2e8f0',
+                maxWidth: '500px',
+                margin: '0 auto 40px',
+                overflow: 'hidden',
+                boxShadow: '0 20px 40px -10px rgba(0,0,0,0.08)',
+                textAlign: 'left'
+            }}>
+                <div style={{
+                    background: '#1e293b', 
+                    padding: '24px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <div>
+                        <span style={{color: '#94a3b8', fontSize: '12px', letterSpacing: '1px'}}>CONVOCATÓRIA</span>
+                        <h3 style={{color: 'white', margin: 0, fontSize: '20px'}}>Exame de Admissão</h3>
+                    </div>
+                    <Calendar size={28} color="#60a5fa" />
+                </div>
+                
+                <div style={{padding: '30px'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px'}}>
+                        <div>
+                            <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>DATA & HORA</span>
+                            <strong style={{fontSize: '16px', color: '#334155'}}>25 Jan 2026 • 08:00</strong>
+                        </div>
+                        <div>
+                            <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>LOCAL</span>
+                            <strong style={{fontSize: '16px', color: '#334155'}}>Bloco A, Sala 12</strong>
+                        </div>
+                    </div>
+                
+                    <div style={{
+                        background: '#fff1f2', 
+                        border: '1px dashed #fda4af', 
+                        borderRadius: '12px', 
+                        padding: '16px',
+                        display: 'flex',
+                        gap: '12px'
+                    }}>
+                        <div style={{color: '#be123c', marginTop: '2px'}}><ClipboardList size={20} /></div>
+                        <div>
+                            <span style={{fontWeight: '700', color: '#9f1239', fontSize: '14px'}}>Documentos Obrigatórios</span>
+                            <p style={{margin: '4px 0 0 0', fontSize: '13px', color: '#be123c'}}>
+                                Para aceder à sala de exame, deverá apresentar o seu Bilhete de Identidade original e o comprovativo desta inscrição.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <button className="btn-home" onClick={() => window.location.reload()}>Nova Inscrição</button>
+            <button 
+                className="btn-home" 
+                onClick={() => window.location.reload()}
+                style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    padding: '16px 32px',
+                    borderRadius: '50px',
+                    fontWeight: '600',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                }}
+            >
+                Realizar Nova Inscrição
+            </button>
         </div>
     );
 
@@ -466,28 +702,65 @@ const Candidatura = () => {
 
              {consultResult && (
                  <div className="status-result-card">
-                     <div className="section-title">
-                        <User size={20} /> {consultResult.nome_completo}
-                     </div>
-                     <div className="form-grid">
+                     <div className="section-title" style={{border: 'none', marginBottom: '32px'}}>
+                        <div style={{
+                            width: '56px', 
+                            height: '56px', 
+                            background: 'var(--p-primary)', 
+                            borderRadius: '16px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            color: 'white',
+                            boxShadow: '0 8px 16px rgba(37, 99, 235, 0.2)'
+                        }}>
+                             <User size={28} />
+                        </div>
                         <div>
-                            <label className="field-label">Estado da Candidatura</label>
-                            <span className={`status-badge status-${consultResult.status === 'Pendente' ? 'pending' : consultResult.status === 'Aprovado' ? 'approved' : 'rejected'}`} style={{display: 'inline-block', marginTop: '5px'}}>
+                            <h3 style={{fontSize: '22px', margin: 0}}>{consultResult.nome_completo}</h3>
+                            <p style={{fontSize: '14px', color: 'var(--p-text-muted)', margin: '4px 0 0 0'}}>Estado atual do processo</p>
+                        </div>
+                     </div>
+                     
+                     <div className="review-grid" style={{background: 'white', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9'}}>
+                        <div>
+                            <strong>Estado da Candidatura</strong>
+                            <span className={`status-badge status-${consultResult.status === 'Pendente' ? 'pending' : consultResult.status === 'Aprovado' ? 'approved' : 'rejected'}`} style={{display: 'inline-block', marginTop: '8px'}}>
                                 {consultResult.status}
                             </span>
                         </div>
                         <div>
-                            <label className="field-label">Número de Inscrição</label>
-                            <p style={{fontWeight: 'bold'}}>{consultResult.numero_inscricao}</p>
+                            <strong>Número de Inscrição</strong>
+                            <p style={{fontWeight: '700', fontSize: '18px', margin: '8px 0 0 0', color: 'var(--p-primary)'}}>{consultResult.numero_inscricao}</p>
                         </div>
                         <div>
-                            <label className="field-label">Curso (1ª Opção)</label>
-                            <p>{consultResult.curso1_nome || 'N/A'}</p>
+                            <strong>Curso Selecionado</strong>
+                            <p style={{margin: '8px 0 0 0', fontWeight: '600'}}>{consultResult.curso1_nome || 'N/A'}</p>
                         </div>
                         {consultResult.nota_exame && (
                             <div>
-                                <label className="field-label">Nota do Exame</label>
-                                <p style={{fontWeight: 'bold', color: '#1e3a8a'}}>{consultResult.nota_exame} Val.</p>
+                                <strong>Nota do Exame</strong>
+                                <p style={{fontWeight: '800', fontSize: '18px', margin: '8px 0 0 0', color: '#1e3a8a'}}>{consultResult.nota_exame} Val.</p>
+                            </div>
+                        )}
+                        {consultResult.status === 'Agendado' && consultResult.exame_data && (
+                            <div style={{gridColumn: 'span 2', background: '#eff6ff', padding: '16px', borderRadius: '16px', border: '1px solid #dbeafe', marginTop: '16px'}}>
+                                <strong>📅 Agendamento de Exame</strong>
+                                <div style={{display: 'flex', gap: '24px', marginTop: '12px'}}>
+                                    <div>
+                                        <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>DATA E HORA</p>
+                                        <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>
+                                            {new Date(consultResult.exame_data).toLocaleDateString()} às {new Date(consultResult.exame_data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>LOCAL / SALA</p>
+                                        <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>{consultResult.exame_sala || 'A definir'}</p>
+                                    </div>
+                                </div>
+                                <p style={{fontSize: '13px', color: '#1e40af', marginTop: '12px', opacity: 0.8}}>
+                                    * Compareça com 30 minutos de antecedência portando o seu BI original.
+                                </p>
                             </div>
                         )}
                      </div>
@@ -509,7 +782,7 @@ const Candidatura = () => {
             <div className="hero-section">
                 <div className="hero-overlay"></div>
                 <div className="hero-content">
-                    <div className="hero-logo">Mutue Education</div>
+                    <div className="hero-logo">Sistema de Gestão de matriculas IPM3050</div>
                     <h1 className="hero-title">Portal de Admissão 2026</h1>
                     <p className="hero-description">Inscreva-se agora para garantir o seu futuro. Processo 100% digital, rápido e seguro.</p>
                     
@@ -540,21 +813,54 @@ const Candidatura = () => {
                             {step === 4 && 'Inscrição Concluída'}
                         </div>
                         
-                        {/* Stepper only for registration */}
-                         <div className="stepper">
-                            <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
-                            <div className="step-line"></div>
-                            <div className={`step-dot ${step >= 2 ? 'active' : ''}`}>2</div>
-                            <div className="step-line"></div>
-                            <div className={`step-dot ${step >= 3 ? 'active' : ''}`}>3</div>
-                            <div className="step-line"></div>
-                            <div className={`step-dot ${step >= 4 ? 'active' : ''}`}>4</div>
-                        </div>
+                        {checkingConfig ? (
+                             <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>A verificar disponibilidade...</div>
+                        ) : !config.candidaturas_abertas ? (
+                             <div style={{textAlign: 'center', padding: '60px 20px', animation: 'fadeIn 0.8s ease-out'}}>
+                                 <div style={{
+                                     background: 'rgba(239, 68, 68, 0.1)', 
+                                     width: '120px', 
+                                     height: '120px', 
+                                     borderRadius: '40px', 
+                                     display: 'flex', 
+                                     alignItems: 'center', 
+                                     justifyContent: 'center', 
+                                     margin: '0 auto 32px', 
+                                     color: '#ef4444',
+                                     transform: 'rotate(-5deg)',
+                                     border: '2px solid rgba(239, 68, 68, 0.2)'
+                                 }}>
+                                     <Calendar size={60} />
+                                 </div>
+                                 <h2 style={{color: '#1e293b', fontSize: '32px', fontWeight: '800', marginBottom: '16px'}}>Portal Temporariamente Suspenso</h2>
+                                 <p style={{color: '#64748b', fontSize: '18px', lineHeight: '1.6', maxWidth: '500px', margin: '0 auto 40px'}}>
+                                     {config.mensagem_candidaturas_fechadas || "O período de novas candidaturas para o próximo ano lectivo ainda não foi aberto ou já se encontra encerrado."}
+                                 </p>
+                                 <div style={{display: 'flex', gap: '16px', justifyContent: 'center'}}>
+                                     <button className="btn-submit-candidatura" style={{width: 'auto', padding: '16px 32px'}} onClick={() => setActiveTab('consult')}>
+                                         Consultar Inscrição Anterior
+                                     </button>
+                                 </div>
+                             </div>
+                        ) : (
+                            <>
+                                {/* Stepper only for registration */}
+                                <div className="stepper">
+                                    <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
+                                    <div className="step-line"></div>
+                                    <div className={`step-dot ${step >= 2 ? 'active' : ''}`}>2</div>
+                                    <div className="step-line"></div>
+                                    <div className={`step-dot ${step >= 3 ? 'active' : ''}`}>3</div>
+                                    <div className="step-line"></div>
+                                    <div className={`step-dot ${step >= 4 ? 'active' : ''}`}>4</div>
+                                </div>
 
-                        {step === 1 && renderForm()}
-                        {step === 2 && renderConfirm()}
-                        {step === 3 && renderPayment()}
-                        {step === 4 && renderSuccess()}
+                                {step === 1 && renderForm()}
+                                {step === 2 && renderConfirm()}
+                                {step === 3 && renderPayment()}
+                                {step === 4 && renderSuccess()}
+                            </>
+                        )}
                     </>
                 ) : (
                     <>

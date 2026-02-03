@@ -55,6 +55,53 @@ class AcademicService:
         }
 
     @staticmethod
+    def determinar_tipo_matricula(aluno_id):
+        """
+        Determina o tipo de matrícula sugerido com base nas notas do aluno no ano anterior.
+        """
+        from apis.models import Matricula, Nota
+        
+        # 1. Obter a última matrícula ativa concluída ou do ano anterior
+        ultima_matricula = Matricula.objects.filter(id_aluno_id=aluno_id).order_by('-ano_lectivo__data_fim').first()
+        
+        if not ultima_matricula:
+            return 'Novo'
+        
+        # 2. Verificar desempenho no ano dessa última matrícula
+        ano_anterior = ultima_matricula.ano_lectivo
+        turma_anterior = ultima_matricula.id_turma
+        
+        if not ano_anterior or not turma_anterior:
+            return 'Confirmacao'
+
+        # Obter disciplinas daquele curso/classe (ou simplesmente as que ele tem nota)
+        notas = Nota.objects.filter(id_aluno_id=aluno_id, id_turma=turma_anterior)
+        
+        if not notas.exists():
+            return 'Confirmacao' # Sem notas registradas, assume progressão normal
+
+        # Lógica de aprovação: Agrupar por disciplina e calcular média
+        desempenho = {}
+        for n in notas:
+            if n.id_disciplina_id not in desempenho:
+                desempenho[n.id_disciplina_id] = []
+            desempenho[n.id_disciplina_id].append(float(n.valor))
+            
+        disciplinas_reprovadas = 0
+        for disc_id, vals in desempenho.items():
+            media = sum(vals) / len(vals)
+            if media < 10:
+                disciplinas_reprovadas += 1
+        
+        # 3. Decidir tipo
+        if disciplinas_reprovadas == 0:
+            return 'Confirmacao'
+        elif disciplinas_reprovadas <= 2:
+            return 'Reenquadramento'
+        else:
+            return 'Repetente'
+
+    @staticmethod
     def registrar_falta_lote(aluno_ids, disciplina_id, turma_id, data_falta, justificativa=None):
         """
         Registra faltas para vários alunos ao mesmo tempo

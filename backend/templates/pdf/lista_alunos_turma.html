@@ -1,0 +1,54 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Lista Nominal de Alunos</div>
+
+<div style="margin-bottom: 20px; background: #f1f5f9; padding: 15px; border-radius: 5px;">
+    <table style="width: 100%; font-size: 10pt;">
+        <tr>
+            <td><strong>TURMA:</strong> {{ turma.codigo_turma }}</td>
+            <td><strong>CURSO:</strong> {{ turma.id_curso.nome_curso }}</td>
+        </tr>
+        <tr>
+            <td><strong>CLASSE:</strong> {{ turma.id_classe.nivel }}ª</td>
+            <td><strong>PERÍODO:</strong> {{ turma.id_periodo.nome_periodo }}</td>
+        </tr>
+        <tr>
+            <td><strong>SALA:</strong> {{ turma.id_sala.numero_sala }}</td>
+            <td><strong>ANO LECTIVO:</strong> {{ turma.ano_lectivo.nome }}</td>
+        </tr>
+    </table>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt;">
+    <thead>
+        <tr style="background-color: #1e3a8a; color: white;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Nº</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">MATRÍCULA</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">NOME COMPLETO</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">GÉNERO</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">STATUS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for aluno in alunos %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ forloop.counter }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ aluno.numero_matricula }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ aluno.nome_completo }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">{{ aluno.genero }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ aluno.status_aluno }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="border: 1px solid #ddd; padding: 20px; text-align: center;">Nenhum aluno matriculado nesta turma.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>A Secretaria Académica</p>
+</div>
+{% endblock %}

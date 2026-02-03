@@ -19,7 +19,7 @@ class Fatura(BaseModel):
     id_fatura = models.AutoField(primary_key=True)
     id_aluno = models.ForeignKey(
         Aluno,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         verbose_name='Aluno'
@@ -73,7 +73,7 @@ class Pagamento(BaseModel):
     comprovante_path = models.TextField(null=True, blank=True, verbose_name='Comprovante')
     id_recebedor = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='pagamentos_recebidos',

@@ -20,9 +20,12 @@ class Aluno(BaseModel):
     ]
     
     id_aluno = models.AutoField(primary_key=True)
-    numero_bi = models.CharField(max_length=14, unique=True, null=True, blank=True, verbose_name='Número do BI')
+    numero_bi = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name='Número do BI')
     nome_completo = models.CharField(max_length=150, verbose_name='Nome Completo')
     data_nascimento = models.DateField(null=True, blank=True, verbose_name='Data de Nascimento')
+    nacionalidade = models.CharField(max_length=50, default='Angolana', verbose_name='Nacionalidade')
+    naturalidade = models.CharField(max_length=100, null=True, blank=True, verbose_name='Naturalidade')
+    deficiencia = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não', verbose_name='Deficiência')
     email = models.EmailField(max_length=250, unique=True, null=True, blank=True)
     numero_matricula = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name='Número de Matrícula')
     telefone = models.CharField(max_length=10, verbose_name='Telefone')
@@ -34,7 +37,7 @@ class Aluno(BaseModel):
     genero = models.CharField(max_length=1, choices=GENERO_CHOICES, null=True, blank=True)
     status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Activo', verbose_name='Estado')
     modo_user = models.CharField(max_length=20, default='Inativo', verbose_name='Modo Usuário')
-    id_turma = models.ForeignKey(Turma, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Turma')
+    id_turma = models.ForeignKey(Turma, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Turma')
     img_path = models.ImageField(upload_to="image/alunos/", verbose_name="Foto do Aluno", null=True, blank=True)
     is_online = models.BooleanField(default=False)
     

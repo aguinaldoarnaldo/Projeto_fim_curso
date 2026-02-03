@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from apis.permissions.custom_permissions import HasAdditionalPermission
 
 from apis.models import Aluno, AlunoEncarregado
 from apis.serializers import (
@@ -24,7 +25,25 @@ class AlunoViewSet(viewsets.ModelViewSet):
         'alunoencarregado_set',
         'alunoencarregado_set__id_encarregado'
     ).all()
-    permission_classes = [IsAuthenticated]
+    
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    
+    # Mapeamento de permissões por ação
+    permission_map = {
+        # 'list': 'view_alunos',     # Liberado para autenticados
+        # 'retrieve': 'view_alunos', # Liberado para autenticados
+        'create': 'create_aluno',
+        'update': 'edit_aluno',
+        'partial_update': 'edit_aluno',
+        'destroy': 'delete_aluno',
+        'ativos': 'view_alunos',
+        'stats': 'view_dashboard',
+        'notas': 'view_notas',
+        'faltas': 'view_faltas',
+        'boletim': 'view_notas',
+        'encarregados': 'view_alunos',
+    }
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['status_aluno', 'id_turma', 'genero']
     search_fields = ['nome_completo', 'email', 'numero_matricula']
@@ -44,6 +63,39 @@ class AlunoViewSet(viewsets.ModelViewSet):
         alunos = self.queryset.filter(status_aluno='Activo')
         serializer = AlunoListSerializer(alunos, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Retorna estatísticas gerais dos alunos para o dashboard"""
+        from django.db.models import Count
+        
+        # 1. Total e Ativos
+        total = Aluno.objects.count()
+        ativos = Aluno.objects.filter(status_aluno='Activo').count()
+        
+        # 2. Por Gênero
+        genero = Aluno.objects.values('genero').annotate(total=Count('id_aluno'))
+        
+        # 3. Por Curso (Top 5)
+        # Assumindo que o aluno tem uma turma e a turma tem um curso
+        cursos = Aluno.objects.values(
+            'id_turma__id_curso__nome_curso'
+        ).annotate(
+            total=Count('id_aluno')
+        ).order_by('-total')[:5]
+        
+        return Response({
+            'total': total,
+            'ativos': ativos,
+            'genero': list(genero),
+            'cursos': [
+                {
+                    'nome': c['id_turma__id_curso__nome_curso'] or 'Sem Curso',
+                    'total': c['total']
+                } 
+                for c in cursos
+            ]
+        })
     
     @action(detail=True, methods=['get'])
     def notas(self, request, pk=None):
@@ -124,6 +176,14 @@ class AlunoEncarregadoViewSet(viewsets.ModelViewSet):
         'id_aluno', 'id_encarregado'
     ).all()
     serializer_class = AlunoEncarregadoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {
+        # 'list': 'view_alunos',
+        # 'retrieve': 'view_alunos',
+        'create': 'create_aluno',
+        'update': 'edit_aluno',
+        'partial_update': 'edit_aluno',
+        'destroy': 'delete_aluno',
+    }
     filter_backends = [DjangoFilterBackend]
     #filterset_fields = ['id_aluno', 'id_encarregado']

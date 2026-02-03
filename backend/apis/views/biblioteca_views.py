@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from apis.permissions.custom_permissions import HasAdditionalPermission
 
 from apis.models import Categoria, Livro
 from apis.serializers import (
@@ -13,7 +14,15 @@ class CategoriaViewSet(viewsets.ModelViewSet):
     """ViewSet para Categoria"""
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {
+        'list': 'view_biblioteca',
+        'retrieve': 'view_biblioteca',
+        'create': 'manage_biblioteca',
+        'update': 'manage_biblioteca',
+        'partial_update': 'manage_biblioteca',
+        'destroy': 'manage_biblioteca',
+    }
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['nome_categoria']
     ordering = ['nome_categoria']
@@ -24,7 +33,15 @@ class LivroViewSet(viewsets.ModelViewSet):
     queryset = Livro.objects.select_related(
         'id_categoria', 'id_responsavel'
     ).all()
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_map = {
+        'list': 'view_biblioteca',
+        'retrieve': 'view_biblioteca',
+        'create': 'manage_biblioteca',
+        'update': 'manage_biblioteca',
+        'partial_update': 'manage_biblioteca',
+        'destroy': 'manage_biblioteca',
+    }
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['id_categoria']
     search_fields = ['titulo', 'editora']

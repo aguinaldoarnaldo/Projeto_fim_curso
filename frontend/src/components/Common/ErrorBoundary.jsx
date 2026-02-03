@@ -4,6 +4,7 @@ class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
+    this.lastPathname = window.location.pathname;
   }
 
   static getDerivedStateFromError(error) {
@@ -13,6 +14,14 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error("Uncaught error:", error, errorInfo);
     this.setState({ error, errorInfo });
+  }
+
+  componentDidUpdate() {
+    // Auto-recover when user navigates to a different page
+    if (this.state.hasError && window.location.pathname !== this.lastPathname) {
+      this.lastPathname = window.location.pathname;
+      this.setState({ hasError: false, error: null, errorInfo: null });
+    }
   }
 
   render() {

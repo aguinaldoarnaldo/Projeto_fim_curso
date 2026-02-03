@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Turmas.css';
+import './TurmasTableResponsive.css';
 
 import {
     Search,
@@ -20,8 +21,11 @@ import {
 import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
+import { usePermission } from '../../hooks/usePermission';
+import { PERMISSIONS } from '../../utils/permissions';
 
 const Turmas = () => {
+    const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -104,7 +108,8 @@ const Turmas = () => {
                  setPeriodosDisponiveis(cPeriodos);
                  setAnosDisponiveis(cAnos);
                  setLoading(false);
-                 return;
+                 // Continue to fetch fresh data in background
+                 // return; // REMOVED to force background refresh
             }
         }
 
@@ -171,9 +176,27 @@ const Turmas = () => {
     const handleSave = async () => {
         try {
             // Basic validation
-            if(!formData.codigo_turma || !formData.id_curso || !formData.id_sala) {
-                alert("Preencha os campos obrigatórios (Nome, Curso, Sala).");
+            if(!formData.id_curso || !formData.id_sala || !formData.id_classe || !formData.id_periodo) {
+                alert("Preencha os campos obrigatórios (Curso, Classe, Turno e Sala).");
                 return;
+            }
+
+            // VALIDATION: Active Year Only
+            const selectedYearObj = anosDisponiveis.find(a => a.nome === formData.ano);
+            if (selectedYearObj) {
+                const today = new Date();
+                today.setHours(0,0,0,0); // Reset time for accurate date comparison
+                const start = new Date(selectedYearObj.data_inicio);
+                const end = new Date(selectedYearObj.data_fim);
+                
+                // Check if today is OUTSIDE the year range
+                if (today < start || today > end) {
+                    alert(`🚫 Ação Bloqueada:\n\nO Ano Lectivo selecionado (${formData.ano}) não está ativo no momento.\n\nPor favor, selecione o ano corrente para criar ou editar turmas.`);
+                    return; // Blocks the save
+                }
+            } else {
+                 // Fallback if year object not found (shouldn't happen with select)
+                 console.warn("Ano selecionado não encontrado na lista de referência.");
             }
 
             const payload = {
@@ -226,13 +249,22 @@ const Turmas = () => {
 
     const handleAdd = () => {
         setSelectedTurma(null);
+        
+        // Auto-select current academic year based on today's date
+        const today = new Date();
+        const currentYearObj = anosDisponiveis.find(a => {
+            const start = new Date(a.data_inicio);
+            const end = new Date(a.data_fim);
+            return today >= start && today <= end;
+        }) || anosDisponiveis[0]; // Fallback to first available if none matches
+
         setFormData({
             codigo_turma: '',
             id_curso: '',
             id_periodo: '',
             id_sala: '',
             id_classe: '',
-            ano: '2024/2025',
+            ano: currentYearObj ? currentYearObj.nome : new Date().getFullYear().toString(), // Use dynamic year
             responsavel_nome: '',
             status: 'Ativa'
         });
@@ -260,20 +292,22 @@ const Turmas = () => {
     const currentTurmas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
-        <div className="page-container">
+        <div className="page-container turmas-page">
             <header className="page-header">
                 <div className="turmas-header-content">
                     <div>
                         <h1>Gestão de Turmas</h1>
                         <p>Configuração e monitoramento das turmas do ano lectivo corrente.</p>
                     </div>
-                    <button
-                        onClick={handleAdd}
-                        className="btn-primary-action"
-                    >
-                        <Plus size={20} />
-                        Nova Turma
-                    </button>
+                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                        <button
+                            onClick={handleAdd}
+                            className="btn-primary-action"
+                        >
+                            <Plus size={20} />
+                            Nova Turma
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -447,13 +481,15 @@ const Turmas = () => {
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
-                                                <button
-                                                    onClick={() => handleEdit(t)}
-                                                    className="btn-edit-turma"
-                                                    title="Editar Turma"
-                                                >
-                                                    <Edit3 size={18} />
-                                                </button>
+                                                {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                                                    <button
+                                                        onClick={() => handleEdit(t)}
+                                                        className="btn-edit-turma"
+                                                        title="Editar Turma"
+                                                    >
+                                                        <Edit3 size={18} />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
@@ -473,7 +509,7 @@ const Turmas = () => {
 
             {/* Add/Edit Modal */}
             {showModal && (
-                <div className="modal-overlay-turmas">
+                <div className="modal-overlay">
                     <div className="modal-content-turmas">
                         <div className="modal-header-turmas">
                             <h2 className="modal-title-turmas">
@@ -490,14 +526,30 @@ const Turmas = () => {
                         <form className="modal-form-turmas" onSubmit={(e) => e.preventDefault()}>
                             <div className="form-grid-turmas-modal">
                                 <div style={{ gridColumn: 'span 2' }}>
-                                    <label className="form-label-turmas">Nome da Turma</label>
+                                    <label className="form-label-turmas">Código/Nome da Turma</label>
                                     <input 
                                         type="text" 
-                                        placeholder="Ex: INF10A" 
-                                        value={formData.codigo_turma}
-                                        onChange={e => setFormData({...formData, codigo_turma: e.target.value})}
+                                        placeholder="Gerado automaticamente..." 
+                                        value={(() => {
+                                            if (modalMode === 'edit') return formData.codigo_turma;
+                                            
+                                            // Preview generation logic
+                                            const sala = salas.find(s => s.id_sala == formData.id_sala)?.numero_sala || '';
+                                            const curso = cursosDisponiveis.find(c => c.id_curso == formData.id_curso)?.nome_curso?.substring(0,2).toUpperCase() || '';
+                                            const classe = classesDisponiveis.find(c => c.id_classe == formData.id_classe)?.nivel || '';
+                                            const periodo = periodosDisponiveis.find(p => p.id_periodo == formData.id_periodo)?.periodo?.charAt(0).toUpperCase() || '';
+                                            const ano = formData.ano?.substring(formData.ano.length - 2) || '';
+                                            
+                                            const preview = `${sala}${curso}${classe}${periodo}${ano}`;
+                                            return preview.length > 0 ? preview : 'Aguardando seleções...';
+                                        })()}
+                                        readOnly
                                         className="form-input-turmas" 
+                                        style={{ background: '#f8fafc', fontWeight: 'bold', color: 'var(--primary-color)' }}
                                     />
+                                    <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                                        * O nome é gerado automaticamente com base nas seleções abaixo (Sala + Curso + Classe + Turno + Ano).
+                                    </small>
                                 </div>
                                 <div>
                                     <label className="form-label-turmas">Curso</label>
@@ -566,13 +618,16 @@ const Turmas = () => {
                                 </div>
                                 <div>
                                     <label className="form-label-turmas">Ano Lectivo</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Ex: 2024/2025" 
+                                    <select 
                                         value={formData.ano}
                                         onChange={e => setFormData({...formData, ano: e.target.value})}
-                                        className="form-input-turmas" 
-                                    />
+                                        className="form-input-turmas"
+                                    >
+                                        <option value="">Seleccionar Ano</option>
+                                        {anosDisponiveis.map(ano => (
+                                            <option key={ano.id || ano.id_ano} value={ano.nome}>{ano.nome}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 

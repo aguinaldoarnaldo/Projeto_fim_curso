@@ -15,16 +15,30 @@ class AnoLectivoSerializer(serializers.ModelSerializer):
 class SalaSerializer(serializers.ModelSerializer):
     """Serializer para Sala"""
     total_alunos = serializers.SerializerMethodField()
+    ocupacao_detalhada = serializers.SerializerMethodField()
     
     class Meta:
         model = Sala
-        fields = ['id_sala', 'numero_sala', 'capacidade_alunos', 'bloco', 'total_alunos', 'criado_em', 'atualizado_em']
+        fields = ['id_sala', 'numero_sala', 'capacidade_alunos', 'bloco', 'total_alunos', 'ocupacao_detalhada', 'criado_em', 'atualizado_em']
         read_only_fields = ['id_sala', 'criado_em', 'atualizado_em']
         
     def get_total_alunos(self, obj):
-        # Counts students linked to turmas in this room
+        # Counts students linked to turmas in this room (Total Headcount)
         from apis.models import Aluno
         return Aluno.objects.filter(id_turma__id_sala=obj, status_aluno='Activo').count()
+
+    def get_ocupacao_detalhada(self, obj):
+        from apis.models import Aluno
+        from django.db.models import Count
+        
+        # Group active students by Periodo (Morning, Afternoon, etc.)
+        stats = Aluno.objects.filter(
+            id_turma__id_sala=obj, 
+            status_aluno='Activo'
+        ).values('id_turma__id_periodo__periodo').annotate(total=Count('id_aluno'))
+        
+        # Convert to dictionary { 'Manhã': 30, 'Tarde': 20 }
+        return {item['id_turma__id_periodo__periodo'] or 'Sem Turno': item['total'] for item in stats}
 
 
 class ClasseSerializer(serializers.ModelSerializer):
@@ -123,12 +137,13 @@ class TurmaSerializer(serializers.ModelSerializer):
     periodo_nome = serializers.CharField(source='id_periodo.periodo', read_only=True)
     responsavel_nome = serializers.CharField(source='id_responsavel.nome_completo', read_only=True)
     ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
+    sala_capacidade = serializers.IntegerField(source='id_sala.capacidade_alunos', read_only=True)
     total_alunos = serializers.SerializerMethodField()
     
     class Meta:
         model = Turma
         fields = [
-            'id_turma', 'codigo_turma', 'id_sala', 'sala_numero',
+            'id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'sala_capacidade',
             'id_curso', 'curso_nome', 'id_classe', 'classe_nivel', 'classe_nome',
             'id_periodo', 'periodo_nome', 'ano', 'ano_lectivo', 'ano_lectivo_nome', 'status', 'id_responsavel',
             'responsavel_nome', 'total_alunos', 'criado_em', 'atualizado_em'
@@ -149,11 +164,17 @@ class TurmaListSerializer(serializers.ModelSerializer):
     periodo_nome = serializers.CharField(source='id_periodo.periodo', read_only=True)
     responsavel_nome = serializers.CharField(source='id_responsavel.nome_completo', read_only=True)
     ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
+    sala_capacidade = serializers.IntegerField(source='id_sala.capacidade_alunos', read_only=True)
     total_alunos = serializers.SerializerMethodField()
     
     class Meta:
         model = Turma
-        fields = ['id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'id_curso', 'curso_nome', 'classe_nivel', 'classe_nome', 'id_periodo', 'periodo_nome', 'status', 'ano', 'ano_lectivo', 'ano_lectivo_nome', 'total_alunos', 'responsavel_nome']
+        fields = [
+            'id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'sala_capacidade',
+            'id_curso', 'curso_nome', 'id_classe', 'classe_nivel', 'classe_nome',
+            'id_periodo', 'periodo_nome', 'status', 'ano', 'ano_lectivo', 'ano_lectivo_nome',
+            'total_alunos', 'responsavel_nome'
+        ]
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno

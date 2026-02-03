@@ -1,0 +1,61 @@
+/* AlunosTableResponsive.css - Optimized for combined Photo + Name */
+
+.alunos-page .data-table {
+    table-layout: auto;
+}
+
+/* Single Sticky Column for Alunos (Avatar + Name) */
+.alunos-page .data-table .sticky-col-1 {
+    position: sticky;
+    left: 0;
+    z-index: 80;
+    min-width: 260px;
+    max-width: 380px;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.alunos-page .data-table th.sticky-col-1 {
+    z-index: 100;
+}
+
+/* Specific column width optimizations */
+.alunos-page .data-table td:nth-child(2),
+.alunos-page .data-table th:nth-child(2) {
+    min-width: 140px;
+}
+
+.alunos-page .data-table td:nth-child(3),
+.alunos-page .data-table th:nth-child(3) {
+    min-width: 130px;
+}
+
+.alunos-page .data-table td:last-child {
+    width: 140px;
+    text-align: center;
+    overflow: visible !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1440px) {
+    .alunos-page .data-table th,
+    .alunos-page .data-table td {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .alunos-page .data-table .sticky-col-1 {
+        min-width: 220px;
+        max-width: 300px;
+    }
+}
+
+/* On very small screens, disable stickiness to allow full scroll */
+@media (max-width: 768px) {
+    .alunos-page .sticky-col-1 {
+        position: static !important;
+        box-shadow: none !important;
+        min-width: 200px !important;
+    }
+}

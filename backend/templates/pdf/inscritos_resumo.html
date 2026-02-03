@@ -1,0 +1,41 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Relatório de Candidatos Inscritos</div>
+
+<div style="margin-bottom: 20px;">
+    <p>Lista total de candidatos registrados para o processo de admissão, incluindo status e cursos pretendidos.</p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt;">
+    <thead>
+        <tr style="background-color: #4b5563; color: white;">
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Nº INSCRIÇÃO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">CANDIDATO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">OPÇÃO 1</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">STATUS</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">MÉDIA</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cand in candidatos %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ cand.numero_inscricao }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ cand.nome_completo|truncatechars:30 }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ cand.curso_primeira_opcao.nome_curso }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ cand.status }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: right;">{{ cand.media_final }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="background-color: #f1f5f9; font-weight: bold;">
+            <td colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: right;">TOTAL DE CANDIDATOS:</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{ total }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>A Comissão de Admissão</p>
+</div>
+{% endblock %}

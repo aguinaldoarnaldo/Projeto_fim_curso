@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
+import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
@@ -12,10 +12,23 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    // Se o usuário está autenticado, redireciona para o dashboard
     if (signed && !authLoading) {
       navigate('/dashboard');
+    }
+    
+    // Se não está autenticado e não está carregando, limpa possíveis dados corrompidos
+    if (!signed && !authLoading) {
+      // Verifica se há token mas não está autenticado (possível corrupção)
+      const token = localStorage.getItem('@App:token');
+      if (token) {
+        console.log('Limpando credenciais antigas...');
+        localStorage.removeItem('@App:token');
+        localStorage.removeItem('@App:user');
+      }
     }
   }, [signed, authLoading, navigate]);
 
@@ -105,13 +118,21 @@ const Login = () => {
                 <div className="input-group">
                   <Lock className="input-icon" size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     required
                     className="form-input"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                  <button 
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex="-1"
+                  >
+                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </div>
               </div>
 

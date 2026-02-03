@@ -1,0 +1,47 @@
+
+/* --- MOBILE & TABLET SIDEBAR FIXES --- */
+@media (max-width: 1024px) {
+    .app-container {
+        position: relative;
+    }
+
+    .sidebar {
+        position: fixed;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        z-index: 9999 !important; /* Force sidebar on top */
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+    }
+
+    /* When sidebar is closed on mobile, hide it completely off-screen */
+    .sidebar.sidebar-closed {
+        transform: translateX(-100%);
+        width: 0 !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* When open, show full width */
+    .sidebar:not(.sidebar-closed),
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+        width: 280px !important;
+        opacity: 1;
+    }
+    
+    /* Ensure table headers never overlap the fixed sidebar in mobile */
+    .data-table th {
+        z-index: 50 !important; /* Lower than sidebar */
+        position: sticky;
+    }
+
+    /* Add overlay if clicking outside is needed (requires JS support, acts as safeguard) */
+    .mobile-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 9998;
+        backdrop-filter: blur(2px);
+    }
+}

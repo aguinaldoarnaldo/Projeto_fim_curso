@@ -27,7 +27,7 @@ class Disciplina(BaseModel):
     nome = models.CharField(max_length=150, verbose_name='Nome da Disciplina')
     id_tipo_disciplina = models.ForeignKey(
         TipoDisciplina,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         verbose_name='Tipo'
@@ -35,7 +35,7 @@ class Disciplina(BaseModel):
     carga_horaria = models.IntegerField(null=True, blank=True, verbose_name='Carga Horária')
     id_coordenador = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='disciplinas_coordenadas',
@@ -99,16 +99,16 @@ class Nota(models.Model):
     ]
     
     id_nota = models.AutoField(primary_key=True)
-    id_aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, verbose_name='Aluno')
-    id_disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE, verbose_name='Disciplina')
+    id_aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, verbose_name='Aluno')
+    id_disciplina = models.ForeignKey(Disciplina, on_delete=models.PROTECT, verbose_name='Disciplina')
     id_professor = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         verbose_name='Professor'
     )
-    id_turma = models.ForeignKey(Turma, on_delete=models.CASCADE, verbose_name='Turma')
+    id_turma = models.ForeignKey(Turma, on_delete=models.PROTECT, verbose_name='Turma')
     tipo_avaliacao = models.CharField(max_length=30, choices=TIPO_AVALIACAO_CHOICES, verbose_name='Tipo de Avaliação')
     valor = models.DecimalField(
         max_digits=5,
@@ -134,15 +134,15 @@ class Nota(models.Model):
 class FaltaAluno(models.Model):
     """Registro de faltas dos alunos"""
     id_falta = models.AutoField(primary_key=True)
-    id_aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, verbose_name='Aluno')
+    id_aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT, verbose_name='Aluno')
     id_disciplina = models.ForeignKey(
         Disciplina,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         verbose_name='Disciplina'
     )
-    id_turma = models.ForeignKey(Turma, on_delete=models.CASCADE, verbose_name='Turma')
+    id_turma = models.ForeignKey(Turma, on_delete=models.PROTECT, verbose_name='Turma')
     data_falta = models.DateField(verbose_name='Data da Falta')
     justificada = models.BooleanField(default=False, verbose_name='Justificada')
     observacao = models.TextField(null=True, blank=True, verbose_name='Observação')

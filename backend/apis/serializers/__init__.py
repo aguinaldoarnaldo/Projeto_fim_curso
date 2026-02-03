@@ -1,7 +1,8 @@
 # Importar todos os serializers para facilitar o uso
 from .usuario_serializers import (
     CargoSerializer, FuncionarioSerializer, FuncionarioListSerializer,
-    EncarregadoSerializer, EncarregadoListSerializer, CargoFuncionarioSerializer
+    EncarregadoSerializer, EncarregadoListSerializer, CargoFuncionarioSerializer,
+    UsuarioSerializer
 )
 from .aluno_serializers import (
     AlunoSerializer, AlunoListSerializer, AlunoDetailSerializer, AlunoEncarregadoSerializer
@@ -35,7 +36,7 @@ from .auditoria_serializers import (
     HistoricoSerializer, HistoricoLoginSerializer
 )
 from .candidatura_serializers import (
-    CandidatoSerializer, CandidatoCreateSerializer, RupeCandidatoSerializer
+    CandidatoSerializer, CandidatoCreateSerializer, RupeCandidatoSerializer, ListaEsperaSerializer
 )
 from .historico_serializers import HistoricoEscolarSerializer
 
@@ -43,6 +44,7 @@ __all__ = [
     # Usuários
     'CargoSerializer', 'FuncionarioSerializer', 'FuncionarioListSerializer',
     'EncarregadoSerializer', 'EncarregadoListSerializer', 'CargoFuncionarioSerializer',
+    'UsuarioSerializer',
     # Alunos
     'AlunoSerializer', 'AlunoListSerializer', 'AlunoDetailSerializer', 'AlunoEncarregadoSerializer',
     # Acadêmico
@@ -68,6 +70,6 @@ __all__ = [
     'InscricaoSerializer', 'MatriculaSerializer',
     'HistoricoSerializer', 'HistoricoLoginSerializer',
     # Candidatura
-    'CandidatoSerializer', 'CandidatoCreateSerializer', 'RupeCandidatoSerializer',
+    'CandidatoSerializer', 'CandidatoCreateSerializer', 'RupeCandidatoSerializer', 'ListaEsperaSerializer',
     'HistoricoEscolarSerializer',
 ]

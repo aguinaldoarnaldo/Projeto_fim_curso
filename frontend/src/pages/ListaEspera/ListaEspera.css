@@ -1,0 +1,204 @@
+/* ListaEspera.css */
+/* SCOPED STYLES */
+
+.lista-espera-page.page-container {
+    padding: 30px;
+    background-color: #f8fafc; /* Slate-50 */
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+}
+
+.lista-espera-page .page-header {
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.lista-espera-page .page-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e293b; /* Slate-800 */
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.lista-espera-page .page-header p {
+    color: #64748b; /* Slate-500 */
+    margin-top: 8px;
+    font-size: 15px;
+}
+
+.lista-espera-page .table-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+    border: 1px solid #e2e8f0; /* Slate-200 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+
+.lista-espera-page .search-filter-header {
+    padding: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.lista-espera-page .search-input-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.lista-espera-page .search-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.lista-espera-page .search-input {
+    width: 100%;
+    padding: 10px 10px 10px 40px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    outline: none;
+    font-size: 14px;
+    color: #334155;
+    transition: border-color 0.2s;
+}
+
+.lista-espera-page .search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.lista-espera-page .btn-action {
+    background: #0f172a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.lista-espera-page .btn-action:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+}
+
+
+/* Table styles are inherited from Global.css .data-table */
+
+.lista-espera-page .status-badge {
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.lista-espera-page .status-aguardando {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+}
+
+.lista-espera-page .status-chamado {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.lista-espera-page .status-expirado {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.lista-espera-page .priority-highlight {
+    font-weight: 700;
+    color: #e11d48;
+}
+
+.lista-espera-page .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.lista-espera-page .modal-card {
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lista-espera-page .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.lista-espera-page .modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #0f172a;
+}
+
+.lista-espera-page .form-group {
+    margin-bottom: 20px;
+}
+
+.lista-espera-page .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.lista-espera-page .form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.lista-espera-page .form-input:focus {
+    border-color: #3b82f6;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}

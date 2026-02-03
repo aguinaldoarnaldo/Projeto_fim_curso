@@ -1,0 +1,40 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Mapa de Ocupação de Salas</div>
+
+<div style="margin-bottom: 20px;">
+    <p>Distribuição atual de alunos por salas e blocos, com base nas turmas activas no sistema.</p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt;">
+    <thead>
+        <tr style="background-color: #6d28d9; color: white;">
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">SALA / BLOCO</th>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">CAPACIDADE</th>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">ALUNOS ATIVOS</th>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">OCUPAÇÃO (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sala in salas %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+                <strong>Sala {{ sala.numero_sala }}</strong><br>
+                <small style="color: #64748b;">Bloco: {{ sala.bloco|default:"A" }}</small>
+            </td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ sala.capacidade_alunos }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ sala.total_alunos_count }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                {{ sala.percentagem }}%
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>Direção de Infraestrutura</p>
+</div>
+{% endblock %}

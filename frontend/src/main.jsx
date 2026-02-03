@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext'
@@ -10,14 +11,16 @@ import ErrorBoundary from './components/Common/ErrorBoundary'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ErrorBoundary>
-      <AuthProvider>
-        <ThemeProvider>
-          <CacheProvider>
-            <App />
-          </CacheProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <BrowserRouter>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ThemeProvider>
+            <CacheProvider>
+              <App />
+            </CacheProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
   </StrictMode>
 )

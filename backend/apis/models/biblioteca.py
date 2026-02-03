@@ -24,7 +24,7 @@ class Livro(models.Model):
     editora = models.CharField(max_length=150, null=True, blank=True, verbose_name='Editora')
     id_responsavel = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='livros_gerenciados',
@@ -33,7 +33,7 @@ class Livro(models.Model):
     caminho_arquivo = models.FileField(upload_to="documentos/library/books/",null=False, blank=False, verbose_name='Arquivo em PDF')
     id_categoria = models.ForeignKey(
         Categoria,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         verbose_name='Categoria'

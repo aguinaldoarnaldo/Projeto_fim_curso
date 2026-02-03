@@ -9,7 +9,7 @@
   --primary-gradient-end: #1d4ed8;
   --primary-shadow: rgba(37, 99, 235, 0.2);
   
-  --bg-color: #f8fafc;
+  --bg-color: #f1f5f9; /* Slate 100 - Grayish White */
   --sidebar-bg: #1e3a8a;
   --text-color: #111827;
   --text-muted: #6b7280;
@@ -55,13 +55,18 @@ body {
   color: white;
   display: flex;
   flex-direction: column;
-  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Faster and smoother */
-  will-change: width; /* Hint for GPU */
-  overflow: hidden; /* Prevent content reflow issues during resize */
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+  overflow: hidden;
+  z-index: 600; /* Sidebar above content, but below Modals */
 }
 
 .sidebar-closed {
-  width: 80px;
+  width: 80px !important; /* Force when explicitly closed */
+}
+
+.sidebar-open {
+  width: 260px !important; /* Force when explicitly open */
 }
 
 .sidebar-header {
@@ -188,31 +193,46 @@ body {
   flex-direction: column;
   overflow: hidden;
   background-color: var(--bg-color);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%), 
+    radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
 .content-wrapper {
   flex: 1;
   padding: 0;
   overflow-y: auto;
-  display: flex; /* Kept flex for potential future use, but removed center */
-  flex-direction: column; /* Ensure vertical stacking if needed, though page-container handles it */
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Ensure it starts below navbar */
 }
 
 .page-container {
   width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 20px 16px; /* Reduced horizontal padding from 24px to 16px */
+  max-width: 1920px; /* Allow wider content on large screens */
+  margin: 0 auto; /* Center content if screen > 1920px */
+  padding: 90px 24px 24px 24px; /* Optimized: 64px navbar + 26px gap */
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  transition: all 0.3s ease;
+  gap: 10px;
+  transition: none; /* Remove all transitions */
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1441px) {
   .page-container {
-    padding: 24px 40px;
+    padding: 32px 40px;
+    gap: 24px;
   }
+}
+
+/* Specific override for pages with large tables */
+.matriculas-page.page-container,
+.alunos-page.page-container {
+    max-width: 100%; /* Full width for data-heavy pages */
+    /* Preserve the top padding defined in general rule */
+    padding-left: 32px !important; 
+    padding-right: 32px !important;
 }
 
 .page-header {
@@ -242,20 +262,25 @@ body {
 }
 
 .table-card {
-  overflow: hidden;
-  padding: 0; /* Tables usually don't want padding on the container when using colored headers */
+  overflow: visible; /* Allow sticky header shadow to show */
+  padding: 0;
+  position: relative;
+  bottom: 50px;
 }
 
 /* Tables */
 .table-wrapper {
   overflow-x: auto;
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--border-color) transparent;
+  scrollbar-color: #cbd5e1 transparent;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
 .table-wrapper::-webkit-scrollbar {
-  height: 6px; /* Thin horizontal scrollbar */
+  height: 8px; /* Slightly thicker for usability */
 }
 
 .table-wrapper::-webkit-scrollbar-track {
@@ -263,8 +288,12 @@ body {
 }
 
 .table-wrapper::-webkit-scrollbar-thumb {
-  background-color: var(--border-color);
-  border-radius: 10px;
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
 /* Premium Scrollbar for the whole page */
@@ -286,91 +315,259 @@ body {
   background: #94a3b8;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
+/* =========================================
+   GLOBAL TABLE STYLES (Consolidated)
+   ========================================= */
+
+/* Global Table Styles */
+
+/* Wrapper handles the scrolling window */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    /* Use MAX-HEIGHT instead of fixed height so it shrinks for few items */
+    max-height: calc(100vh - 200px); /* Increased height for tables */
+    /* Removed min-height so it can be compact */
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    background: white;
+    position: relative;
+    display: flex; /* Ensure proper sizing context */
+    flex-direction: column;
 }
 
-/* Premium Table Header */
+/* For 1366x768 Laptops */
+@media (max-width: 1440px) {
+    .table-wrapper {
+        max-height: calc(100vh - 180px); /* Maximize table height on laptops */
+    }
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+    background: white;
+}
+
+/* Premium Header Style */
 .data-table thead {
-  background: var(--primary-color);
-  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-  position: sticky;
-  top: 0;
-  z-index: 20;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .data-table th {
-  text-align: left;
-  padding: 16px 24px;
-  background: var(--primary-color);
-  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
-  color: white !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  font-size: 13px;
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  border: none;
-  white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    color: white !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    font-size: 13px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 14px 20px;
+    border: none;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    height: 50px;
+    vertical-align: middle;
 }
 
-.data-table thead th:first-child {
-  border-top-left-radius: 12px;
-}
-
-.data-table thead th:last-child {
-  border-top-right-radius: 12px;
-}
-
+/* Cell Styles */
 .data-table td {
-  padding: 12px 12px; /* Adjusted optimized padding */
-  border-bottom: 1px solid var(--border-color);
-  font-size: 13px;
-  color: #334155;
-  white-space: normal; /* Changed from nowrap to normal to allow wrapping */
-  vertical-align: middle;
-  word-wrap: break-word; /* Ensure long words don't overflow */
+    padding: 14px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13.5px;
+    color: #334155;
+    font-weight: 500;
+    vertical-align: middle;
+    background: white;
+    white-space: nowrap;
+    height: 60px;
 }
 
-/* Responsive Table Padding Globally */
+.data-table tr:hover td {
+    background-color: #f8fafc;
+}
+
+/* --- RESPONSIVE OPTIMIZATIONS (Laptops & Small Screens) --- */
+
+/* Monitor HD+ (1600x900) - Optimized Balance */
+@media (min-width: 1441px) and (max-width: 1680px) {
+    .data-table td {
+        height: 54px; /* Slightly more compact than full desktop to fit more rows on 900px height */
+        padding: 10px 18px;
+    }
+    
+    .data-table th {
+         height: 46px;
+         padding: 12px 18px;
+    }
+    
+    .page-container {
+        padding: 90px 32px 32px 32px !important;
+        max-width: 100%;
+    }
+}
+
+/* Standard Laptop (1366x768 / 1440x900) */
 @media (max-width: 1440px) {
-  .data-table th, .data-table td {
-    padding: 12px 10px;
-  }
+    /* Reduce page padding globally */
+    .page-container {
+        padding: 85px 20px 20px 20px !important; /* Tighter on smaller screens */
+        gap: 16px !important; /* Reduced vertical gap */
+    }
+    
+    .page-header h1 {
+        font-size: 24px !important;
+        margin-bottom: 4px;
+    }
+
+    /* Compact Table */
+    .data-table th {
+        padding: 10px 14px;
+        font-size: 11.5px;
+        height: 42px;
+    }
+
+    .data-table td {
+        padding: 8px 14px;
+        font-size: 12.5px;
+        height: 48px;
+    }
+
+    /* Smaller Buttons */
+    .btn-icon-action {
+        padding: 6px !important;
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .btn-icon-action svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
 }
 
+/* Tighter squeeze for smaller 1280px/1366px screens if needed */
+@media (max-width: 1366px) {
+    .data-table th, 
+    .data-table td {
+        padding: 8px 12px; /* Even tighter */
+    }
+    
+    .page-container {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+}
+
+/* Horizontal Stickiness for Important Columns */
+.sticky-col-1 {
+  position: sticky !important;
+  left: 0;
+  z-index: 80;
+  background: white !important;
+}
+
+.sticky-col-2 {
+  position: sticky !important;
+  left: 60px; /* Width of col 1 */
+  z-index: 80;
+  background: white !important;
+  box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #f1f5f9;
+}
+
+
+thead th.sticky-col-1,
+thead th.sticky-col-2 {
+  z-index: 150 !important;
+  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%) !important;
+}
+
+/* Responsive: Disable second sticky column on smaller screens */
 @media (max-width: 1280px) {
-  .data-table th, .data-table td {
-    padding: 10px 8px;
-  }
+    .sticky-col-2,
+    thead th.sticky-col-2 {
+        position: static !important;
+        left: auto !important;
+        box-shadow: none !important;
+        border-right: none !important;
+    }
+}
+
+tbody tr:nth-child(even) .sticky-col-1,
+tbody tr:nth-child(even) .sticky-col-2 {
+  background-color: #fbfcfe !important;
+}
+
+tbody tr:hover .sticky-col-1,
+tbody tr:hover .sticky-col-2 {
+  background-color: #f0f7ff !important;
+}
+
+.data-table tbody tr:nth-child(even) td {
+  background-color: #fbfcfe; /* Subtle zebra */
+}
+
+/* Focus & Hover Interaction */
+.data-table tbody tr {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.data-table tbody tr:hover td {
+  background-color: #f0f7ff !important;
+  color: var(--primary-color);
+  cursor: pointer;
 }
 
 .data-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.data-table tbody tr:hover {
-  background-color: #f8fafc;
-}
-
 /* Status Badges */
+/* Modern Status Badges */
 .status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 6px 14px;
+  border-radius: 10px;
   font-size: 12px;
-  font-weight: 600;
-  display: inline-block;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
 }
 
-.status-confirmed { background: #dcfce7; color: #166534; }
-.status-pending { background: #fef9c3; color: #854d0e; }
-.status-analysis { background: #dbeafe; color: #1e40af; }
-.status-default { background: #f3f4f6; color: #374151; }
+.status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-confirmed { background: #ecfdf5; color: #059669; }
+.status-confirmed::before { background: #059669; }
+
+.status-pending { background: #fffbeb; color: #d97706; }
+.status-pending::before { background: #d97706; }
+
+.status-analysis { background: #eff6ff; color: #2563eb; }
+.status-analysis::before { background: #2563eb; }
+
+.status-default { background: #f8fafc; color: #64748b; }
+.status-default::before { background: #64748b; }
 
 /* Shared Student/User Lists Styles */
 .student-info {
@@ -416,6 +613,15 @@ body {
 .btn-more-actions:hover {
   background: #f1f5f9;
   color: var(--primary-color);
+}
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: 120px;
 }
 
 .btn-primary-action {
@@ -472,15 +678,18 @@ body {
 /* TopNavbar Styles */
 .top-navbar {
   height: 64px;
-  background-color: var(--card-bg);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
+  padding: 0 24px;
   position: sticky;
   top: 0;
-  z-index: 999;
+  z-index: 500;
+  pointer-events: auto;
+  width: 100%;
 }
 
 .top-navbar-left, .top-navbar-right {
@@ -788,3 +997,123 @@ body {
     cursor: pointer;
 }
 
+/* Responsividade para Laptops e Telas Médias */
+@media (max-width: 1440px) {
+    .content {
+        padding: 24px 30px;
+    }
+    
+    .sidebar {
+        width: 240px;
+    }
+}
+
+@media (max-width: 1280px) {
+    /* On laptops, we don't force width, but we might want different defaults. 
+       The JS state will handle the 'sidebar-closed' or 'sidebar-open' class. */
+    
+    .sidebar.sidebar-closed .sidebar-brand span,
+    .sidebar.sidebar-closed .nav-item span,
+    .sidebar.sidebar-closed .sidebar-footer span {
+        display: none;
+    }
+
+    .sidebar.sidebar-closed .nav-item {
+        justify-content: center;
+        padding: 12px;
+    }
+    
+    .sidebar.sidebar-closed .sidebar-header {
+        justify-content: center;
+    }
+}
+
+/* Ensure tables never squish too much and have a fixed header */
+.table-wrapper {
+    width: 100%;
+    max-height: 72vh; /* Optimal height for laptop screens */
+    overflow: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    position: relative;
+}
+
+.data-table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Force headers to be sticky and opaque */
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    opacity: 1;
+    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+}
+
+/* Custom horizontal scrollbar for the table wrapper */
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 0 0 20px 20px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Prevent white flash during navigation */
+.content-wrapper {
+    background-color: var(--bg-color);
+    min-height: 100vh;
+}
+
+.page-container {
+    opacity: 1;
+    /* will-change: opacity removido para evitar Stacking Context Trap que impede modais de cobrir o Navbar */
+}
+
+/* Skeleton Loading for smoother transitions */
+.skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 6px;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Fix for modals appearing under TopNavbar */
+/* Global Modal Overlay - Must be above EVERYTHING */
+.modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(8px) !important; /* Premium blur effect */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99999 !important; /* Absolute top */
+    margin: 0 !important;
+    padding: 20px !important;
+}

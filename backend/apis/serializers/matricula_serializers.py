@@ -45,7 +45,8 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'curso_nome',
             'sala_numero',
             'periodo_nome',
-            'data_matricula', 'ativo'
+            'data_matricula', 'ativo',
+            'tipo', 'status', 'doc_bi', 'doc_certificado'
         ]
         read_only_fields = ['id_matricula', 'data_matricula']
         extra_kwargs = {

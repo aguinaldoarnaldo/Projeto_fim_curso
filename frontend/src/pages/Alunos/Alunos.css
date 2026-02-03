@@ -34,7 +34,7 @@
 }
 
 .search-filter-header {
-    padding: 24px;
+    padding: 16px 24px 8px 24px;
     border-bottom: 1px solid #f3f4f6;
     display: flex;
     justify-content: space-between;
@@ -134,19 +134,52 @@
 }
 
 /* Table styles */
+
+/* Sortable Headers Styling (Shared logic) */
+.data-table th {
+    position: relative;
+    user-select: none;
+}
+
+.sortable-header {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding-right: 24px !important; /* Make room for icon */
+}
+
+.sortable-header:hover {
+    color: var(--primary-color);
+    background-color: #f1f5f9;
+}
+
+.sortable-header.active-sort {
+    color: var(--primary-color);
+    background-color: #f0f9ff;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.sort-icon {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.sortable-header:hover .sort-icon,
+.sortable-header.active-sort .sort-icon {
+    opacity: 1;
+}
+
 .student-id {
     font-weight: 700;
     color: var(--primary-color);
 }
 
 
-/* Wrapper for scroll */
-.table-scroll-container {
-    max-height: 65vh;
-    overflow-y: auto;
-    overflow-x: auto;
-    max-width: 100%;
-}
 
 .student-info {
     display: flex;
@@ -205,12 +238,12 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(5px);
+    background: rgba(0,0,0,0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
+    /* Z-INDEX removido e movido para Global.css para consistência */
+    backdrop-filter: blur(6px);
 }
 
 .detail-modal-card {
@@ -343,6 +376,13 @@ table td, .table td {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 32px;
+}
+
+.info-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    align-items: start;
 }
 
 .info-label {
@@ -500,6 +540,17 @@ table td, .table td {
 }
 
 /* Animations */
+@keyframes slideDownFade {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @keyframes slideUpFade {
     0% {
         opacity: 0;
@@ -539,4 +590,108 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
     border-top-color: var(--primary-color);
     border-radius: 50%;
     animation: spinner 0.8s linear infinite;
+}
+
+/* Dropdown Menu Styles */
+.actions-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 5px);
+    width: 210px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2), 0 8px 15px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    z-index: 9999;
+    padding: 8px;
+    animation: slideDownFade 0.2s ease-out;
+}
+
+.dropdown-item {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background: #f8fafc;
+    color: var(--primary-color);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 6px 0;
+}
+
+.dropdown-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 14px 4px;
+}
+
+.dropdown-item.danger {
+    color: #ef4444;
+}
+
+.dropdown-item.danger:hover {
+    background: #fef2f2;
+}
+
+.dropdown-item.success {
+    color: #10b981;
+}
+
+.dropdown-item.success:hover {
+    background: #ecfdf5;
+}
+
+.dropdown-item.warning {
+    color: #f59e0b;
+}
+
+.dropdown-item.warning:hover {
+    background: #fffbeb;
+}
+
+.submenu-parent {
+    position: relative;
+}
+
+.submenu {
+    position: absolute;
+    right: 100%;
+    top: 0;
+    margin-right: 4px;
+    width: 180px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    padding: 6px;
+    display: none;
+    z-index: 10001;
+}
+
+.submenu-parent:hover .submenu {
+    display: block;
 }

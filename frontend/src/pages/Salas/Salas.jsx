@@ -10,14 +10,17 @@ import {
     MapPin,
     Grid,
     Layers,
-    Monitor
+    LayoutGrid
 } from 'lucide-react';
 import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
+import { usePermission } from '../../hooks/usePermission';
+import { PERMISSIONS } from '../../utils/permissions';
 import './Salas.css';
 
 const Salas = () => {
+    const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
@@ -164,17 +167,19 @@ const Salas = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container salas-page">
             <header className="page-header">
                 <div className="salas-header-content">
                     <div>
                         <h1>Gestão de Salas</h1>
                         <p>Controlo e distribuição das salas de aula e laboratórios.</p>
                     </div>
-                    <button onClick={handleAdd} className="btn-primary-action">
-                        <Plus size={20} />
-                        Nova Sala
-                    </button>
+                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                        <button onClick={handleAdd} className="btn-primary-action">
+                            <Plus size={20} />
+                            Nova Sala
+                        </button>
+                    )}
                 </div>
 
 
@@ -237,7 +242,7 @@ const Salas = () => {
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             color: '#475569'
                                                         }}>
-                                                            <Monitor size={18} />
+                                                            <LayoutGrid size={18} />
                                                         </div>
                                                          <div>
                                                             <span>Sala {s.numero_sala}</span>
@@ -266,30 +271,65 @@ const Salas = () => {
                                                 <td>
                                                     <div className="capacity-wrapper">
                                                         <div className="capacity-text">
-                                                            <span>{s.total_alunos || 0} / {s.capacidade_alunos} Ocupado</span>
-                                                            <span style={{fontSize: '11px', color: '#94a3b8'}}>
-                                                                {Math.round(((s.total_alunos || 0) / s.capacidade_alunos) * 100)}% Cheia
-                                                            </span>
+                                                            {(() => {
+                                                                const detalhada = s.ocupacao_detalhada || {};
+                                                                const values = Object.values(detalhada);
+                                                                const maxOcupacao = values.length > 0 ? Math.max(...values) : 0;
+                                                                const percent = Math.round((maxOcupacao / s.capacidade_alunos) * 100);
+                                                                
+                                                                return (
+                                                                    <>
+                                                                        <span title="Ocupação Máxima (Pior Turno)">{maxOcupacao} / {s.capacidade_alunos} (Máx)</span>
+                                                                        <span style={{fontSize: '11px', color: '#94a3b8'}}>
+                                                                            {percent}% Ocupada
+                                                                        </span>
+                                                                    </>
+                                                                );
+                                                            })()}
                                                         </div>
-                                                        <div className="capacity-bar-bg">
-                                                            <div 
-                                                                className="capacity-bar-fill" 
-                                                                style={{
-                                                                    width: `${Math.min(((s.total_alunos || 0) / s.capacidade_alunos) * 100, 100)}%`,
-                                                                    background: getCapacityColor(s.capacidade_alunos)
-                                                                }}
-                                                            />
+                                                        
+                                                        {/* Progress Bar (Based on MAX occupancy) */}
+                                                        {(() => {
+                                                             const values = Object.values(s.ocupacao_detalhada || {});
+                                                             const maxOcupacao = values.length > 0 ? Math.max(...values) : 0;
+                                                             const percent = Math.min((maxOcupacao / s.capacidade_alunos) * 100, 100);
+                                                             
+                                                             return (
+                                                                <div className="capacity-bar-bg">
+                                                                    <div 
+                                                                        className="capacity-bar-fill" 
+                                                                        style={{
+                                                                            width: `${percent}%`,
+                                                                            background: percent >= 100 ? '#ef4444' : (percent >= 80 ? '#f59e0b' : '#3b82f6')
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                             );
+                                                        })()}
+
+                                                        {/* Shift Breakdown */}
+                                                        <div style={{display: 'flex', gap: '8px', marginTop: '6px', fontSize: '10px', color: '#64748b', flexWrap: 'wrap'}}>
+                                                            {Object.entries(s.ocupacao_detalhada || {}).map(([turno, qtd]) => (
+                                                                <span key={turno} style={{background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0'}}>
+                                                                    {turno}: <b>{qtd}</b>
+                                                                </span>
+                                                            ))}
+                                                            {Object.keys(s.ocupacao_detalhada || {}).length === 0 && (
+                                                                <span>Sem alunos</span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <button
-                                                        onClick={() => handleEdit(s)}
-                                                        className="btn-edit-sala"
-                                                        title="Editar Sala"
-                                                    >
-                                                        <Edit3 size={18} />
-                                                    </button>
+                                                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                                                        <button
+                                                            onClick={() => handleEdit(s)}
+                                                            className="btn-edit-sala"
+                                                            title="Editar Sala"
+                                                        >
+                                                            <Edit3 size={18} />
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
@@ -310,7 +350,7 @@ const Salas = () => {
 
             {/* Modal de Criar/Editar Sala */}
             {showModal && (
-                <div className="modal-overlay-salas">
+                <div className="modal-overlay">
                     <div className="modal-content-salas">
                         <div className="modal-header-salas">
                             <h2 className="modal-title-salas">

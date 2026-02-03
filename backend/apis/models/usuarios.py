@@ -1,6 +1,7 @@
 from django.db import models
 from .base import BaseModel
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User
 
 
 class Cargo(BaseModel):
@@ -18,8 +19,52 @@ class Cargo(BaseModel):
         return self.nome_cargo
 
 
+class Usuario(BaseModel):
+    """
+    Usuário do Sistema (Login e Permissões).
+    Agora atua como PERFIL estendido do User nativo.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='profile', verbose_name='Auth User')
+    id_usuario = models.AutoField(primary_key=True)
+    nome_completo = models.CharField(max_length=150, verbose_name='Nome Completo')
+    email = models.EmailField(max_length=150, unique=True, verbose_name='Email')
+    senha_hash = models.CharField(max_length=255, verbose_name='Senha')
+    
+    # Controle de Acesso
+    is_active = models.BooleanField(default=True, verbose_name='Activo')
+    is_superuser = models.BooleanField(default=False, verbose_name='Superusuário')
+    permissoes = models.JSONField(default=list, blank=True, verbose_name='Permissões')
+    papel = models.CharField(max_length=50, default='Comum', verbose_name='Papel/Role') # Admin, Comum
+    
+    # Cargo no sistema (RBAC baseado em Cargo)
+    cargo = models.ForeignKey('Cargo', on_delete=models.PROTECT, null=True, blank=True, verbose_name='Cargo/Função')
+
+    # Flag para saber se é funcionário (opcional, pode ser inferido pelo relacionamento)
+    is_funcionario = models.BooleanField(default=False)
+    
+    img_path = models.ImageField(upload_to="image/usuarios/images/", null=True, blank=True, verbose_name='Foto')
+    is_online = models.BooleanField(default=False, verbose_name='Online')
+
+    class Meta:
+        db_table = 'usuario'
+        verbose_name = 'Usuário'
+        verbose_name_plural = 'Usuários'
+        ordering = ['nome_completo']
+
+    def __str__(self):
+        return self.email
+
+    def save(self, *args, **kwargs):
+        if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
+            self.senha_hash = make_password(self.senha_hash)
+        super(Usuario, self).save(*args, **kwargs)
+
+
 class Funcionario(BaseModel):
     """Funcionários do sistema (Professores, Secretários, Administradores)"""
+    # Link com Usuário do Sistema (Opcional, pois pode existir funcionário sem acesso ao sistema, ou vice-versa)
+    usuario = models.OneToOneField(Usuario, on_delete=models.PROTECT, null=True, blank=True, related_name='funcionario_perfil', verbose_name='Usuário de Sistema')
+    
     
     GENERO_CHOICES = [
         ('F', 'Feminino'),
@@ -37,7 +82,7 @@ class Funcionario(BaseModel):
     numero_bi = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name='Número do BI')
     codigo_identificacao = models.CharField(max_length=50, unique=True, verbose_name='Código de Identificação')
     nome_completo = models.CharField(max_length=150, verbose_name='Nome Completo')
-    id_cargo = models.ForeignKey(Cargo, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Cargo')
+    id_cargo = models.ForeignKey(Cargo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Cargo')
     genero = models.CharField(max_length=1, choices=GENERO_CHOICES, null=True, blank=True)
     email = models.EmailField(max_length=150, unique=True, null=True, blank=True)
     telefone = models.CharField(max_length=30, null=True, blank=True)
@@ -50,6 +95,7 @@ class Funcionario(BaseModel):
     data_admissao = models.DateField(null=True, blank=True, verbose_name='Data de Admissão')
     is_online = models.BooleanField(default=False, verbose_name='Online')
     img_path = models.ImageField(upload_to="image/funcionario/images/",null=True, blank=True, verbose_name='Foto')
+    permissoes_adicionais = models.JSONField(default=list, blank=True, verbose_name='Permissões Adicionais')
     
     class Meta:
         db_table = 'funcionario'
@@ -72,9 +118,13 @@ class Funcionario(BaseModel):
     @property
     def is_superuser(self):
         """Allows all permissions"""
-        # Simplificação: se for Diretor ou Admin, é superuser
-        if self.id_cargo and 'Diretor' in self.id_cargo.nome_cargo:
-            return True
+    @property
+    def is_superuser(self):
+        """Allows all permissions"""
+        if self.id_cargo:
+             cargo = self.id_cargo.nome_cargo.lower()
+             if any(role in cargo for role in ['diretor', 'administrador', 'admin', 'coordenador']):
+                 return True
         return False
     
     @property
@@ -92,6 +142,8 @@ class Encarregado(BaseModel):
     """Responsáveis pelos alunos (Pais/Tutores)"""
     id_encarregado = models.AutoField(primary_key=True)
     nome_completo = models.CharField(max_length=150, verbose_name='Nome Completo')
+    numero_bi = models.CharField(max_length=20, null=True, blank=True, verbose_name='Número do BI')
+    profissao = models.CharField(max_length=100, null=True, blank=True, verbose_name='Profissão')
     email = models.EmailField(max_length=150, unique=True, null=True, blank=True)
     telefone = models.JSONField(default=list, verbose_name='Telefones')
     provincia_residencia = models.CharField(max_length=100, null=True, blank=True)

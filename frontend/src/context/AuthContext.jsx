@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { hasPermission } from '../utils/permissions';
 
 const AuthContext = createContext();
 
@@ -11,54 +12,57 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Verificar se existe token e carregar usuário
         const loadUser = async () => {
-            const token = localStorage.getItem('@App:token');
-            const storedUser = localStorage.getItem('@App:user');
+            // Priority to Session Storage (Isolated Per Tab)
+            const token = sessionStorage.getItem('@App:token');
+            const storedUser = sessionStorage.getItem('@App:user');
+            
+            // Cleanup LocalStorage to prevent conflicts if switching back
+            localStorage.removeItem('@App:token');
+            localStorage.removeItem('@App:user');
 
             if (token && storedUser) {
                 try {
                     let parsedUser = JSON.parse(storedUser);
                     
-                    // CORREÇÃO DE ESTRUTURA: Se o usuário foi salvo como { user: {...} }, extraímos a parte interna
                     if (parsedUser.user && typeof parsedUser.user === 'object') {
-                        console.log("Corrigindo estrutura do usuário em cache...");
                         parsedUser = parsedUser.user;
-                        localStorage.setItem('@App:user', JSON.stringify(parsedUser));
+                        sessionStorage.setItem('@App:user', JSON.stringify(parsedUser));
                     }
 
-                    // Validação mínima para garantir que não é lixo
-                    if (!parsedUser.id && !parsedUser.email && !parsedUser.nome) {
-                        throw new Error("Dados do usuário inválidos/incompletos.");
+                    if (parsedUser.id || parsedUser.email || parsedUser.nome) {
+                        // RECOVERY: Set User & Token IMMEDIATELY and stop loading to show UI
+                        setUser(parsedUser);
+                        api.defaults.headers.Authorization = `Bearer ${token}`;
+                        setLoading(false); // Unblock UI here!
+                    } else {
+                        throw new Error("Invalid user data");
                     }
 
-                    // Restaurar sessão imediatamente (optimistic UI)
-                    setUser(parsedUser);
-                    api.defaults.headers.Authorization = `Bearer ${token}`;
-
-                    // Validar sessão em background
+                    // Background Verification (Does not block UI)
                     try {
                         const response = await api.get('auth/me/');
-                        // Se sucesso, atualizamos com os dados frescos do servidor
                         const validUser = response.data.user || response.data;
-                        setUser(validUser);
-                        localStorage.setItem('@App:user', JSON.stringify(validUser));
+                        // Silently update if data changed
+                        if (JSON.stringify(validUser) !== JSON.stringify(parsedUser)) {
+                            setUser(validUser);
+                            sessionStorage.setItem('@App:user', JSON.stringify(validUser));
+                        }
                     } catch (error) {
-                         console.error("Validação de sessão falhou:", error);
-                         // Se o erro for de autenticação (401/403), o token é inválido. Logout forçado.
+                         console.error("Background session validation failed:", error);
+                         // Only logout on definitive Auth failures
                          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                              signOut();
-                         } else {
-                             // Se for erro de rede ou outro (500), mantemos o usuário logado (offline mode)
-                             // ou decidimos fazer logout. Para segurança, se não validou, melhor avisar.
-                             console.warn("Erro de conexão ou servidor. Mantendo sessão offline temporariamente.");
                          }
                     }
 
                 } catch (e) {
-                    console.error("Erro ao carregar sessão salva. Limpando dados...", e);
+                    console.error("Error parsing stored session", e);
                     signOut();
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         loadUser();
@@ -71,7 +75,7 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('auth/login/', {
                 email: email, 
                 senha: password,
-                tipo_usuario: 'funcionario' 
+                tipo_usuario: 'usuario' 
             });
 
             const { access, refresh, user } = response.data;
@@ -87,8 +91,8 @@ export const AuthProvider = ({ children }) => {
             // Para garantir, vamos setar o token
             const token = access || response.data.token;
             
-            localStorage.setItem('@App:token', token);
-            // localStorage.setItem('@App:refreshToken', refresh); // Se usar refresh token
+            sessionStorage.setItem('@App:token', token);
+            // sessionStorage.setItem('@App:refreshToken', refresh); // Se usar refresh token
 
             // Buscar dados do usuário (se não vier no login)
             let userData = user;
@@ -103,7 +107,7 @@ export const AuthProvider = ({ children }) => {
                  }
             }
 
-            localStorage.setItem('@App:user', JSON.stringify(userData));
+            sessionStorage.setItem('@App:user', JSON.stringify(userData));
             setUser(userData);
             api.defaults.headers.Authorization = `Bearer ${token}`;
             
@@ -120,13 +124,17 @@ export const AuthProvider = ({ children }) => {
     const updateProfile = async (data) => {
         setLoading(true);
         try {
-            const response = await api.put('auth/profile/update/', data);
+            const config = data instanceof FormData ? {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            } : {};
+            
+            const response = await api.put('auth/profile/update/', data, config);
             
             if (response.data.user) {
                 // Mesclar dados atuais com as atualizações
                 const updatedUser = { ...user, ...response.data.user };
                 setUser(updatedUser);
-                localStorage.setItem('@App:user', JSON.stringify(updatedUser));
+                sessionStorage.setItem('@App:user', JSON.stringify(updatedUser));
             }
             
             return { success: true, message: response.data.message };
@@ -141,14 +149,21 @@ export const AuthProvider = ({ children }) => {
     };
 
     const signOut = () => {
-        localStorage.removeItem('@App:token');
-        localStorage.removeItem('@App:user');
+        sessionStorage.removeItem('@App:token');
+        sessionStorage.removeItem('@App:user');
+        localStorage.removeItem('@App:token'); // Garante limpeza total
+        localStorage.removeItem('@App:user');  // Garante limpeza total
         setUser(null);
         delete api.defaults.headers.Authorization;
     };
 
+    // Helper wrapper to check permission for current user
+    const checkPermission = (permission) => {
+        return hasPermission(user, permission);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, signed: !!user, signIn, signOut, updateProfile, loading, error }}>
+        <AuthContext.Provider value={{ user, signed: !!user, signIn, signOut, updateProfile, loading, error, hasPermission: checkPermission }}>
             {children}
         </AuthContext.Provider>
     );

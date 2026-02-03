@@ -68,7 +68,7 @@ class Departamento(models.Model):
     nome_departamento = models.CharField(max_length=150, verbose_name='Nome do Departamento')
     chefe_id_funcionario = models.ForeignKey(
         Funcionario, 
-        on_delete=models.SET_NULL, 
+        on_delete=models.PROTECT, 
         null=True, 
         blank=True,
         related_name='departamentos_chefiados',
@@ -91,7 +91,7 @@ class Seccao(models.Model):
     nome_seccao = models.CharField(max_length=150, verbose_name='Nome da Seção')
     id_departamento = models.ForeignKey(
         Departamento, 
-        on_delete=models.SET_NULL, 
+        on_delete=models.PROTECT, 
         null=True, 
         blank=True,
         verbose_name='Departamento'
@@ -113,7 +113,7 @@ class AreaFormacao(BaseModel):
     nome_area = models.CharField(max_length=150, verbose_name='Nome da Área')
     id_responsavel = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='areas_coordenadas',
@@ -136,7 +136,7 @@ class Curso(BaseModel):
     nome_curso = models.CharField(max_length=150, verbose_name='Nome do Curso')
     id_area_formacao = models.ForeignKey(
         AreaFormacao,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         verbose_name='Área de Formação'
@@ -144,7 +144,7 @@ class Curso(BaseModel):
     duracao = models.IntegerField(null=True, blank=True, verbose_name='Duração (Anos)',default=4)
     id_responsavel = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='cursos_coordenados',
@@ -174,7 +174,7 @@ class Periodo(models.Model):
     periodo = models.CharField(max_length=10, choices=PERIODO_CHOICES)
     id_responsavel = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='periodos_responsaveis',
@@ -198,17 +198,17 @@ class Turma(BaseModel):
     ]
 
     id_turma = models.AutoField(primary_key=True)
-    id_sala = models.ForeignKey(Sala, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Sala')
+    id_sala = models.ForeignKey(Sala, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Sala')
     id_curso = models.ForeignKey(Curso, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Curso')
-    id_classe = models.ForeignKey(Classe, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Classe')
-    id_periodo = models.ForeignKey(Periodo, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Período')
+    id_classe = models.ForeignKey(Classe, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Classe')
+    id_periodo = models.ForeignKey(Periodo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Período')
     ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Ano Lectivo')
-    ano = models.CharField(null=True, blank=True, verbose_name='Ano (Legacy)',default=f"{str(datetime.date.year)}")
+    ano = models.CharField(null=True, blank=True, verbose_name='Ano (Legacy)', default=lambda: str(datetime.date.today().year))
     codigo_turma = models.CharField(max_length=50, unique=True, verbose_name='Código da Turma')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativa', verbose_name='Estado da Turma')
     id_responsavel = models.ForeignKey(
         Funcionario,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name='turmas_responsaveis',

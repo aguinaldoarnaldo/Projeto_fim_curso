@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { User, Mail, Shield, Camera, Save, Lock, Calendar, MapPin } from 'lucide-react';
+import { User, Mail, Shield, Camera, Save, Lock, MapPin, Key, Phone, Edit3 } from 'lucide-react';
 import './Perfil.css';
 
 const Perfil = () => {
     const { user, updateProfile } = useAuth();
-    const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState('dados'); // 'dados' | 'seguranca'
     const [loading, setLoading] = useState(false);
+    const [profilePhoto, setProfilePhoto] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const fileInputRef = useRef(null);
     
-    // Mock state for form since we might not have a real update endpoint ready yet
     const [formData, setFormData] = useState({
         nome: user?.nome_completo || user?.username || '',
         email: user?.email || '',
@@ -26,10 +28,18 @@ const Perfil = () => {
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     };
 
+    const handlePhotoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProfilePhoto(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         
-        if (formData.newPassword) {
+        if (activeTab === 'seguranca') {
             if (formData.newPassword !== formData.confirmPassword) {
                 alert("As novas senhas não coincidem!");
                 return;
@@ -41,195 +51,230 @@ const Perfil = () => {
         }
 
         setLoading(true);
-        const result = await updateProfile(formData);
-        setLoading(false);
+        const dataToSubmit = new FormData();
+        
+        if (activeTab === 'dados') {
+            dataToSubmit.append('nome_completo', formData.nome);
+            dataToSubmit.append('endereco', formData.endereco);
+            dataToSubmit.append('telefone', formData.telefone);
+            if (profilePhoto) {
+                dataToSubmit.append('foto', profilePhoto);
+            }
+        } else if (activeTab === 'seguranca') {
+            dataToSubmit.append('current_password', formData.currentPassword);
+            dataToSubmit.append('new_password', formData.newPassword);
+        }
 
-        if (result.success) {
-            alert(result.message);
-            setIsEditing(false);
-            setFormData(prev => ({
-                ...prev,
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            }));
-        } else {
-            alert(result.message);
+        try {
+            const result = await updateProfile(dataToSubmit);
+            if (result.success) {
+                alert("Perfil atualizado com sucesso!");
+                // Clear password fields if on security tab
+                if (activeTab === 'seguranca') {
+                    setFormData(prev => ({
+                        ...prev,
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    }));
+                }
+            } else {
+                alert(result.message || "Erro ao atualizar perfil.");
+            }
+        } catch (error) {
+            console.error("Erro no updateProfile:", error);
+            alert("Ocorreu um erro inesperado.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="perfil-container page-container">
-            <div className="perfil-header">
-                <h1>Meu Perfil</h1>
-                <p>Gerencie suas informações pessoais, privacidade e segurança.</p>
-            </div>
-
-            <div className="perfil-grid">
-                {/* Profile Card */}
-                <div className="profile-card">
-                    <div className="profile-cover">
-                        <div className="profile-avatar-container">
-                            <div className="profile-avatar">
-                                {user?.profilePhoto ? (
-                                    <img src={user.profilePhoto} alt="Profile" />
+        <div className="perfil-page-v3">
+            <div className="perfil-layout-v3">
+                {/* Fixed Sidebar Card */}
+                <aside className="perfil-sidebar-v3">
+                    <div className="profile-hero-card">
+                        <div className="avatar-wrapper">
+                            <div className="avatar-circle">
+                                {previewUrl ? (
+                                    <img src={previewUrl} alt="Preview" />
+                                ) : user?.foto ? (
+                                    <img src={user.foto} alt="Profile" />
                                 ) : (
-                                    <div className="profile-initials">
+                                    <div className="avatar-initials">
                                         {getInitials(user?.nome_completo || user?.username)}
                                     </div>
                                 )}
                             </div>
-                            <button className="profile-camera-btn" title="Alterar foto">
-                                <Camera size={18} />
+                            <button 
+                                className="change-photo-btn"
+                                onClick={() => fileInputRef.current.click()}
+                                title="Alterar Foto"
+                            >
+                                <Camera size={16} />
                             </button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                style={{display: 'none'}} 
+                                accept="image/*"
+                                onChange={handlePhotoChange}
+                            />
                         </div>
+                        <h2 className="user-displayName">{user?.nome_completo || 'Usuário'}</h2>
+                        <p className="user-roleTag">{user?.cargo || 'Administrador'}</p>
                     </div>
-                    <div className="profile-info">
-                        <h2 className="profile-name">{user?.nome_completo || user?.username}</h2>
-                        <div className="profile-role-badge">
-                            {user?.role || user?.cargo || 'Administrador'}
-                        </div>
 
-                        <div className="profile-details">
-                            <div className="profile-detail-item">
-                                <Mail size={18} />
-                                <span>{user?.email || 'Sem email registado'}</span>
-                            </div>
-                            <div className="profile-detail-item">
-                                <Shield size={18} />
-                                <span>ID: {user?.id || 'N/A'}</span>
-                            </div>
-                            <div className="profile-detail-item">
-                                <Calendar size={18} />
-                                <span>Membro desde {new Date().getFullYear()}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Settings Form */}
-                <div className="settings-card">
-                    <div className="settings-header">
-                        <h2>Informações da Conta</h2>
+                    <nav className="perfil-menu-v3">
                         <button 
-                            className={`edit-toggle-btn ${isEditing ? 'active' : ''}`}
-                            onClick={() => setIsEditing(!isEditing)}
+                            className={`menu-item-v3 ${activeTab === 'dados' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('dados')}
                         >
-                            {isEditing ? 'Cancelar Edição' : 'Editar Perfil'}
+                            <User size={20} />
+                            <span>Informações Pessoais</span>
                         </button>
-                    </div>
+                        <button 
+                            className={`menu-item-v3 ${activeTab === 'seguranca' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('seguranca')}
+                        >
+                            <Shield size={20} />
+                            <span>Segurança e Senha</span>
+                        </button>
+                    </nav>
 
-                    <form onSubmit={handleSave}>
-                        <div className="form-section">
-                            <div className="section-title">
-                                <User size={20} className="text-primary" />
-                                Dados Pessoais
+                    <div className="sidebar-stats">
+                        <div className="stat-row">
+                            <label>ID de Usuário</label>
+                            <span>#{user?.id_usuario || user?.id || '---'}</span>
+                        </div>
+                        <div className="stat-row">
+                            <label>Desde</label>
+                            <span>{user?.date_joined ? new Date(user.date_joined).getFullYear() : new Date().getFullYear()}</span>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Content Area */}
+                <main className="perfil-main-v3">
+                    <div className="content-island-v3">
+                        <header className="island-header-v3">
+                            <div className="header-icon">
+                                {activeTab === 'dados' ? <Edit3 size={24} /> : <Lock size={24} />}
                             </div>
-                            <div className="form-grid">
-                                <div className="full-width">
-                                    <div className="form-group">
-                                        <label className="form-label">Nome Completo</label>
-                                        <div className="input-wrapper">
-                                            <User size={18} className="input-icon" />
+                            <div className="header-text">
+                                <h1>{activeTab === 'dados' ? 'Editar Informações' : 'Alterar Senha'}</h1>
+                                <p>{activeTab === 'dados' ? 'Mantenha seus dados de contato e endereço atualizados.' : 'Recomendamos o uso de uma senha forte para maior segurança.'}</p>
+                            </div>
+                        </header>
+
+                        <form className="perfil-form-v3" onSubmit={handleSave}>
+                            {activeTab === 'dados' ? (
+                                <div className="form-grid-v3">
+                                    <div className="form-input-v3 full">
+                                        <label>Nome Completo</label>
+                                        <div className="field-group">
+                                            <User size={18} className="field-icon" />
                                             <input 
-                                                type="text" 
-                                                className="form-input"
                                                 value={formData.nome}
-                                                onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                                                disabled={!isEditing}
+                                                onChange={e => setFormData({...formData, nome: e.target.value})}
                                                 placeholder="Seu nome completo"
                                             />
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">Email</label>
-                                    <div className="input-wrapper">
-                                        <Mail size={18} className="input-icon" />
-                                        <input 
-                                            type="email" 
-                                            className="form-input"
-                                            value={formData.email}
-                                            disabled
-                                            title="O email não pode ser alterado"
-                                        />
+                                    <div className="form-input-v3">
+                                        <label>Email Corporativo</label>
+                                        <div className="field-group disabled">
+                                            <Mail size={18} className="field-icon" />
+                                            <input value={formData.email} disabled />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-input-v3">
+                                        <label>Telemóvel</label>
+                                        <div className="field-group">
+                                            <Phone size={18} className="field-icon" />
+                                            <input 
+                                                value={formData.telefone}
+                                                onChange={e => setFormData({...formData, telefone: e.target.value})}
+                                                placeholder="9XX XXX XXX"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-input-v3 full">
+                                        <label>Endereço de Residência</label>
+                                        <div className="field-group">
+                                            <MapPin size={18} className="field-icon" />
+                                            <input 
+                                                value={formData.endereco}
+                                                onChange={e => setFormData({...formData, endereco: e.target.value})}
+                                                placeholder="Província, Município, Bairro..."
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className="form-grid-v3">
+                                    <div className="form-input-v3 full">
+                                        <label>Senha Atual</label>
+                                        <div className="field-group">
+                                            <Key size={18} className="field-icon" />
+                                            <input 
+                                                type="password"
+                                                value={formData.currentPassword}
+                                                onChange={e => setFormData({...formData, currentPassword: e.target.value})}
+                                                placeholder="Confirme sua senha atual"
+                                            />
+                                        </div>
+                                    </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">Endereço</label>
-                                    <div className="input-wrapper">
-                                        <MapPin size={18} className="input-icon" />
-                                        <input 
-                                            type="text" 
-                                            className="form-input"
-                                            value={formData.endereco}
-                                            onChange={(e) => setFormData({...formData, endereco: e.target.value})}
-                                            disabled={!isEditing}
-                                            placeholder="Não informado"
-                                        />
+                                    <div className="divider-v3"><span>Nova Identidade</span></div>
+
+                                    <div className="form-input-v3">
+                                        <label>Nova Senha</label>
+                                        <div className="field-group">
+                                            <Lock size={18} className="field-icon" />
+                                            <input 
+                                                type="password"
+                                                value={formData.newPassword}
+                                                onChange={e => setFormData({...formData, newPassword: e.target.value})}
+                                                placeholder="Mínimo 8 caracteres"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="form-input-v3">
+                                        <label>Confirmar Nova Senha</label>
+                                        <div className="field-group">
+                                            <Lock size={18} className="field-icon" />
+                                            <input 
+                                                type="password"
+                                                value={formData.confirmPassword}
+                                                onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                                                placeholder="Repita a nova senha"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                            )}
+
+                            <div className="form-footer-v3">
+                                <button type="submit" className="save-button-v3" disabled={loading}>
+                                    {loading ? (
+                                        <div className="loading-spinner-v3"></div>
+                                    ) : (
+                                        <>
+                                            <Save size={20} />
+                                            <span>Salvar Alterações</span>
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </div>
-
-                        {isEditing && (
-                            <div className="form-section password-section">
-                                <div className="section-title">
-                                    <Lock size={20} className="text-primary" />
-                                    Segurança
-                                </div>
-                                <div className="form-grid">
-                                    <div className="form-group">
-                                        <label className="form-label">Senha Atual</label>
-                                        <div className="input-wrapper">
-                                            <Lock size={18} className="input-icon" />
-                                            <input 
-                                                type="password" 
-                                                className="form-input"
-                                                placeholder="••••••••"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Nova Senha</label>
-                                        <div className="input-wrapper">
-                                            <Lock size={18} className="input-icon" />
-                                            <input 
-                                                type="password" 
-                                                className="form-input"
-                                                placeholder="••••••••"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Confirmar Senha</label>
-                                        <div className="input-wrapper">
-                                            <Lock size={18} className="input-icon" />
-                                            <input 
-                                                type="password" 
-                                                className="form-input"
-                                                placeholder="••••••••"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="form-actions">
-                                    <button type="submit" className="save-btn" disabled={loading}>
-                                        {loading ? 'Salvando...' : (
-                                            <>
-                                                <Save size={18} />
-                                                Salvar Alterações
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </form>
-                </div>
+                        </form>
+                    </div>
+                </main>
             </div>
         </div>
     );

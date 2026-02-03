@@ -1,0 +1,119 @@
+/* Matriculas.css - Table Responsiveness Optimization */
+
+/* Specific column width optimizations for Matriculas table */
+.matriculas-page .data-table {
+    table-layout: auto;
+}
+
+/* Optimize specific columns with strict truncation */
+.matriculas-page .data-table .col-ano {
+    min-width: 100px;
+    max-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.matriculas-page .data-table td:nth-child(2) { /* Classe */
+    min-width: 80px;
+    max-width: 120px;
+    text-align: center;
+}
+
+.matriculas-page .data-table td:nth-child(3) { /* Turma */
+    min-width: 100px;
+    max-width: 140px;
+}
+
+.matriculas-page .data-table .col-turno {
+    min-width: 90px;
+    max-width: 120px;
+}
+
+/* Sticky Column 1: Nº Matrícula */
+.matriculas-page .data-table .sticky-col-1 {
+    position: sticky;
+    left: 0;
+    z-index: 80;
+    width: 80px;
+    min-width: 80px;
+    text-align: center !important;
+    border-right: 1px solid #f1f5f9;
+    background: white;
+}
+
+/* Sticky Column 2: Estudante */
+.matriculas-page .data-table .sticky-col-2 {
+    position: sticky;
+    left: 80px;
+    z-index: 80;
+    min-width: 250px;
+    max-width: 350px;
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.matriculas-page .data-table th.sticky-col-1,
+.matriculas-page .data-table th.sticky-col-2 {
+    z-index: 100;
+}
+
+/* Optimize specific columns with strict truncation */
+.matriculas-page .data-table .col-ano {
+    min-width: 100px;
+    max-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.matriculas-page .data-table td:nth-child(3) { /* Classe */
+    min-width: 80px;
+    max-width: 120px;
+    text-align: center;
+}
+
+.matriculas-page .data-table td:nth-child(4) { /* Turma */
+    min-width: 100px;
+    max-width: 140px;
+}
+
+.matriculas-page .data-table .col-turno {
+    min-width: 90px;
+    max-width: 120px;
+}
+
+/* Responsive: Disable second sticky column ONLY on very small screens if needed */
+@media (max-width: 1024px) {
+    .matriculas-page .data-table .sticky-col-2,
+    .matriculas-page .data-table th.sticky-col-2 {
+        position: static !important;
+        box-shadow: none !important;
+        border-right: none !important;
+        overflow: visible;
+    }
+}
+
+/* Responsive adjustments for smaller laptops */
+@media (max-width: 1440px) {
+    .matriculas-page .data-table th,
+    .matriculas-page .data-table td {
+        padding: 10px 14px;
+        font-size: 12.5px;
+    }
+    
+    .matriculas-page .data-table .sticky-col-2 {
+        min-width: 160px;
+        max-width: 220px;
+    }
+}
+
+/* Disable second sticky column on smaller screens */
+@media (max-width: 1280px) {
+    .matriculas-page .sticky-col-2,
+    .matriculas-page thead th.sticky-col-2 {
+        position: static !important;
+        left: auto !important;
+        box-shadow: none !important;
+        border-right: none !important;
+    }
+}
