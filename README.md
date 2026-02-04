@@ -97,4 +97,3 @@ Antes de começar, certifique-se de ter instalado:
 * **Segurança:** Controlo de permissões por utilizador.
 
 ---
-*Desenvolvido com ❤️ por Aguinaldo Arnaldo*
