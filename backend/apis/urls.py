@@ -79,7 +79,9 @@ router.register(r'matriculas', MatriculaViewSet, basename='matricula')
 
 # Configuração
 from apis.views.configuracao_views import ConfiguracaoViewSet
+from apis.views.backup_views import BackupViewSet
 router.register(r'config', ConfiguracaoViewSet, basename='config')
+router.register(r'backups', BackupViewSet, basename='backup')
 
 # Notificações
 from apis.views.notificacao import NotificacaoViewSet

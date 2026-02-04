@@ -62,6 +62,7 @@ const Configuracoes = () => {
     const [newYear, setNewYear] = useState({ nome: '', data_inicio: '', data_fim: '', activo: false });
     const [isEditingYear, setIsEditingYear] = useState(false);
     const [editingYearId, setEditingYearId] = useState(null);
+    const [backupsList, setBackupsList] = useState([]);
 
     
     // Modal State
@@ -102,6 +103,9 @@ const Configuracoes = () => {
         if (activeTab === 'academico') {
             fetchAcademicYears();
             fetchConfig();
+        }
+        if (activeTab === 'manutencao') {
+            fetchBackups();
         }
     }, [activeTab]);
 
@@ -166,12 +170,56 @@ const Configuracoes = () => {
         }
     };
 
-    const handleBackup = () => {
+    const fetchBackups = async () => {
+        try {
+            const response = await api.get('backups/list_backups/');
+            setBackupsList(response.data || []);
+        } catch (error) {
+            console.error("Erro ao buscar backups:", error);
+        }
+    };
+
+    const handleBackup = async () => {
         setBackupStatus('processing');
-        setTimeout(() => {
+        try {
+            await api.post('backups/create_backup/');
             setBackupStatus('completed');
+            fetchBackups();
             setTimeout(() => setBackupStatus('idle'), 5000);
-        }, 3000);
+        } catch (error) {
+            console.error("Erro ao gerar backup:", error);
+            alert("Erro ao gerar backup. Verifique se o pg_dump está instalado no servidor.");
+            setBackupStatus('idle');
+        }
+    };
+
+    const handleDownloadBackup = async (filename) => {
+        try {
+            const response = await api.get(`backups/download_backup/?filename=${filename}`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Erro ao baixar backup:", error);
+            alert("Erro ao baixar ficheiro.");
+        }
+    };
+
+    const handleDeleteBackup = async (filename) => {
+        if (!window.confirm(`Deseja realmente eliminar o backup ${filename}?`)) return;
+        try {
+            await api.delete(`backups/delete_backup/?filename=${filename}`);
+            fetchBackups();
+        } catch (error) {
+            console.error("Erro ao eliminar backup:", error);
+            alert("Erro ao eliminar ficheiro.");
+        }
     };
 
     const handleCreateUser = async () => {
@@ -459,14 +507,16 @@ const Configuracoes = () => {
                             <div className="info-card-header">
                                 <div>
                                     <p className="info-label">Último Backup Realizado</p>
-                                    <p className="info-value">24 de Dezembro de 2024 às 15:30</p>
+                                    <p className="info-value">
+                                        {backupsList.length > 0 ? backupsList[0].created_at : 'Nenhum backup encontrado'}
+                                    </p>
                                 </div>
-                                <div className="info-badge" style={{ color: '#059669' }}>
-                                    Integridade OK
+                                <div className="info-badge" style={{ color: backupsList.length > 0 ? '#059669' : '#64748b' }}>
+                                    {backupsList.length > 0 ? 'Integridade OK' : 'Sem registos'}
                                 </div>
                             </div>
                             <p style={{ color: '#64748b', fontSize: '14px', margin: '0' }}>
-                                O backup inclui todos os registros de alunos, matrículas, notas, turmas e documentos digitais.
+                                O backup inclui todos os registros de base de dados e ficheiros media (fotos e documentos).
                             </p>
                         </div>
 
@@ -488,13 +538,64 @@ const Configuracoes = () => {
                         </div>
 
                         {backupStatus === 'completed' && (
-                            <div className="info-card-v2 alert-success" style={{ animation: 'fadeIn 0.3s' }}>
+                            <div className="info-card-v2 alert-success" style={{ animation: 'fadeIn 0.3s', background: '#ecfdf5', borderColor: '#34d399', color: '#064e3b' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <CheckCircle size={20} />
-                                    <span>Backup concluído com sucesso e pronto para download!</span>
+                                    <span>Backup criado com sucesso e adicionado à lista abaixo!</span>
                                 </div>
                             </div>
                         )}
+
+                        <div className="backups-list-container" style={{ marginTop: '20px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px', color: '#1e293b' }}>Histórico de Backups</h3>
+                            {backupsList.length === 0 ? (
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
+                                    Nenhum ficheiro de backup disponível.
+                                </div>
+                            ) : (
+                                <div className="backups-grid" style={{ display: 'grid', gap: '12px' }}>
+                                    {backupsList.map((b) => (
+                                        <div key={b.filename} className="backup-item-v2" style={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'center',
+                                            padding: '16px 20px',
+                                            background: 'white',
+                                            borderRadius: '12px',
+                                            border: '1px solid #e2e8f0'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <div style={{ background: '#f1f5f9', p: '10px', borderRadius: '8px', color: '#64748b' }}>
+                                                    <FileText size={20} />
+                                                </div>
+                                                <div>
+                                                    <p style={{ fontWeight: 600, fontSize: '14px', margin: 0 }}>{b.filename}</p>
+                                                    <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>{b.created_at} • {b.size}</p>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => handleDownloadBackup(b.filename)}
+                                                    className="btn-icon-action" 
+                                                    title="Descarregar"
+                                                    style={{ background: '#eff6ff', color: '#2563eb', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                >
+                                                    <Download size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteBackup(b.filename)}
+                                                    className="btn-icon-action" 
+                                                    title="Eliminar"
+                                                    style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="section-title-v2" style={{ marginTop: '40px', marginBottom: '24px' }}>
                             <div className="icon-circle" style={{ background: '#f8fafc', color: '#64748b' }}>

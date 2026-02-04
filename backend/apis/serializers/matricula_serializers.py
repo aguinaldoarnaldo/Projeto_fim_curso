@@ -5,7 +5,7 @@ from apis.models import Matricula, Aluno, Candidato
 class MatriculaSerializer(serializers.ModelSerializer):
     """Serializer para Matricula"""
     aluno_nome = serializers.CharField(source='id_aluno.nome_completo', read_only=True)
-    aluno_foto = serializers.ImageField(source='id_aluno.img_path', read_only=True)
+    aluno_foto = serializers.SerializerMethodField()
     
     # Campo opcional para matricular via candidato
     id_candidato = serializers.IntegerField(write_only=True, required=False)
@@ -54,6 +54,23 @@ class MatriculaSerializer(serializers.ModelSerializer):
         }
     
     # ... create method ...
+
+    def get_aluno_foto(self, obj):
+        if obj.id_aluno and obj.id_aluno.img_path:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.id_aluno.img_path.url)
+            return obj.id_aluno.img_path.url
+        
+        # Fallback para foto do candidato
+        if obj.id_aluno:
+            candidato = Candidato.objects.filter(numero_bi=obj.id_aluno.numero_bi).first()
+            if candidato and candidato.foto_passe:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(candidato.foto_passe.url)
+                return candidato.foto_passe.url
+        return None
 
     def get_bi(self, obj):
         return obj.id_aluno.numero_bi if obj.id_aluno else 'N/A'

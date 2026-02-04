@@ -647,3 +647,51 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .sortable-header.active-sort .sort-icon {
     opacity: 1;
 }
+
+/* --- DETAIL MODAL MISSING STYLES & FIXES --- */
+.matriculas-page .info-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 32px;
+    align-items: start;
+}
+
+.matriculas-page .info-label {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.matriculas-page .info-value {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    display: block;
+    min-width: 0;
+}
+
+/* Specific fix for Monospace (BI) */
+.matriculas-page .info-value.monospace {
+    font-family: 'Courier New', monospace;
+    font-size: 13px !important;
+    letter-spacing: -0.5px;
+}
+
+/* Ensure sections can grow and don't clip content */
+.matriculas-page .info-section {
+    min-height: fit-content;
+    height: auto;
+}
+
+@media (max-width: 640px) {
+    .matriculas-page .info-grid-2 {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}

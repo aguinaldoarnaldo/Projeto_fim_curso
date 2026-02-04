@@ -648,6 +648,39 @@
         gap: 20px;
     }
 }
+
+/* --- BACKUP LIST STYLES --- */
+.backup-item-v2 {
+    transition: all 0.2s ease;
+}
+
+.backup-item-v2:hover {
+    transform: translateX(5px);
+    border-color: var(--config-accent) !important;
+    background-color: #f8fafc !important;
+}
+
+.btn-icon-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-icon-action:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.alert-success {
+    border-radius: 16px;
+    padding: 16px 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    border: 1px solid;
+    display: flex;
+}
 /* ... existing css ... */
 
 /* Permissions Modal Refined Styles */

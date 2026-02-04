@@ -651,7 +651,7 @@ const Matriculas = () => {
                                         <div><p className="info-label">Nome Completo</p><p className="info-value">{selectedMatricula.aluno}</p></div>
                                         <div><p className="info-label">Género</p><p className="info-value">{selectedMatricula.detalhes.genero}</p></div>
                                         <div><p className="info-label">Nascimento</p><p className="info-value">{selectedMatricula.detalhes.dataNascimento}</p></div>
-                                        <div><p className="info-label">Bilhete de Identidade</p><p className="info-value" style={{fontFamily: 'monospace'}}>{selectedMatricula.detalhes.bi}</p></div>
+                                        <div><p className="info-label">Bilhete de Identidade</p><p className="info-value monospace">{selectedMatricula.detalhes.bi}</p></div>
                                         <div><p className="info-label">Email</p><p className="info-value">{selectedMatricula.detalhes.email}</p></div>
                                         <div><p className="info-label">Endereço</p><p className="info-value">{selectedMatricula.detalhes.endereco}</p></div>
                                     </div>

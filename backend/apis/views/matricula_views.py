@@ -97,6 +97,11 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                         )
 
                 # 2. Aluno
+                candidato_id = data.get('candidato_id')
+                candidato = None
+                if candidato_id:
+                    candidato = Candidato.objects.filter(pk=candidato_id).first()
+
                 id_aluno = data.get('id_aluno')
                 aluno = None
                 if id_aluno:
@@ -112,6 +117,8 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     year = datetime.datetime.now().year
                     last = Aluno.objects.order_by('-numero_matricula').first()
                     new_num = (last.numero_matricula + 1) if last and last.numero_matricula else int(f"{year}0001")
+                    
+                    foto = request.FILES.get('novo_aluno_foto')
                     
                     aluno = Aluno.objects.create(
                         nome_completo=data.get('nome_completo'),
@@ -131,8 +138,19 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                         senha_hash='123456',
                         status_aluno='Activo',
                         id_turma=turma,
-                        img_path=request.FILES.get('novo_aluno_foto')
+                        img_path=foto if foto else None
                     )
+
+                    # Se não veio foto nova, mas tem do candidato, vamos copiar FISICAMENTE
+                    if not foto and candidato and candidato.foto_passe:
+                        try:
+                            from django.core.files.base import ContentFile
+                            import os
+                            content = candidato.foto_passe.read()
+                            filename = os.path.basename(candidato.foto_passe.name)
+                            aluno.img_path.save(filename, ContentFile(content), save=True)
+                        except Exception as e:
+                            print(f"Erro ao copiar foto do candidato: {e}")
                 else:
                     # Atualizar dados do aluno existente se necessário (ex: mudança de morada, telefone)
                     aluno.id_turma = turma
@@ -150,14 +168,20 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     if data.get('bairro'): aluno.bairro_residencia = data.get('bairro')
                     if data.get('numero_casa'): aluno.numero_casa = data.get('numero_casa')
                     
-                    # Campos Pessoais (se mudarem)
-                    if data.get('data_nascimento'): aluno.data_nascimento = data.get('data_nascimento')
-                    if data.get('genero'): aluno.genero = data.get('genero')
-                    
                     # Foto
-                    if request.FILES.get('novo_aluno_foto'):
-                        aluno.img_path = request.FILES.get('novo_aluno_foto')
-                    
+                    foto_nova = request.FILES.get('novo_aluno_foto')
+                    if foto_nova:
+                        aluno.img_path = foto_nova
+                    elif candidato and candidato.foto_passe and not aluno.img_path:
+                        try:
+                            from django.core.files.base import ContentFile
+                            import os
+                            content = candidato.foto_passe.read()
+                            filename = os.path.basename(candidato.foto_passe.name)
+                            aluno.img_path.save(filename, ContentFile(content), save=False)
+                        except Exception:
+                            pass
+
                     aluno.save()
                 
                 # 3. Vínculo Encarregado

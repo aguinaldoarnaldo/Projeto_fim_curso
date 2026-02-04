@@ -99,7 +99,8 @@ const Inscritos = () => {
       
       // Admin
       notaExame: '',
-      status: ''
+      status: '',
+      foto: null
   });
   
   // Collapse State for Edit Modal
@@ -342,7 +343,8 @@ const Inscritos = () => {
           
           // Admin
           notaExame: candidato.notaExame || '',
-          status: candidato.status
+          status: candidato.status,
+          foto: candidato.files?.foto
       });
       setShowEditModal(true);
   };
@@ -358,38 +360,47 @@ const Inscritos = () => {
           const toDecimal = (val) => (val && val !== '') ? parseFloat(val) : null;
           const toInt = (val) => (val && val !== '') ? parseInt(val) : null;
           
-          const payload = {
-              nome_completo: editFormData.nome,
-              numero_bi: editFormData.bi,
-              genero: editFormData.genero,
-              // Only send date if valid, otherwise keep existing
-              ...(editFormData.dataNascimento ? { data_nascimento: editFormData.dataNascimento } : {}),
-              nacionalidade: editFormData.nacionalidade,
-              naturalidade: editFormData.naturalidade,
-              provincia: editFormData.provincia,
-              municipio: editFormData.municipio,
-              residencia: editFormData.residencia,
-              telefone: editFormData.telefone,
-              email: editFormData.email || null, // Allow null email
-              deficiencia: editFormData.deficiencia || 'Não',
-              
-              escola_proveniencia: editFormData.escola_proveniencia,
-              municipio_escola: editFormData.municipio_escola,
-              tipo_escola: editFormData.tipo_escola,
-              ano_conclusao: toInt(editFormData.ano_conclusao),
-              media_final: toDecimal(editFormData.media_final),
-              
-              nome_encarregado: editFormData.enc_nome,
-              parentesco_encarregado: editFormData.enc_parentesco,
-              telefone_encarregado: editFormData.enc_telefone,
-              email_encarregado: editFormData.enc_email || null,
-              residencia_encarregado: editFormData.enc_residencia,
+          const formData = new FormData();
+          
+          // Append all text fields
+          formData.append('nome_completo', editFormData.nome);
+          formData.append('numero_bi', editFormData.bi);
+          formData.append('genero', editFormData.genero);
+          if (editFormData.dataNascimento) formData.append('data_nascimento', editFormData.dataNascimento);
+          formData.append('nacionalidade', editFormData.nacionalidade);
+          formData.append('naturalidade', editFormData.naturalidade);
+          formData.append('provincia', editFormData.provincia);
+          formData.append('municipio', editFormData.municipio);
+          formData.append('residencia', editFormData.residencia);
+          formData.append('telefone', editFormData.telefone);
+          if (editFormData.email) formData.append('email', editFormData.email);
+          formData.append('deficiencia', editFormData.deficiencia || 'Não');
+          
+          formData.append('escola_proveniencia', editFormData.escola_proveniencia);
+          formData.append('municipio_escola', editFormData.municipio_escola);
+          formData.append('tipo_escola', editFormData.tipo_escola);
+          if (editFormData.ano_conclusao) formData.append('ano_conclusao', toInt(editFormData.ano_conclusao));
+          if (editFormData.media_final) formData.append('media_final', toDecimal(editFormData.media_final));
+          
+          formData.append('nome_encarregado', editFormData.enc_nome);
+          formData.append('parentesco_encarregado', editFormData.enc_parentesco);
+          formData.append('telefone_encarregado', editFormData.enc_telefone);
+          if (editFormData.enc_email) formData.append('email_encarregado', editFormData.enc_email);
+          formData.append('residencia_encarregado', editFormData.enc_residencia);
 
-              nota_exame: toDecimal(editFormData.notaExame),
-              status: editFormData.status
-          };
+          if (editFormData.notaExame !== '') formData.append('nota_exame', toDecimal(editFormData.notaExame));
+          formData.append('status', editFormData.status);
 
-          await api.patch(`candidaturas/${editFormData.real_id}/`, payload);
+          // Append photo if changed
+          if (editFormData.foto_file) {
+              formData.append('foto_passe', editFormData.foto_file);
+          }
+
+          await api.patch(`candidaturas/${editFormData.real_id}/`, formData, {
+              headers: {
+                  'Content-Type': 'multipart/form-data',
+              },
+          });
           
           // Since we changed many fields, it is safer to just trigger a full refresh than updating locally partially
           refresh(); 
@@ -638,10 +649,10 @@ const Inscritos = () => {
                             {sortConfig.key === 'id' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
                         </span>
                     </th>
-                    <th
-                    
+                    <th 
                         className={`sticky-col-2 sortable-header ${sortConfig.key === 'nome' ? 'active-sort' : ''}`} 
                         onClick={() => requestSort('nome')}
+                        style={{ minWidth: '240px' }}
                     >
                         Candidato
                          <span className="sort-icon">
@@ -1404,7 +1415,47 @@ const Inscritos = () => {
                     
                     {expandedSection === 'admin' && (
                         <div className="collapse-content animate-fade-in">
-                             <div className="form-grid-2">
+                              <div className="form-grid-2">
+                                <div className="evaluation-input-group">
+                                   <label className="evaluation-label">Foto do Candidato</label>
+                                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                       <div style={{ 
+                                           width: '100px', 
+                                           height: '100px', 
+                                           borderRadius: '12px', 
+                                           overflow: 'hidden', 
+                                           border: '2px solid #e2e8f0',
+                                           background: '#f8fafc',
+                                           display: 'flex',
+                                           alignItems: 'center',
+                                           justifyContent: 'center'
+                                       }}>
+                                           {editFormData.foto_preview || editFormData.foto ? (
+                                               <img src={editFormData.foto_preview || editFormData.foto} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                           ) : (
+                                               <User size={40} color="#cbd5e1" />
+                                           )}
+                                       </div>
+                                       <div style={{ flex: 1 }}>
+                                           <input 
+                                              type="file" 
+                                              accept="image/*" 
+                                              onChange={(e) => {
+                                                  const file = e.target.files[0];
+                                                  if (file) {
+                                                      setEditFormData({
+                                                          ...editFormData, 
+                                                          foto_file: file, 
+                                                          foto_preview: URL.createObjectURL(file)
+                                                      });
+                                                  }
+                                              }}
+                                              style={{ fontSize: '12px' }}
+                                           />
+                                           <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Tamanho recomendado: 3x4 (JPG/PNG)</p>
+                                       </div>
+                                   </div>
+                                </div>
                                 <div className="evaluation-input-group">
                                    <label className="evaluation-label">Nota Exame (0-20)</label>
                                    <input type="number" value={editFormData.notaExame} onChange={(e) => setEditFormData({...editFormData, notaExame: e.target.value})} className="evaluation-input-small"/>

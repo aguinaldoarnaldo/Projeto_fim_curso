@@ -28,6 +28,7 @@ class AlunoListSerializer(serializers.ModelSerializer):
     curso_nome = serializers.CharField(source='id_turma.id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_turma.id_classe.nivel', read_only=True)
     periodo_nome = serializers.CharField(source='id_turma.id_periodo.periodo', read_only=True)
+    img_path = serializers.SerializerMethodField()
     encarregado_principal = serializers.SerializerMethodField()
     sugerido_tipo_matricula = serializers.SerializerMethodField()
     from .historico_serializers import HistoricoEscolarSerializer
@@ -44,6 +45,23 @@ class AlunoListSerializer(serializers.ModelSerializer):
             'data_nascimento', 'criado_em', 'encarregado_principal',
             'sugerido_tipo_matricula', 'historico_escolar'
         ]
+
+    def get_img_path(self, obj):
+        if obj.img_path:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.img_path.url)
+            return obj.img_path.url
+        
+        # Fallback para foto do candidato
+        from apis.models import Candidato
+        candidato = Candidato.objects.filter(numero_bi=obj.numero_bi).first()
+        if candidato and candidato.foto_passe:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(candidato.foto_passe.url)
+            return candidato.foto_passe.url
+        return None
 
     def get_encarregado_principal(self, obj):
         # Return first guardian name found
@@ -63,6 +81,7 @@ class AlunoDetailSerializer(serializers.ModelSerializer):
     from .historico_serializers import HistoricoEscolarSerializer
     
     turma_codigo = serializers.CharField(source='id_turma.codigo_turma', read_only=True)
+    img_path = serializers.SerializerMethodField()
     encarregados = serializers.SerializerMethodField()
     historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
     
@@ -76,6 +95,21 @@ class AlunoDetailSerializer(serializers.ModelSerializer):
             'encarregados', 'historico_escolar', 'criado_em', 'atualizado_em'
         ]
     
+    def get_img_path(self, obj):
+        if obj.img_path:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.img_path.url)
+            return obj.img_path.url
+        from apis.models import Candidato
+        candidato = Candidato.objects.filter(numero_bi=obj.numero_bi).first()
+        if candidato and candidato.foto_passe:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(candidato.foto_passe.url)
+            return candidato.foto_passe.url
+        return None
+
     def get_encarregados(self, obj):
         aluno_encarregados = AlunoEncarregado.objects.filter(id_aluno=obj).select_related('id_encarregado')
         data = []

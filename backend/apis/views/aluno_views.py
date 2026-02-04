@@ -61,7 +61,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
     def ativos(self, request):
         """Retorna apenas alunos ativos"""
         alunos = self.queryset.filter(status_aluno='Activo')
-        serializer = AlunoListSerializer(alunos, many=True)
+        serializer = AlunoListSerializer(alunos, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
@@ -107,7 +107,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
         notas = Nota.objects.filter(id_aluno=aluno).select_related(
             'id_disciplina', 'id_professor'
         ).order_by('-data_lancamento')
-        serializer = NotaListSerializer(notas, many=True)
+        serializer = NotaListSerializer(notas, many=True, context={'request': request})
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])
@@ -120,7 +120,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
         faltas = FaltaAluno.objects.filter(id_aluno=aluno).select_related(
             'id_disciplina', 'id_turma'
         ).order_by('-data_falta')
-        serializer = FaltaAlunoListSerializer(faltas, many=True)
+        serializer = FaltaAlunoListSerializer(faltas, many=True, context={'request': request})
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])
@@ -149,7 +149,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
         ).count()
         
         return Response({
-            'aluno': AlunoDetailSerializer(aluno).data,
+            'aluno': AlunoDetailSerializer(aluno, context={'request': request}).data,
             'notas_por_disciplina': list(notas_por_disciplina),
             'total_faltas': total_faltas,
             'faltas_justificadas': faltas_justificadas,
@@ -166,7 +166,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
             id_aluno=aluno
         ).select_related('id_encarregado')
         encarregados = [v.id_encarregado for v in vinculos]
-        serializer = EncarregadoListSerializer(encarregados, many=True)
+        serializer = EncarregadoListSerializer(encarregados, many=True, context={'request': request})
         return Response(serializer.data)
 
 
