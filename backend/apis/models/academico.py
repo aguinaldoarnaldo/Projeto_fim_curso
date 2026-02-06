@@ -190,6 +190,9 @@ class Periodo(models.Model):
         return self.periodo
 
 
+def current_year():
+    return str(datetime.date.today().year)
+
 class Turma(BaseModel):
     """Turmas de alunos"""
     STATUS_CHOICES = [
@@ -203,7 +206,7 @@ class Turma(BaseModel):
     id_classe = models.ForeignKey(Classe, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Classe')
     id_periodo = models.ForeignKey(Periodo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Período')
     ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Ano Lectivo')
-    ano = models.CharField(null=True, blank=True, verbose_name='Ano (Legacy)', default=lambda: str(datetime.date.today().year))
+    ano = models.CharField(null=True, blank=True, verbose_name='Ano (Legacy)', default=current_year)
     codigo_turma = models.CharField(max_length=50, unique=True, verbose_name='Código da Turma')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativa', verbose_name='Estado da Turma')
     id_responsavel = models.ForeignKey(

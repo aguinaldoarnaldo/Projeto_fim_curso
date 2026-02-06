@@ -56,14 +56,15 @@ class Matricula(models.Model):
     ]
     
     STATUS_MATRICULA = [
-        ('Pendente', 'Pendente'),
-        ('Ativo', 'Ativo'),
-        ('Cancelado', 'Cancelado'),
-        ('Concluido', 'Concluído')
+        ('Ativa', 'Ativa'),
+        ('Confirmada', 'Confirmada'),
+        ('Concluida', 'Concluída'),
+        ('Desistente', 'Desistente'),
+        ('Transferido', 'Transferido')
     ]
 
     tipo = models.CharField(max_length=20, choices=TIPO_MATRICULA, default='Novo', verbose_name='Tipo de Matrícula')
-    status = models.CharField(max_length=20, choices=STATUS_MATRICULA, default='Ativo', verbose_name='Estado')
+    status = models.CharField(max_length=20, choices=STATUS_MATRICULA, default='Ativa', verbose_name='Estado')
     ativo = models.BooleanField(default=True, verbose_name='Ativo') # Mantendo para retrocompatibilidade
     
     doc_certificado = models.FileField(

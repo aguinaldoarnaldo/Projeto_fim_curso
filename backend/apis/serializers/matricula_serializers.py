@@ -115,6 +115,66 @@ class MatriculaSerializer(serializers.ModelSerializer):
         rel = self._get_encarregado_relation(obj)
         return rel.grau_parentesco if rel else 'N/A'
 
+    def validate(self, attrs):
+        """
+        Validar presença obrigatória de documentos (BI e Certificado).
+        Regra:
+        1. Se enviados no request -> OK.
+        2. Se não enviados:
+           a) Se for matricula via Candidato: verificar se o Candidato tem os docs.
+           b) Se for matricula via Aluno já existente: verificar se tem matriculas anteriores com docs.
+        """
+        doc_bi = attrs.get('doc_bi')
+        doc_certificado = attrs.get('doc_certificado')
+        
+        # Se ambos enviados, ok
+        if doc_bi and doc_certificado:
+            return attrs
+
+        # Verificar contexto (Candidato ou Aluno)
+        candidato_id = attrs.get('id_candidato') or (self.initial_data.get('id_candidato'))
+        aluno = attrs.get('id_aluno')
+
+        has_bi = bool(doc_bi)
+        has_cert = bool(doc_certificado)
+
+        # Caso 1: Via Candidato
+        if candidato_id:
+            try:
+                candidato = Candidato.objects.get(pk=candidato_id)
+                if not has_bi and candidato.comprovativo_bi:
+                    has_bi = True
+                if not has_cert and candidato.certificado:
+                    has_cert = True
+            except Candidato.DoesNotExist:
+                pass
+        
+        # Caso 2: Via Aluno (Histórico)
+        elif aluno:
+            # Buscar último registro com docs
+            last_mat = Matricula.objects.filter(id_aluno=aluno).exclude(
+                doc_bi='', doc_certificado=''
+            ).order_by('-data_matricula').first()
+            
+            if last_mat:
+                if not has_bi and last_mat.doc_bi:
+                    has_bi = True
+                if not has_cert and last_mat.doc_certificado:
+                    has_cert = True
+        
+        # Validação Final
+        errors = {}
+        if not has_bi:
+            errors['doc_bi'] = "O documento de identificação (BI) é obrigatório."
+        
+        if not has_cert:
+            errors['doc_certificado'] = "O certificado de habilitações é obrigatório."
+            
+        if errors:
+            raise serializers.ValidationError(errors)
+            
+        return attrs
+
     def create(self, validated_data):
         candidato_id = validated_data.pop('id_candidato', None)
         aluno = validated_data.get('id_aluno')

@@ -71,6 +71,35 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             traceback.print_exc()
             return Response({'erro_interno': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    def download_comprovativo(self, request, pk=None):
+        """Disponibiliza download do comprovativo de Inscrição"""
+        from django.http import HttpResponse
+        from apis.services.pdf_service import PDFService
+        from django.utils import timezone
+        
+        candidato = self.get_object()
+        exame = ExameAdmissao.objects.filter(candidato=candidato).first()
+        rupe = RupeCandidato.objects.filter(candidato=candidato).first()
+        
+        context = {
+            'candidato': candidato,
+            'exame': exame,
+            'rupe': rupe,
+            'hoje': timezone.now(),
+            'site_url': request.build_absolute_uri('/')[:-1]
+        }
+        
+        pdf = PDFService.render_to_pdf('pdf/comprovativo_inscricao.html', context)
+        
+        if pdf:
+            response = HttpResponse(pdf, content_type='application/pdf')
+            filename = f"Comprovativo_{candidato.numero_inscricao}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        return Response({'erro': 'Erro ao gerar PDF'}, status=500)
+
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def gerar_rupe(self, request, pk=None):
         """Gera RUPE para o candidato"""

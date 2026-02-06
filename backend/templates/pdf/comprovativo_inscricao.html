@@ -1,0 +1,124 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Comprovativo de Inscrição</div>
+
+<div style="text-align: center; margin-bottom: 20px; font-size: 14pt; background: #eee; padding: 10px;">
+    <strong>Nº Inscrição: {{ candidato.numero_inscricao }}</strong>
+</div>
+
+<!-- Information Block: Candidate -->
+<h3 style="border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Dados do Candidato</h3>
+<div style="margin-bottom: 20px;">
+     <!-- Photo if available -->
+    <div style="float: right; width: 100px; height: 120px; border: 1px solid #999; margin-left: 20px; text-align: center; line-height: 120px; background: #f9f9f9;">
+         {% if candidato.foto_passe %}
+            <img src="{{ candidato.foto_passe.url }}" style="max-width: 100px; max-height: 120px;" />
+        {% else %}
+            FOTO
+        {% endif %}
+    </div>
+
+    <table style="width: 80%;">
+        <tr>
+            <td style="font-weight: bold; width: 140px;">Nome Completo:</td>
+            <td>{{ candidato.nome_completo|upper }}</td>
+        </tr>
+         <tr>
+            <td style="font-weight: bold;">Nº BI:</td>
+            <td>{{ candidato.numero_bi }}</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold;">Data Nascimento:</td>
+            <td>{{ candidato.data_nascimento|date:"d/m/Y" }}</td>
+        </tr>
+         <tr>
+            <td style="font-weight: bold;">Género:</td>
+            <td>{{ candidato.get_genero_display }}</td>
+        </tr>
+         <tr>
+            <td style="font-weight: bold;">Estado:</td>
+            <td style="color: #0056b3; font-weight: bold;">{{ candidato.status|upper }}</td>
+        </tr>
+    </table>
+    <div style="clear: both;"></div>
+</div>
+
+<!-- Information Block: Course Options -->
+<h3 style="border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Opções de Curso</h3>
+<table style="width: 100%; margin-bottom: 20px;">
+    <tr>
+        <td style="font-weight: bold; width: 20%;">1ª Opção:</td>
+        <td style="width: 80%; font-size: 11pt;">{{ candidato.curso_primeira_opcao.nome_curso }}</td>
+    </tr>
+    {% if candidato.curso_segunda_opcao %}
+    <tr>
+        <td style="font-weight: bold;">2ª Opção:</td>
+        <td>{{ candidato.curso_segunda_opcao.nome_curso }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td style="font-weight: bold;">Turno Preferencial:</td>
+        <td>{{ candidato.turno_preferencial|default:"Qualquer" }}</td>
+    </tr>
+</table>
+
+<!-- Information Block: Payment (RUPE) -->
+{% if rupe %}
+<h3 style="border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Dados de Pagamento (Emolumentos)</h3>
+<table style="width: 100%; margin-bottom: 20px;">
+    <tr>
+        <td style="font-weight: bold; width: 20%;">Referência RUPE:</td>
+        <td style="width: 30%; font-family: monospace; font-size: 11pt;">{{ rupe.referencia }}</td>
+        <td style="font-weight: bold; width: 20%;">Valor:</td>
+        <td style="width: 30%;">{{ rupe.valor }} Kz</td>
+    </tr>
+    <tr>
+        <td style="font-weight: bold;">Estado:</td>
+        <td colspan="3">
+            {% if rupe.status == 'Pago' %}
+                <span style="color: green; font-weight: bold;">PAGO</span>
+            {% else %}
+                <span style="color: orange; font-weight: bold;">{{ rupe.status|upper }}</span>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Information Block: Exam (if scheduled) -->
+{% if exame %}
+<div style="border: 2px solid #333; padding: 15px; margin-bottom: 20px; background-color: #f7f7f7;">
+    <h3 style="margin-top: 0; text-align: center;">Agendamento de Exame</h3>
+    <table style="width: 100%;">
+        <tr>
+            <td style="font-weight: bold; width: 25%;">Data/Hora:</td>
+            <td>{{ exame.data_exame|date:"d/m/Y H:i" }}</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold;">Local:</td>
+            <td>Sala {{ exame.sala.numero_sala }}</td>
+        </tr>
+    </table>
+    <p style="font-size: 9pt; text-align: center; margin-top: 10px;">
+        * Obrigatório apresentar este comprovativo e o BI no dia do exame.
+    </p>
+</div>
+{% endif %}
+
+<!-- Information Block: Instructions -->
+<div style="font-size: 10pt; margin-top: 20px; color: #555;">
+    <strong>Instruções Importantes:</strong>
+    <ul>
+        <li>Este documento comprova que a sua inscrição foi registada no sistema.</li>
+        <li>Acompanhe o estado da sua candidatura através do portal.</li>
+        <li>Em caso de dúvidas, contacte a secretaria academic.</li>
+    </ul>
+</div>
+
+<div style="margin-top: 50px; text-align: center;">
+    <div style="border-top: 1px dashed #999; width: 60%; margin: 0 auto 5px auto;"></div>
+    Assinatura do Candidato
+</div>
+
+{% endblock %}

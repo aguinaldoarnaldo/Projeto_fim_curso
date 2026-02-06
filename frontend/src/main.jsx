@@ -5,8 +5,8 @@ import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
+import { ConfigProvider } from './context/ConfigContext'
 import { CacheProvider } from './context/CacheContext'
-
 import ErrorBoundary from './components/Common/ErrorBoundary'
 
 createRoot(document.getElementById('root')).render(
@@ -16,7 +16,9 @@ createRoot(document.getElementById('root')).render(
         <AuthProvider>
           <ThemeProvider>
             <CacheProvider>
-              <App />
+              <ConfigProvider>
+                <App />
+              </ConfigProvider>
             </CacheProvider>
           </ThemeProvider>
         </AuthProvider>

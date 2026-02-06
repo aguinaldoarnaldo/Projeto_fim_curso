@@ -10,10 +10,12 @@ class Candidato(BaseModel):
     
     STATUS_CHOICES = [
         ('Pendente', 'Pendente'),
-        ('Confirmado', 'Confirmado'), # Dados confirmados pelo candidato
-        ('Pago', 'Pago'), # RUPE pago
-        ('Agendado', 'Agendado'), # Exame agendado
+        ('Em Análise', 'Em Análise'),
+        ('Confirmado', 'Confirmado'),
+        ('Pago', 'Pago'),
+        ('Agendado', 'Agendado'),
         ('Aprovado', 'Aprovado'),
+        ('Não Admitido', 'Não Admitido'), 
         ('Reprovado', 'Reprovado'),
         ('Matriculado', 'Matriculado')
     ]

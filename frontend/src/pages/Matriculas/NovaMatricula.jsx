@@ -339,7 +339,7 @@ const NovaMatricula = () => {
                 return;
             }
 
-            data.append('status', 'Ativo');
+            data.append('status', 'Ativa');
 
             // Backend Expects different keys sometimes, let's align
             // Backed "matriculas/matricular_novo_aluno/" expects fields like:
@@ -353,7 +353,7 @@ const NovaMatricula = () => {
             });
             
             const turmaObj = turmasDisponiveis.find(t => t.id_turma == formData.turma_id);
-            const statusFinal = (!hasBi || !hasCert) ? 'Pendente' : 'Ativo';
+            const statusFinal = 'Ativa';
 
             alert(`✅ Matrícula Realizada com Sucesso!\n\n` + 
                   `👤 Aluno: ${formData.nome_completo}\n` +
@@ -818,12 +818,29 @@ const NovaMatricula = () => {
                                     </option>
                                 ))}
                             </select>
-                             {turmaSelect && (
-                                <div style={{ marginTop: '10px', fontSize: '13px', color: '#0284c7', display: 'flex', gap: '20px' }}>
-                                    <span><strong>Sala:</strong> {turmaSelect.sala_numero || 'N/A'}</span>
-                                    <span><strong>Vagas:</strong> {(turmaSelect.sala_capacidade || 0) - (turmaSelect.total_alunos || 0)} restantes</span>
-                                </div>
-                            )}
+                            {turmaSelect && (() => {
+                                const cap = turmaSelect.sala_capacidade || 40;
+                                const ocup = turmaSelect.total_alunos || 0;
+                                const rest = cap - ocup;
+                                const isCrit = rest <= 5; 
+                                
+                                return (
+                                    <div style={{ marginTop: '10px', fontSize: '13px', color: '#0284c7', display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                        <span><strong>Sala:</strong> {turmaSelect.sala_numero || 'N/A'}</span>
+                                        <span style={{ 
+                                            color: isCrit ? '#dc2626' : '#15803d', 
+                                            fontWeight: 'bold',
+                                            background: isCrit ? '#fef2f2' : '#f0fdf4',
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            border: isCrit ? '1px solid #fee2e2' : '1px solid #bbf7d0'
+                                        }}>
+                                            {ocup}/{cap} Ocupados ({rest} vagas)
+                                        </span>
+                                        {isCrit && <span style={{color:'#dc2626', fontWeight:'bold', display:'flex', alignItems:'center', gap:'4px'}}><ShieldAlert size={14}/> Poucas Vagas!</span>}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                          {/* Historico Section (Expandable) */}

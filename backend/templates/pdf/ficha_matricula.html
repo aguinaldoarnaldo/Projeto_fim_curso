@@ -1,0 +1,228 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<style>
+    /* Premium Styles for Ficha de Matrícula */
+    .doc-title {
+        text-align: center;
+        font-size: 18pt;
+        font-weight: bold;
+        color: #1e3a8a; /* Dark Blue */
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        border-bottom: 2px solid #1e3a8a;
+        padding-bottom: 10px;
+    }
+    
+    .section-header {
+        background-color: #f1f5f9;
+        color: #1e3a8a;
+        font-weight: bold;
+        padding: 5px 10px;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        font-size: 11pt;
+        text-transform: uppercase;
+        border-left: 5px solid #1e3a8a;
+    }
+
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+    }
+    
+    .info-table td {
+        padding: 6px 8px;
+        vertical-align: top;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 10pt;
+    }
+
+    .label-col {
+        width: 25%;
+        font-weight: bold;
+        color: #475569;
+        background-color: #f8fafc;
+    }
+
+    .data-col {
+        width: 75%;
+        color: #0f172a;
+    }
+
+    .matricula-box {
+        background-color: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .matricula-header {
+        width: 100%;
+    }
+    
+    .matricula-header td {
+        padding: 5px;
+    }
+    
+    .status-badge {
+        font-weight: bold;
+        color: #fff;
+        background-color: #0f766e;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 9pt;
+    }
+
+    .signature-box {
+        margin-top: 50px;
+        width: 100%;
+    }
+    
+    .signature-line {
+        border-top: 1px solid #334155;
+        width: 80%;
+        margin: 0 auto;
+        padding-top: 5px;
+        font-size: 9pt;
+        text-transform: uppercase;
+    }
+</style>
+
+<div class="doc-title">Ficha de Matrícula</div>
+
+<!-- Header Box: Status & Key Info -->
+<div class="matricula-box">
+    <table class="matricula-header">
+        <tr>
+            <td style="width: 50%;">
+                <span style="font-size: 10pt; color: #64748b;">NÚMERO DE MATRÍCULA</span><br>
+                <span style="font-size: 16pt; font-weight: bold; color: #000;">{{ aluno.numero_matricula }}</span>
+            </td>
+            <td style="width: 50%; text-align: right;">
+                 <span style="font-size: 10pt; color: #64748b;">ANO LECTIVO</span><br>
+                 <span style="font-size: 14pt; font-weight: bold;">{{ matricula.ano_lectivo.nome_ano }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="border-top: 1px solid #e2e8f0; height: 10px;"></td>
+        </tr>
+        <tr>
+            <td>
+                <span style="font-weight: bold;">Data:</span> {{ matricula.data_matricula|date:"d/m/Y" }}
+            </td>
+            <td style="text-align: right;">
+                <span style="font-weight: bold;">Estado:</span> {{ matricula.status|upper }}
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- SECTION 1: DADOS PESSOAIS -->
+<div class="section-header">Dados do Aluno</div>
+<table class="info-table">
+    <tr>
+        <td class="label-col">Nome Completo:</td>
+        <td class="data-col" colspan="3" style="font-size: 11pt; font-weight: bold;">{{ aluno.nome_completo|upper }}</td>
+    </tr>
+    <tr>
+        <td class="label-col">Nº Identificação (BI):</td>
+        <td class="data-col" style="width: 25%;">{{ aluno.numero_bi }}</td>
+        <td class="label-col" style="width: 20%; background-color: #f8fafc;">Data de Nasc.:</td>
+        <td class="data-col" style="width: 30%;">{{ aluno.data_nascimento|date:"d/m/Y" }} ({{ aluno.data_nascimento|timesince }})</td>
+    </tr>
+    <tr>
+        <td class="label-col">Género:</td>
+        <td class="data-col">{{ aluno.genero }}</td>
+        <td class="label-col" style="background-color: #f8fafc;">Nacionalidade:</td>
+        <td class="data-col">{{ aluno.nacionalidade }}</td>
+    </tr>
+    <tr>
+        <td class="label-col">Naturalidade:</td>
+        <td class="data-col" colspan="3">{{ aluno.naturalidade }}</td>
+    </tr>
+</table>
+
+<!-- SECTION 2: DADOS ACADÉMICOS -->
+<div class="section-header">Informação Académica</div>
+<table class="info-table">
+    <tr>
+        <td class="label-col">Curso:</td>
+        <td class="data-col">{{ turma.id_curso.nome_curso }}</td>
+    </tr>
+    <tr>
+        <td class="label-col">Classe:</td>
+        <td class="data-col">{{ turma.id_classe.nome_classe }}ª Classe</td>
+    </tr>
+    <tr>
+        <td class="label-col">Turma / Sala:</td>
+        <td class="data-col">
+            <strong>{{ turma.codigo_turma }}</strong> / Sala {{ turma.id_sala.numero_sala }}
+        </td>
+    </tr>
+    <tr>
+        <td class="label-col">Periodo/Turno:</td>
+        <td class="data-col">{{ turma.id_periodo.nome_periodo }}</td>
+    </tr>
+</table>
+
+<!-- SECTION 3: CONTACTOS E ENCARREGADO -->
+<div class="section-header">Contactos e Família</div>
+<table class="info-table">
+    <tr>
+        <td class="label-col">Telefone do Aluno:</td>
+        <td class="data-col">{{ aluno.telefone|default:"---" }}</td>
+    </tr>
+    <tr>
+        <td class="label-col">Email do Aluno:</td>
+        <td class="data-col">{{ aluno.email|default:"---" }}</td>
+    </tr>
+    <tr>
+        <td class="label-col">Residência:</td>
+        <td class="data-col">{{ aluno.provincia_residencia }}, {{ aluno.municipio_residencia }}, {{ aluno.bairro_residencia|default:"" }}</td>
+    </tr>
+</table>
+
+{% if encarregados %}
+<div style="font-size: 10pt; font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #475569;">DADOS DO ENCARREGADO(A) DE EDUCAÇÃO</div>
+<table class="info-table" style="border: 1px solid #e2e8f0;">
+    {% for enc in encarregados %}
+    <tr>
+        <td class="label-col" style="width: 25%;">Nome:</td>
+        <td class="data-col"><strong>{{ enc.id_encarregado.nome_completo }}</strong> <span style="color: #64748b; font-size: 9pt;">({{ enc.grau_parentesco }})</span></td>
+    </tr>
+    <tr>
+        <td class="label-col">Contacto:</td>
+        <td class="data-col">{{ enc.id_encarregado.telefone }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+<!-- SIGNATURES -->
+<table class="signature-box">
+    <tr>
+        <td style="width: 50%; text-align: center;">
+            <div style="margin-bottom: 40px;">&nbsp;</div>
+            <div class="signature-line">
+                Secretaria Académica<br>
+                (Carimbo e Assinatura)
+            </div>
+        </td>
+        <td style="width: 50%; text-align: center;">
+             <div style="margin-bottom: 40px;">&nbsp;</div>
+             <div class="signature-line">
+                O Aluno / Encarregado<br>
+                (Assinatura)
+             </div>
+        </td>
+    </tr>
+</table>
+
+<!-- TIMESTAMP FOOTER NOTE -->
+<div style="font-size: 8pt; color: #94a3b8; margin-top: 30px; text-align: center;">
+    Processado por Sistema Integrado de Gestão Escolar (SIGE) • ID: {{ matricula.id_matricula }}
+</div>
+
+{% endblock %}

@@ -23,7 +23,7 @@ import Cursos from "../pages/Cursos/Cursos";
 import Configuracoes from "../pages/Configuracoes/Configuracoes";
 import NovaMatricula from "../pages/Matriculas/NovaMatricula";
 import Relatorios from "../pages/Relatorios/Relatorios";
-import Ajuda from "../pages/Ajuda/Ajuda";
+
 import ListaEspera from "../pages/ListaEspera/ListaEspera";
 import Perfil from "../pages/Perfil/Perfil";
 
@@ -119,7 +119,7 @@ export default function Routers() {
                     } />
                     
                     <Route path="/perfil" element={<Perfil />} />
-                    <Route path="/ajuda" element={<Ajuda />} />
+
                 </Route>
             </Routes>
         </Suspense>

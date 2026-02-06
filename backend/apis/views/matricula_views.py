@@ -316,3 +316,38 @@ class MatriculaViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({'erro': f'Erro ao realizar permuta: {str(e)}'}, status=500)
+
+    @action(detail=True, methods=['get'])
+    def download_ficha(self, request, pk=None):
+        """
+        Gera e retorna a Ficha de Matrícula em PDF.
+        """
+        from django.http import HttpResponse
+        from apis.services.pdf_service import PDFService
+        from django.utils import timezone
+        
+        matricula = self.get_object()
+        aluno = matricula.id_aluno
+        turma = matricula.id_turma
+        
+        # Obter encarregados
+        encarregados = aluno.alunoencarregado_set.select_related('id_encarregado').all()
+        
+        context = {
+            'matricula': matricula,
+            'aluno': aluno,
+            'turma': turma,
+            'encarregados': encarregados,
+            'hoje': timezone.now(),
+            'site_url': request.build_absolute_uri('/')[:-1]
+        }
+        
+        pdf = PDFService.render_to_pdf('pdf/ficha_matricula.html', context)
+        
+        if pdf:
+            response = HttpResponse(pdf, content_type='application/pdf')
+            filename = f"Ficha_Matricula_{aluno.numero_matricula}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        
+        return Response({'erro': 'Erro ao gerar PDF'}, status=500)

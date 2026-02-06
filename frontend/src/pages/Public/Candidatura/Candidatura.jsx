@@ -13,6 +13,8 @@ const api = axios.create({
     }
 });
 
+import { useConfig } from '../../../context/ConfigContext';
+
 const Candidatura = () => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1); // 1: Form, 2: Confirm, 3: Payment, 4: Success
@@ -21,9 +23,11 @@ const Candidatura = () => {
     const [rupeData, setRupeData] = useState(null);
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
     
-    // Config State
-    const [config, setConfig] = useState({ candidaturas_abertas: true, mensagem_candidaturas_fechadas: '' });
-    const [checkingConfig, setCheckingConfig] = useState(true);
+
+    
+    // Config State (Global)
+    const { config, fetchConfig: refreshConfig } = useConfig();
+    const [checkingConfig, setCheckingConfig] = useState(false);
 
     const [formData, setFormData] = useState({
         nome_completo: '',
@@ -52,14 +56,14 @@ const Candidatura = () => {
 
     useEffect(() => {
         // Initial fetch
-        fetchCourses();
-        fetchConfig();
 
-        // Polling every 3 seconds for real-time updates
+        fetchCourses();
+        refreshConfig();
+
+        // Polling every 5 seconds for real-time updates
         const interval = setInterval(() => {
-            fetchCourses();
-            fetchConfig();
-        }, 3000);
+            refreshConfig();
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -72,15 +76,7 @@ const Candidatura = () => {
         }).catch(console.error);
     };
 
-    const fetchConfig = () => {
-        api.get('config/').then(res => {
-            if (res.data) setConfig(res.data);
-            setCheckingConfig(false);
-        }).catch(err => {
-            console.error("Erro ao carregar config:", err);
-            setCheckingConfig(false);
-        });
-    };
+
 
 
     const handleChange = (e) => {
@@ -146,7 +142,22 @@ const Candidatura = () => {
     };
 
     // Render Steps
-    const renderForm = () => (
+    const renderForm = () => {
+        if (!config.candidaturas_abertas) {
+            return (
+                <div style={{textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0'}}>
+                    <div style={{marginBottom: '20px', color: '#ef4444'}}>
+                        <ClipboardList size={64} />
+                    </div>
+                    <h2 style={{color: '#1e293b', marginBottom: '16px'}}>Inscrições Encerradas</h2>
+                    <p style={{color: '#64748b', fontSize: '18px', maxWidth: '600px', margin: '0 auto'}}>
+                        {config.mensagem_candidaturas_fechadas || "As candidaturas não estão disponíveis no momento. Por favor, tente novamente mais tarde."}
+                    </p>
+                </div>
+            );
+        }
+
+        return (
         <form className="candidatura-form" onSubmit={handleNextStep}>
             <div className="form-section">
                 <div className="section-title"><User size={24} /> Dados Pessoais</div>
@@ -339,6 +350,7 @@ const Candidatura = () => {
             <button type="submit" className="btn-submit-candidatura">Próximo: Confirmar Dados</button>
         </form>
     );
+    };
 
     const renderConfirm = () => (
         <div className="confirm-step">
@@ -613,6 +625,28 @@ const Candidatura = () => {
                         </div>
                     </div>
                 </div>
+                </div>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <button 
+                    onClick={() => handleDownloadComprovativo(createdCandidate?.id_candidato || createdCandidate?.id)}
+                    className="btn-secondary-action"
+                    style={{
+                        background: 'white',
+                        color: '#1e40af',
+                        border: '1px solid #1e40af',
+                        padding: '12px 24px',
+                        borderRadius: '50px',
+                        fontWeight: '600',
+                        fontSize: '16px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginRight: '12px'
+                    }}
+                >
+                    <ClipboardList size={18} /> Baixar Comprovativo
+                </button>
             </div>
 
             <button 
@@ -683,6 +717,15 @@ const Candidatura = () => {
             setLoading(false);
         }
     };
+
+    const handleDownloadComprovativo = (id) => {
+        if (!id) return;
+        // Public API base URL
+        const baseURL = api.defaults.baseURL;
+        window.open(`${baseURL}candidaturas/${id}/download_comprovativo/`, '_blank');
+    };
+
+
 
     const renderConsultation = () => (
         <div className="consultation-section">
@@ -763,6 +806,30 @@ const Candidatura = () => {
                                 </p>
                             </div>
                         )}
+                        
+                        <div style={{marginTop: '20px', textAlign: 'center'}}>
+                            <button 
+                                onClick={() => handleDownloadComprovativo(consultResult.id_candidato || consultResult.id)}
+                                className="btn-secondary-action"
+                                style={{
+                                    background: '#f8fafc',
+                                    color: '#0f172a',
+                                    border: '1px solid #cbd5e1',
+                                    padding: '10px 20px',
+                                    borderRadius: '8px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <ClipboardList size={16} /> Baixar Comprovativo
+                            </button>
+                        </div>
+                        
+
+
                      </div>
                      
                      {/* If accepted, show next steps hint */}
@@ -783,7 +850,7 @@ const Candidatura = () => {
                 <div className="hero-overlay"></div>
                 <div className="hero-content">
                     <div className="hero-logo">Sistema de Gestão de matriculas IPM3050</div>
-                    <h1 className="hero-title">Portal de Admissão 2026</h1>
+                    <h1 className="hero-title">{config.nome_escola || "Portal de Admissão 2026"}</h1>
                     <p className="hero-description">Inscreva-se agora para garantir o seu futuro. Processo 100% digital, rápido e seguro.</p>
                     
                     <div className="tab-container">

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from django.utils import timezone
+from pathlib import Path
 
 class PDFService:
     """
@@ -24,22 +25,49 @@ class PDFService:
             """
             Converte URIs de arquivos estáticos/mídia em caminhos absolutos do sistema
             """
-            # Caminho absoluto para arquivos estáticos e media
-            sUrl = settings.STATIC_URL
-            sRoot = settings.STATIC_ROOT
-            mUrl = settings.MEDIA_URL
-            mRoot = settings.MEDIA_ROOT
+            sUrl = settings.STATIC_URL # Could be 'static/' or '/static/'
+            sRoot = settings.STATIC_ROOT # Path object
+            mUrl = settings.MEDIA_URL # 'media/' or '/media/'
+            mRoot = settings.MEDIA_ROOT # Path object
 
-            if uri.startswith(mUrl):
-                path = os.path.join(mRoot, uri.replace(mUrl, ""))
-            elif uri.startswith(sUrl):
-                path = os.path.join(sRoot, uri.replace(sUrl, ""))
-            else:
-                return uri
+            # Helper to strip leading slash if present in uri but not in prefix
+            # Convert uri to properly formatted relative path matching settings logic
+            
+            # Normalize sUrl and mUrl to have leading slash
+            sUrl_norm = sUrl if sUrl.startswith('/') else '/' + sUrl
+            mUrl_norm = mUrl if mUrl.startswith('/') else '/' + mUrl
+            
+            # Normalize uri to have leading slash
+            uri_norm = uri if uri.startswith('/') else '/' + uri
+            
+            path = uri
+            
+            # Check Media
+            if uri_norm.startswith(mUrl_norm):
+                # Remove prefix
+                relative = uri_norm[len(mUrl_norm):]
+                path = os.path.join(mRoot, relative)
+            
+            # Check Static
+            elif uri_norm.startswith(sUrl_norm):
+                 relative = uri_norm[len(sUrl_norm):]
+                 path = os.path.join(sRoot, relative)
+                 
+                 # Fallback for dev: if file not found in STATIC_ROOT, look in STATICFILES_DIRS
+                 # This is crucial for local development link_callback
+                 if not os.path.isfile(path) and settings.DEBUG:
+                     for static_dir in settings.STATICFILES_DIRS:
+                         possible_path = os.path.join(static_dir, relative)
+                         if os.path.isfile(possible_path):
+                             path = possible_path
+                             break
 
-            # Verifica se o arquivo existe
+            # Verifica se o arquivo existe e é acessível
             if not os.path.isfile(path):
-                return uri
+                # Se não for arquivo local, xhtml2pdf tentará buscar via rede se for http/https
+                # Se for caminho relativo que falhou a resolução, retorna uri original
+                return uri 
+                
             return path
 
         pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result, link_callback=link_callback)

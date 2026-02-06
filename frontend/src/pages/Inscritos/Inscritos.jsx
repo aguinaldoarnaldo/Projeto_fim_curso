@@ -1,41 +1,28 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import './Inscritos.css';
 import {
-  User,
-  BookOpen,
-  MapPin, // kept for potential usage or remove if unused, but removing might break if used in css/other
-  Phone, // kept
-  Mail, // kept
-  FileText,
-  CheckCircle2,
-  Calendar, // kept
-  ShieldAlert,
-  Download,
+  Calendar,
   Printer,
-  X,
-  ChevronRight,
-  ClipboardCheck,
-  Award,
   Search,
   Filter,
-  RotateCcw,
-  ChevronLeft, // kept
-  GraduationCap,
-  Eye,
-
-  Edit,
-  ArrowUp,
-  ArrowDown
+  RotateCcw
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
-import { useCache } from '../../context/CacheContext';
-
+// import { useCache } from '../../context/CacheContext'; // Unused
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
+
+// Sub-components
+import InscritosTable from './components/InscritosTable';
+import EvaluationModal from './components/EvaluationModal';
+import ExamSchedulingModal from './components/ExamSchedulingModal';
+import CallListModal from './components/CallListModal';
+import CandidateDetailModal from './components/CandidateDetailModal';
+import EditCandidateModal from './components/EditCandidateModal';
 
 const Inscritos = () => {
   const { hasPermission } = usePermission();
@@ -66,50 +53,8 @@ const Inscritos = () => {
 
   // Edit State
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-      id: '',
-      real_id: '',
-      // Pessoais
-      nome: '',
-      bi: '',
-      genero: '',
-      dataNascimento: '',
-      nacionalidade: '',
-      naturalidade: '',
-      provincia: '',
-      municipio: '',
-      residencia: '',
-      telefone: '',
-      email: '',
-      deficiencia: '',
-      
-      // Acadêmicos
-      escola_proveniencia: '',
-      municipio_escola: '',
-      tipo_escola: '',
-      ano_conclusao: '',
-      media_final: '',
-      
-      // Encarregado
-      enc_nome: '',
-      enc_parentesco: '',
-      enc_telefone: '',
-      enc_email: '',
-      enc_residencia: '',
-      
-      // Admin
-      notaExame: '',
-      status: '',
-      foto: null
-  });
+  const [initialEditData, setInitialEditData] = useState(null);
   
-  // Collapse State for Edit Modal
-  const [expandedSection, setExpandedSection] = useState('pessoais'); // 'pessoais', 'academicos', 'encarregado', 'admin'
-
-  const toggleSection = (section) => {
-      setExpandedSection(expandedSection === section ? null : section);
-  };
-
   // Filters State
   const [filters, setFilters] = useState({
     ano: '',
@@ -154,7 +99,7 @@ const Inscritos = () => {
           telefone: c.telefone || 'N/A',
           email: c.email || '',
           deficiencia: c.deficiencia || 'Não',
-          tipo_escola: c.tipo_escola || 'Pública', // NOVO
+          tipo_escola: c.tipo_escola || 'Pública',
           escola9: c.tipo_escola || 'Pública',
           nomeEscola: c.escola_proveniencia || 'N/A',
           municipioEscola: c.municipio_escola || 'N/A',
@@ -187,7 +132,6 @@ const Inscritos = () => {
   };
 
   // USE DATA CACHE HOOK
-  // USE DATA CACHE HOOK
   const { 
       data: cachedInscritos, 
       loading: isLoading, 
@@ -196,21 +140,17 @@ const Inscritos = () => {
       error: fetchError 
   } = useDataCache('inscritos', fetchCandidatesData);
 
-  // Ensure inscritos is ALWAYS an array to prevent "is not iterable" or "map is not a function" errors
   const inscritos = Array.isArray(cachedInscritos) ? cachedInscritos : [];
 
-  // Log to debug the iterable error
   useEffect(() => {
-      console.log('Inscritos Data:', inscritos);
-      console.log('Is Array?', Array.isArray(inscritos));
+      // console.log('Inscritos Data:', inscritos);
       if (fetchError) console.error('Fetch Error:', fetchError);
   }, [inscritos, fetchError]);
 
-  // NOVO: Sincronizar o modal com os dados atualizados da lista
+  // Sync selected candidate with updated list data
   useEffect(() => {
       if (selectedCandidato && inscritos.length > 0) {
           const updated = inscritos.find(i => i.id === selectedCandidato.id);
-          // Se encontrou e os dados são diferentes (status mudou, nota mudou, etc)
           if (updated && JSON.stringify(updated) !== JSON.stringify(selectedCandidato)) {
               setSelectedCandidato(updated);
           }
@@ -240,29 +180,13 @@ const Inscritos = () => {
     fetchFilters();
   }, []);
 
-  // Polling for real-time updates (Silent Refresh)
+  // Polling (Silent Refresh)
   useEffect(() => {
     const interval = setInterval(() => {
-        refresh(true); // silent = true
-    }, 5000); // Increased to 5s to reduce load, given we have cache
+        refresh(true); 
+    }, 5000); 
     return () => clearInterval(interval);
   }, [refresh]);
-
-
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return 0;
-    try {
-        const today = new Date();
-        const birth = new Date(birthDate);
-        if (isNaN(birth.getTime())) return 0; // Handle invalid date
-        let age = today.getFullYear() - birth.getFullYear();
-        const m = today.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        age--;
-        }
-        return age;
-    } catch { return 0; }
-  };
 
   const handleOpenDetail = (candidato) => {
     setShowEvaluationModal(false);
@@ -272,7 +196,7 @@ const Inscritos = () => {
   const handleOpenEvaluation = (candidato) => {
     setSelectedCandidato(null);
     setCandidateToEvaluate(candidato);
-    setExamGrade(''); // Reset grade
+    setExamGrade(''); 
     setShowEvaluationModal(true);
   };
 
@@ -293,7 +217,6 @@ const Inscritos = () => {
         const response = await api.post(`candidaturas/${candidateToEvaluate.real_id}/avaliar/`, { nota: grade });
         const { status, nota } = response.data;
         
-        // Use Cache Helper to update local state and cache immediately
         updateInscrito(candidateToEvaluate.id, {
             notaExame: nota,
             status: status
@@ -309,7 +232,7 @@ const Inscritos = () => {
   };
 
   const handleEditClick = (candidato) => {
-      setEditFormData({
+      setInitialEditData({
           id: candidato.id,
           real_id: candidato.real_id,
           
@@ -344,84 +267,84 @@ const Inscritos = () => {
           // Admin
           notaExame: candidato.notaExame || '',
           status: candidato.status,
-          foto: candidato.files?.foto
+          foto: candidato.files?.foto,
+          // Extra props used by modal logic but not part of 'candidato' directly
+          foto_preview: null,
+          foto_file: null
       });
       setShowEditModal(true);
   };
 
-  const handleSaveEdit = async () => {
-      if (!editFormData.nome || !editFormData.bi) {
+  const handleSaveEdit = async (data) => {
+      if (!data.nome || !data.bi) {
           alert("Nome e BI são obrigatórios.");
           return;
       }
 
       try {
-          // Helper to handle empty numeric fields
           const toDecimal = (val) => (val && val !== '') ? parseFloat(val) : null;
           const toInt = (val) => (val && val !== '') ? parseInt(val) : null;
           
           const formData = new FormData();
           
-          // Append all text fields
-          formData.append('nome_completo', editFormData.nome);
-          formData.append('numero_bi', editFormData.bi);
-          formData.append('genero', editFormData.genero);
-          if (editFormData.dataNascimento) formData.append('data_nascimento', editFormData.dataNascimento);
-          formData.append('nacionalidade', editFormData.nacionalidade);
-          formData.append('naturalidade', editFormData.naturalidade);
-          formData.append('provincia', editFormData.provincia);
-          formData.append('municipio', editFormData.municipio);
-          formData.append('residencia', editFormData.residencia);
-          formData.append('telefone', editFormData.telefone);
-          if (editFormData.email) formData.append('email', editFormData.email);
-          formData.append('deficiencia', editFormData.deficiencia || 'Não');
+          formData.append('nome_completo', data.nome);
+          formData.append('numero_bi', data.bi);
+          formData.append('genero', data.genero);
+          if (data.dataNascimento) formData.append('data_nascimento', data.dataNascimento);
+          formData.append('nacionalidade', data.nacionalidade);
+          formData.append('naturalidade', data.naturalidade);
+          formData.append('provincia', data.provincia);
+          formData.append('municipio', data.municipio);
+          formData.append('residencia', data.residencia);
+          formData.append('telefone', data.telefone);
+          if (data.email) formData.append('email', data.email);
+          formData.append('deficiencia', data.deficiencia || 'Não');
           
-          formData.append('escola_proveniencia', editFormData.escola_proveniencia);
-          formData.append('municipio_escola', editFormData.municipio_escola);
-          formData.append('tipo_escola', editFormData.tipo_escola);
-          if (editFormData.ano_conclusao) formData.append('ano_conclusao', toInt(editFormData.ano_conclusao));
-          if (editFormData.media_final) formData.append('media_final', toDecimal(editFormData.media_final));
+          formData.append('escola_proveniencia', data.escola_proveniencia);
+          formData.append('municipio_escola', data.municipio_escola);
+          formData.append('tipo_escola', data.tipo_escola);
+          if (data.ano_conclusao) formData.append('ano_conclusao', toInt(data.ano_conclusao));
+          if (data.media_final) formData.append('media_final', toDecimal(data.media_final));
           
-          formData.append('nome_encarregado', editFormData.enc_nome);
-          formData.append('parentesco_encarregado', editFormData.enc_parentesco);
-          formData.append('telefone_encarregado', editFormData.enc_telefone);
-          if (editFormData.enc_email) formData.append('email_encarregado', editFormData.enc_email);
-          formData.append('residencia_encarregado', editFormData.enc_residencia);
+          formData.append('nome_encarregado', data.enc_nome);
+          formData.append('parentesco_encarregado', data.enc_parentesco);
+          formData.append('telefone_encarregado', data.enc_telefone);
+          if (data.enc_email) formData.append('email_encarregado', data.enc_email);
+          formData.append('residencia_encarregado', data.enc_residencia);
 
-          if (editFormData.notaExame !== '') formData.append('nota_exame', toDecimal(editFormData.notaExame));
-          formData.append('status', editFormData.status);
+          if (data.notaExame !== '') formData.append('nota_exame', toDecimal(data.notaExame));
+          formData.append('status', data.status);
 
-          // Append photo if changed
-          if (editFormData.foto_file) {
-              formData.append('foto_passe', editFormData.foto_file);
+          if (data.foto_file) {
+              formData.append('foto_passe', data.foto_file);
           }
 
-          await api.patch(`candidaturas/${editFormData.real_id}/`, formData, {
+          await api.patch(`candidaturas/${data.real_id}/`, formData, {
               headers: {
                   'Content-Type': 'multipart/form-data',
               },
           });
           
-          // Since we changed many fields, it is safer to just trigger a full refresh than updating locally partially
           refresh(); 
           
           alert("Dados atualizados com sucesso!");
           setShowEditModal(false);
       } catch (error) {
           alert("Erro ao salvar alterações. Verifique os dados.");
+          console.error(error);
       }
   };
 
-  const handleConfirmPayment = async () => {
-      if (!selectedCandidato.rupe) return;
-      if (!window.confirm(`Confirmar pagamento do RUPE ${selectedCandidato.rupe.referencia}?`)) return;
+  const handleConfirmPayment = async (candidato) => {
+      if (!candidato.rupe) return;
+      if (!window.confirm(`Confirmar pagamento do RUPE ${candidato.rupe.referencia}?`)) return;
 
       try {
-          const response = await api.post(`candidaturas/${selectedCandidato.real_id}/confirmar_pagamento/`);
+          await api.post(`candidaturas/${candidato.real_id}/confirmar_pagamento/`);
           alert("Pagamento confirmado com sucesso!");
           
-          refresh(); // Refresh list and modal
-          closeDetail(); // Close detail to force refresh or we can update local state
+          refresh(); 
+          closeDetail(); 
       } catch (error) {
           console.error("Erro ao confirmar pagamento:", error);
           alert("Erro ao confirmar pagamento.");
@@ -462,6 +385,10 @@ const Inscritos = () => {
 
   const handleGenerateRUP = () => {
     setRupGenerated(true);
+    // Logic to actually generate RUP is handled locally in UI as 'validated' state or needs API call?
+    // Original code just setRupGenerated(true) to show "Inscrição Validada" and "Atualizar Status".
+    // It seems to be a simulation or waiting for backend?
+    // Based on original: yes, just sets state.
   };
 
   const closeDetail = () => {
@@ -512,13 +439,6 @@ const Inscritos = () => {
       sortableItems.sort((a, b) => {
         let aValue = a[sortConfig.key];
         let bValue = b[sortConfig.key];
-
-        // Handle numeric values safely
-        if (typeof aValue === 'string' && !isNaN(aValue)) {
-            // Keep strictly numeric strings as numbers for correct sorting, but careful with mixed content
-            // For now, let's treat known numeric fields explicitly if needed, or rely on JS types
-        }
-
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
@@ -532,7 +452,6 @@ const Inscritos = () => {
     return sortableItems;
   }, [inscritos, searchTerm, filters, sortConfig]);
 
-  // Ensure itemsPerPage is a number
   const currentData = filteredInscritos.slice((currentPage - 1) * 24, currentPage * 24);
 
   return (
@@ -629,169 +548,16 @@ const Inscritos = () => {
           </div>
         )}
 
-        {isLoading ? (
-            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', color: '#64748b'}}>
-                <div className="loading-spinner" style={{width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spinner 0.8s linear infinite'}}></div>
-                <span style={{fontWeight: 500}}>A carregar inscritos...</span>
-            </div>
-        ) : (
-            <div className="table-wrapper">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th 
-                        className={`sticky-col-1 sortable-header ${sortConfig.key === 'id' ? 'active-sort' : ''}`} 
-                        onClick={() => requestSort('id')}
-                        style={{ width: '60px' }}
-                    >
-                        ID 
-                        <span className="sort-icon">
-                            {sortConfig.key === 'id' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                        </span>
-                    </th>
-                    <th 
-                        className={`sticky-col-2 sortable-header ${sortConfig.key === 'nome' ? 'active-sort' : ''}`} 
-                        onClick={() => requestSort('nome')}
-                        style={{ minWidth: '240px' }}
-                    >
-                        Candidato
-                         <span className="sort-icon">
-                            {sortConfig.key === 'nome' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                        </span>
-                    </th>
-                    <th 
-                        className={`sortable-header ${sortConfig.key === 'curso1' ? 'active-sort' : ''}`} 
-                        onClick={() => requestSort('curso1')}
-                    >
-                        Curso
-                         <span className="sort-icon">
-                            {sortConfig.key === 'curso1' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                        </span>
-                    </th>
-                    <th 
-                        className={`sortable-header ${sortConfig.key === 'notaExame' ? 'active-sort' : ''}`} 
-                        onClick={() => requestSort('notaExame')}
-                    >
-                        Exame
-                         <span className="sort-icon">
-                            {sortConfig.key === 'notaExame' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                        </span>
-                    </th>
-                    <th 
-                        className={`sortable-header ${sortConfig.key === 'anoInscricao' ? 'active-sort' : ''}`} 
-                        onClick={() => requestSort('anoInscricao')}
-                    >
-                        Ano
-                         <span className="sort-icon">
-                            {sortConfig.key === 'anoInscricao' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                        </span>
-                    </th>
-                    <th 
-                        className={`sortable-header ${sortConfig.key === 'status' ? 'active-sort' : ''}`} 
-                        onClick={() => requestSort('status')}
-                    >
-                        Estado
-                         <span className="sort-icon">
-                            {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                        </span>
-                    </th>
-                    <th style={{ textAlign: 'center' }}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.length > 0 ? currentData.map((i) => (
-                    <tr key={i.id} className="clickable-row animate-fade-in">
-                      <td className="sticky-col-1">{i.id}</td>
-                      <td className="sticky-col-2" style={{ fontWeight: 600 }}>{i.nome}</td>
-                      <td>{i.curso1}</td>
-                      <td>
-                        {i.notaExame ? (
-                          <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
-                            {i.notaExame}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td>{i.anoInscricao}</td>
-                      <td>
-                        <span className={`status-badge ${i.status === 'Pendente' ? 'status-pending' :
-                          i.status === 'Em Análise' ? 'status-analysis' :
-                            i.status === 'Aprovado' ? 'status-approved' : 
-                            i.status === 'Matriculado' ? 'status-confirmed' : 'status-rejected'
-                          }`}>
-                          {i.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="actions-cell">
-                          <button
-                            className="btn-icon btn-view"
-                            onClick={() => handleOpenDetail(i)}
-                            title="Ver Detalhes"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          
-                          {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                            <button
-                                className="btn-icon btn-edit"
-                                onClick={(e) => { e.stopPropagation(); handleEditClick(i); }}
-                                title="Editar Candidato"
-                            >
-                                <Edit size={16} />
-                            </button>
-                          )}
-
-                          {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                            <button
-                                className="btn-icon btn-evaluate"
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if (i.notaExame === null || i.notaExame === undefined || i.notaExame === '') {
-                                        handleOpenEvaluation(i); 
-                                    }
-                                }}
-                                disabled={i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== ''}
-                                title={ (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? "Candidato já avaliado" : "Avaliar Candidato"}
-                                style={{
-                                    opacity: (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? 0.3 : 1,
-                                    cursor: (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                <ClipboardCheck size={16} />
-                            </button>
-                          )}
-
-                          {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
-                            <button
-                                className={`btn-icon btn-enroll ${i.status === 'Aprovado' ? 'can-enroll' : ''}`}
-                                disabled={i.status !== 'Aprovado' || i.status === 'Matriculado'}
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    navigate('/matriculas/nova', { state: { candidato: i } });
-                                }}
-                                title={
-                                    i.status === 'Matriculado' ? "Candidato já matriculado" :
-                                    i.status === 'Aprovado' ? "Matricular Candidato" : 
-                                    "Matrícula indisponível (Candidato não aprovado)"
-                                }
-                            >
-                                <GraduationCap size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                        Nenhum candidato encontrado com os filtros aplicados.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-        )}
+        {/* TABLE COMPONENT */}
+        <InscritosTable 
+            data={currentData}
+            loading={isLoading}
+            sortConfig={sortConfig}
+            requestSort={requestSort}
+            onOpenDetail={handleOpenDetail}
+            onEdit={handleEditClick}
+            onEvaluate={handleOpenEvaluation}
+        />
 
         {/* Pagination */}
         <Pagination 
@@ -802,697 +568,47 @@ const Inscritos = () => {
         />
       </div>
 
-      {/* EVALUATION MODAL */}
-      {showEvaluationModal && candidateToEvaluate && (
-        <div className="modal-overlay" onClick={handleCloseEvaluation}>
-          <div className="evaluation-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="evaluation-header">
-              <h3>
-                <GraduationCap size={20} color="#1e3a8a" /> Avaliação
-              </h3>
-              <button onClick={handleCloseEvaluation} className="btn-close-modal" style={{ position: 'static' }}>
-                <X size={20} color="#64748b" />
-              </button>
-            </div>
+      {/* MODALS */}
+      <EvaluationModal 
+          isOpen={showEvaluationModal}
+          onClose={handleCloseEvaluation}
+          candidate={candidateToEvaluate}
+          examGrade={examGrade}
+          setExamGrade={setExamGrade}
+          onSubmit={handleSubmitEvaluation}
+      />
 
-            <div className="evaluation-body">
-              <p className="evaluation-info-text">
-                Atribuir nota do exame para: <strong>{candidateToEvaluate.nome}</strong>
-              </p>
+      <ExamSchedulingModal 
+          isOpen={showExamModal}
+          onClose={() => setShowExamModal(false)}
+          inscritos={inscritos}
+          examConfig={examConfig}
+          setExamConfig={setExamConfig}
+          onDistribute={handleDistributeExams}
+          isProcessing={isProcessingExams}
+      />
 
-              <div className="evaluation-input-group">
-                <label className="evaluation-label">NOTA DO EXAME (0 - 20)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={examGrade}
-                  onChange={(e) => setExamGrade(e.target.value)}
-                  placeholder="0"
-                  className="evaluation-input"
-                  autoFocus
-                />
-              </div>
+      <CallListModal 
+          isOpen={showCallListModal}
+          onClose={() => setShowCallListModal(false)}
+          data={callListData}
+      />
 
-              <p className="evaluation-hint">
-                Nota igual ou superior a 10 aprova o candidato.
-              </p>
-            </div>
+      <CandidateDetailModal 
+          candidate={selectedCandidato}
+          onClose={closeDetail}
+          rupGenerated={rupGenerated}
+          onGenerateRUP={handleGenerateRUP}
+          onRefresh={refresh}
+          onConfirmPayment={handleConfirmPayment}
+      />
 
-            <div className="evaluation-actions">
-              <button
-                onClick={handleCloseEvaluation}
-                className="btn-cancel"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSubmitEvaluation}
-                className="btn-confirm"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EXAM SCHEDULING MODAL */}
-      {showExamModal && (
-        <div className="modal-overlay" onClick={() => setShowExamModal(false)}>
-          <div className="evaluation-modal-card" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column'}}>
-            <div className="evaluation-header">
-              <h3>
-                <Calendar size={20} color="#1e3a8a" /> Agendamento Automático
-              </h3>
-              <button onClick={() => setShowExamModal(false)} className="btn-close-modal" style={{ position: 'static' }}>
-                <X size={20} color="#64748b" />
-              </button>
-            </div>
-
-            <div className="evaluation-body" style={{padding: '24px', overflowY: 'auto'}}>
-              <div style={{
-                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', 
-                padding: '24px', 
-                borderRadius: '20px', 
-                marginBottom: '24px', 
-                border: '1px solid #bfdbfe', 
-                textAlign: 'center',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-              }}>
-                <p style={{fontSize: '12px', fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 0'}}>
-                   Total de Candidatos Aguardando Vaga
-                </p>
-                <div style={{fontSize: '36px', fontWeight: '900', color: '#1e3a8a', lineHeight: '1'}}>
-                    {inscritos.filter(i => i.status === 'Pago').length.toLocaleString()}
-                </div>
-                <p style={{fontSize: '13px', color: '#60a5fa', marginTop: '8px', fontWeight: '500'}}>
-                    Candidatos com inscrição paga e sem sala atribuída
-                </p>
-              </div>
-
-              <div style={{background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #e2e8f0', textAlign: 'left'}}>
-                <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                    <label className="evaluation-label" style={{textAlign: 'left', marginBottom: 0, color: '#475569'}}>DEFINIR TAMANHO DESTE LOTE (OPCIONAL)</label>
-                    <input 
-                        type="number" 
-                        placeholder="Ex: 50 (Vazio agendará todos)"
-                        value={examConfig.limite_candidatos}
-                        onChange={(e) => setExamConfig({...examConfig, limite_candidatos: e.target.value})}
-                        className="evaluation-input" 
-                        style={{width: '100%', fontSize: '18px', padding: '14px', height: 'auto', border: '2px solid #cbd5e1'}}
-                    />
-                </div>
-              </div>
-
-              <div className="evaluation-input-group" style={{marginBottom: '20px'}}>
-                <label className="evaluation-label">DATA DE INÍCIO DOS EXAMES</label>
-                <input
-                  type="date"
-                  value={examConfig.data_inicio}
-                  onChange={(e) => setExamConfig({...examConfig, data_inicio: e.target.value})}
-                  className="evaluation-input"
-                  style={{width: '100%', fontSize: '16px', padding: '12px', height: 'auto'}}
-                />
-              </div>
-
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px'}}>
-                  <div className="evaluation-input-group">
-                    <label className="evaluation-label">HORA DE INÍCIO</label>
-                    <input
-                      type="time"
-                      value={examConfig.hora_inicio}
-                      onChange={(e) => setExamConfig({...examConfig, hora_inicio: e.target.value})}
-                      className="evaluation-input"
-                      style={{width: '100%', fontSize: '16px', padding: '12px', height: 'auto'}}
-                    />
-                  </div>
-                  <div className="evaluation-input-group">
-                    <label className="evaluation-label">POR SALA (OPCIONAL)</label>
-                    <input
-                      type="number"
-                      placeholder="Capacidade"
-                      value={examConfig.candidatos_por_sala}
-                      onChange={(e) => setExamConfig({...examConfig, candidatos_por_sala: e.target.value})}
-                      className="evaluation-input"
-                      style={{width: '100%', fontSize: '16px', padding: '12px', height: 'auto'}}
-                    />
-                  </div>
-              </div>
-
-              <div style={{background: '#eff6ff', padding: '12px', borderRadius: '8px', border: '1px solid #dbeafe'}}>
-                <p style={{fontSize: '12px', color: '#1e40af', margin: 0, textAlign: 'left', lineHeight: '1.5'}}>
-                    <strong>ℹ️ Janelas de Horário Configuradas:</strong><br/>
-                    Manhã: 08:00 - 12:00 | Tarde: 13:00 - 16:00.<br/>
-                    O sistema saltará automaticamente o intervalo de almoço e passará para o dia seguinte após as 16h.
-                </p>
-              </div>
-            </div>
-
-            <div className="evaluation-actions">
-              <button onClick={() => setShowExamModal(false)} className="btn-cancel" disabled={isProcessingExams}>
-                Cancelar
-              </button>
-              <button onClick={handleDistributeExams} className="btn-confirm" disabled={isProcessingExams}>
-                {isProcessingExams ? 'Processando...' : 'Distribuir Candidatos'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CALL LIST MODAL */}
-      {showCallListModal && (
-        <div className="modal-overlay" onClick={() => setShowCallListModal(false)}>
-          <div className="detail-modal-card" onClick={(e) => e.stopPropagation()} style={{maxWidth: '1000px'}}>
-            <div className="evaluation-header" style={{background: '#1e293b'}}>
-              <h3>
-                <Printer size={20} color="white" /> Listas de Chamada por Sala
-              </h3>
-              <div style={{display: 'flex', gap: '12px'}}>
-                  <button onClick={() => window.print()} className="btn-confirm" style={{background: '#22c55e'}}>
-                    Imprimir Todas
-                  </button>
-                  <button onClick={() => setShowCallListModal(false)} className="btn-close-modal" style={{ position: 'static', color: 'white' }}>
-                    <X size={20} />
-                  </button>
-              </div>
-            </div>
-
-            <div className="modal-body" style={{padding: '32px'}}>
-              {Object.keys(callListData).length === 0 ? (
-                  <p style={{textAlign: 'center', color: '#64748b'}}>Nenhum exame agendado para exibir.</p>
-              ) : (
-                  Object.entries(callListData).map(([data, salas]) => (
-                    <div key={data} className="print-section">
-                        <h2 style={{borderBottom: '2px solid #1e293b', paddingBottom: '8px', marginBottom: '24px', color: '#1e293b'}}>
-                            📅 Exames em: {data}
-                        </h2>
-                        
-                        {Object.entries(salas).map(([sala, alunos]) => (
-                            <div key={sala} className="page-break" style={{marginBottom: '40px', background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                                    <h3 style={{margin: 0, color: '#2563eb'}}>{sala}</h3>
-                                    <span style={{fontWeight: 'bold', color: '#64748b'}}>Total: {alunos.length} Alunos</span>
-                                </div>
-                                <table className="data-table" style={{maxHeight: 'none'}}>
-                                    <thead>
-                                        <tr>
-                                            <th>Nº INSCRIÇÃO</th>
-                                            <th>NOME COMPLETO</th>
-                                            <th>BI</th>
-                                            <th>CURSO</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {alunos.map(al => (
-                                            <tr key={al.numero_inscricao}>
-                                                <td>{al.numero_inscricao}</td>
-                                                <td>{al.nome}</td>
-                                                <td>{al.bi}</td>
-                                                <td>{al.curso}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))}
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedCandidato && (
-        <div className="modal-overlay" onClick={closeDetail}>
-          <div className="detail-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button className="btn-close-modal" onClick={closeDetail}>
-              <X size={24} color="#64748b" />
-            </button>
-
-            <div className="detail-modal-grid">
-                {/* SIDEBAR: Profile & Status */}
-                <div className="profile-sidebar">
-                     <div className="profile-avatar-large" onClick={() => {
-                        if (selectedCandidato.files?.foto) {
-                             const win = window.open("", "_blank");
-                             win.document.write(`<img src="${selectedCandidato.files.foto}" style="max-width:100%; height:auto;">`);
-                             win.focus();
-                        }
-                     }} title="Clique para ampliar" style={{cursor: selectedCandidato.files?.foto ? 'zoom-in' : 'default'}}>
-                        {selectedCandidato.files?.foto ? (
-                             <img src={selectedCandidato.files.foto} alt="" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-                        ) : (
-                             <User size={48} />
-                        )}
-                     </div>
-                     <h2 className="profile-name">{selectedCandidato.nome}</h2>
-                     <p className="profile-id">INSCRIÇÃO: {selectedCandidato.id}</p>
-                     
-                     <div className="profile-status" style={{
-                         backgroundColor: 
-                            selectedCandidato.status === 'Aprovado' ? '#dcfce7' : 
-                            selectedCandidato.status === 'Pendente' ? '#fef9c3' : '#f1f5f9',
-                         color:
-                            selectedCandidato.status === 'Aprovado' ? '#166534' : 
-                            selectedCandidato.status === 'Pendente' ? '#854d0e' : '#475569',
-                         border: 'none'
-                     }}>
-                         {selectedCandidato.status}
-                     </div>
-
-                     <div className="profile-footer">
-                        <div className="profile-footer-item">
-                            <Calendar size={16} />
-                            <span>Inscrito em: {selectedCandidato.dataInscricao}</span>
-                        </div>
-                        <div className="profile-footer-item">
-                            <Award size={16} />
-                            <span>Média 9ª: {selectedCandidato.nota9}</span>
-                        </div>
-                        {selectedCandidato.notaExame && (
-                            <div className="profile-footer-item">
-                                <FileText size={16} />
-                                <span>Exame: <strong>{selectedCandidato.notaExame}</strong> Val.</span>
-                            </div>
-                        )}
-                     </div>
-                </div>
-
-                {/* CONTENT: Details & Actions */}
-                <div className="content-area">
-                    
-                    {/* 1. Dados Pessoais */}
-                    <div className="info-section">
-                        <div className="section-title"><User size={18} /> Dados Pessoais</div>
-                        <div className="info-grid-2">
-                             <div><p className="info-label">Nome Completo</p><p className="info-value">{selectedCandidato.nome}</p></div>
-                             <div><p className="info-label">Género</p><p className="info-value">{selectedCandidato.genero}</p></div>
-                             <div><p className="info-label">Nascimento</p><p className="info-value">{selectedCandidato.dataNascimento} ({calculateAge(selectedCandidato.dataNascimento)} anos)</p></div>
-                             <div><p className="info-label">Nacionalidade</p><p className="info-value">{selectedCandidato.nacionalidade}</p></div>
-                             <div><p className="info-label">Naturalidade (Local de Nascimento)</p><p className="info-value">{selectedCandidato.naturalidade}</p></div>
-                             <div><p className="info-label">BI / Passaporte</p><p className="info-value">{selectedCandidato.bi}</p></div>
-                             <div><p className="info-label">Telefone</p><p className="info-value">{selectedCandidato.telefone}</p></div>
-                             <div><p className="info-label">Email</p><p className="info-value">{selectedCandidato.email || 'N/A'}</p></div>
-                             <div><p className="info-label">Província</p><p className="info-value">{selectedCandidato.provincia || 'N/A'}</p></div>
-                             <div><p className="info-label">Município</p><p className="info-value">{selectedCandidato.municipio || 'N/A'}</p></div>
-                             <div><p className="info-label">Residência (Bairro)</p><p className="info-value">{selectedCandidato.residencia}</p></div>
-                        </div>
-                    </div>
-
-                    {/* 2. Académico & Curso */}
-                    <div className="info-section">
-                        <div className="section-title"><GraduationCap size={18} /> Dados Académicos & Curso</div>
-                         <div className="info-grid-2">
-                             <div><p className="info-label">Escola de Origem</p><p className="info-value">{selectedCandidato.nomeEscola}</p></div>
-                             <div><p className="info-label">Município da Escola</p><p className="info-value">{selectedCandidato.municipioEscola}</p></div>
-                             <div><p className="info-label">Ano Conclusão</p><p className="info-value">{selectedCandidato.anoConclusao}</p></div>
-                             
-                             <div style={{gridColumn: 'span 2', background: 'var(--primary-light-bg)', padding: '16px', borderRadius: '12px', marginTop: '10px'}}>
-                                 <p className="info-label" style={{color: 'var(--primary-color)'}}>OPÇÃO DE CURSO SELECIONADA</p>
-                                 <p className="info-value" style={{fontSize: '18px', fontWeight: 700}}>{selectedCandidato.curso1}</p>
-                                 {selectedCandidato.curso2 && <p style={{fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px'}}>2ª Opção: {selectedCandidato.curso2}</p>}
-
-                             </div>
-                        </div>
-                    </div>
-
-                    {/* 3. Encarregado */}
-                    <div className="info-section">
-                        <div className="section-title"><ShieldAlert size={18} /> Encarregado de Educação</div>
-                        {selectedCandidato.encarregado && selectedCandidato.encarregado.nome !== 'N/A' ? (
-                            <div className="info-grid-2">
-                                <div><p className="info-label">Nome</p><p className="info-value">{selectedCandidato.encarregado.nome}</p></div>
-                                <div><p className="info-label">Parentesco</p><p className="info-value">{selectedCandidato.encarregado.parentesco}</p></div>
-                                <div><p className="info-label">Telefone</p><p className="info-value">{selectedCandidato.encarregado.telefone}</p></div>
-                                <div><p className="info-label">Residência</p><p className="info-value">{selectedCandidato.encarregado.residencia}</p></div>
-                            </div>
-                        ) : (
-                            <p style={{color: '#94a3b8', fontStyle: 'italic'}}>Nenhum encarregado associado (Candidato Maior de Idade ou não informado).</p>
-                        )}
-                    </div>
-
-                    {/* 4. Documentos */}
-                    <div className="info-section">
-                        <div className="section-title"><FileText size={18} /> Documentos Anexados</div>
-                        <div className="doc-grid">
-                            <div className="doc-card">
-                                 <FileText size={24} color={selectedCandidato.files?.bi ? '#2563eb' : '#cbd5e1'} />
-                                 <div style={{flex: 1}}>
-                                     <p className="info-label">BILHETE IDENTIDADE</p>
-                                     <p className="info-value" style={{fontSize: '13px'}}>{selectedCandidato.files?.bi ? 'Disponível' : 'Pendente'}</p>
-                                 </div>
-                                 {selectedCandidato.files?.bi && (
-                                     <a href={selectedCandidato.files.bi} target="_blank" rel="noreferrer"><Download size={18} color="#475569"/></a>
-                                 )}
-                            </div>
-                            <div className="doc-card">
-                                 <User size={24} color={selectedCandidato.files?.foto ? '#2563eb' : '#cbd5e1'} />
-                                 <div style={{flex: 1}}>
-                                     <p className="info-label">FOTO PASSE</p>
-                                     <p className="info-value" style={{fontSize: '13px'}}>{selectedCandidato.files?.foto ? 'Disponível' : 'Pendente'}</p>
-                                 </div>
-                                  {selectedCandidato.files?.foto && (
-                                     <a href={selectedCandidato.files.foto} target="_blank" rel="noreferrer"><Download size={18} color="#475569"/></a>
-                                 )}
-                            </div>
-                             <div className="doc-card">
-                                 <ClipboardCheck size={24} color={selectedCandidato.files?.certificado ? '#2563eb' : '#cbd5e1'} />
-                                 <div style={{flex: 1}}>
-                                     <p className="info-label">CERTIFICADO</p>
-                                     <p className="info-value" style={{fontSize: '13px'}}>{selectedCandidato.files?.certificado ? 'Disponível' : 'Pendente'}</p>
-                                 </div>
-                                  {selectedCandidato.files?.certificado && (
-                                     <a href={selectedCandidato.files.certificado} target="_blank" rel="noreferrer"><Download size={18} color="#475569"/></a>
-                                 )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 5. Ações Finais (RUP) */}
-                     <div className="info-section">
-                        <div className="section-title"><CheckCircle2 size={18} /> Validação e Pagamento</div>
-                         
-                         {selectedCandidato.rupe ? (
-                            <div className="rup-container">
-                              <div className="rup-header">
-                                  {selectedCandidato.rupe.status === 'Pago' ? 'Pago com Sucesso! ✅' : 'Aguardando Pagamento ⏳'}
-                              </div>
-                              <div className="rup-details">
-                                <div className="rup-detail-item">
-                                  <label>REFERÊNCIA</label>
-                                  <span>{selectedCandidato.rupe.referencia}</span>
-                                </div>
-                                <div className="rup-detail-item">
-                                  <label>VALOR</label>
-                                  <span>{parseFloat(selectedCandidato.rupe.valor).toLocaleString('pt-AO', {style: 'currency', currency: 'AOA'})}</span>
-                                </div>
-                                <div className="rup-detail-item">
-                                  <label>ESTADO</label>
-                                  <span style={{color: selectedCandidato.rupe.status === 'Pago' ? '#166534' : '#ca8a04'}}>{selectedCandidato.rupe.status}</span>
-                                </div>
-                              </div>
-                              
-                              <div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
-                                  <button className="btn-print" onClick={() => window.print()}>
-                                    <Printer size={18} /> Imprimir Ficha
-                                  </button>
-                                  
-                                  {/* Admin Button to Confirm Payment */}
-                                  {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && selectedCandidato.rupe.status !== 'Pago' && (
-                                      <button className="btn-finish" onClick={handleConfirmPayment} style={{width: 'auto', background: '#059669'}}>
-                                        <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Confirmar Pagamento
-                                      </button>
-                                  )}
-                              </div>
-                            </div>
-                         ) : (
-                            !rupGenerated ? (
-                                <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', textAlign: 'center' }}>
-                                  <p style={{marginBottom: '16px', color: '#475569'}}>Este candidato ainda não tem Referência de Pagamento.</p>
-                                  <button className="btn-finish" onClick={handleGenerateRUP} style={{maxWidth: '400px', margin: '0 auto'}}>
-                                    <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Validar Inscrição e Gerar RUP
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="rup-container">
-                                    {/* Fallback local simulation if needed, but fetchRefresh mostly covers it */}
-                                  <div className="rup-header">Inscrição Validada - RUP Gerado! ✅</div>
-                                  <button onClick={refresh} className="btn-secondary">Atualizar Status</button>
-                                </div>
-                              )
-                         )}
-                     </div>
-
-                </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT MODAL EXPANDED & COLLAPSIBLE */}
-      {showEditModal && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="evaluation-modal-card" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px', maxHeight: '90vh', overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column'}}>
-             <div className="evaluation-header">
-               <h3>
-                 <Edit size={20} color="#1e3a8a" /> Editar Ficha de Inscrição
-               </h3>
-               <button onClick={() => setShowEditModal(false)} className="btn-close-modal" style={{ position: 'static' }}>
-                 <X size={20} color="#64748b" />
-               </button>
-             </div>
-
-             <div className="evaluation-body" style={{overflowY: 'auto', padding: '20px', flex: 1}}>
-                
-                {/* SECTION 1: PESSOAL */}
-                <div className="form-collapse-section">
-                    <button 
-                        className={`collapse-header ${expandedSection === 'pessoais' ? 'active' : ''}`}
-                        onClick={() => toggleSection('pessoais')}
-                    >
-                        <span style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                            <User size={18} /> Dados Pessoais
-                        </span>
-                        {expandedSection === 'pessoais' ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
-                    </button>
-                    
-                    {expandedSection === 'pessoais' && (
-                        <div className="collapse-content animate-fade-in">
-                            <div className="form-grid-2">
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Nome Completo</label>
-                                   <input type="text" value={editFormData.nome} onChange={(e) => setEditFormData({...editFormData, nome: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Nº Bilhete</label>
-                                   <input type="text" value={editFormData.bi} onChange={(e) => setEditFormData({...editFormData, bi: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Data Nascimento</label>
-                                   <input type="date" value={editFormData.dataNascimento} onChange={(e) => setEditFormData({...editFormData, dataNascimento: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Género</label>
-                                   <select value={editFormData.genero} onChange={(e) => setEditFormData({...editFormData, genero: e.target.value})} className="evaluation-input-small">
-                                      <option value="M">Masculino</option>
-                                      <option value="F">Feminino</option>
-                                   </select>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Nacionalidade</label>
-                                   <input type="text" value={editFormData.nacionalidade} onChange={(e) => setEditFormData({...editFormData, nacionalidade: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Naturalidade</label>
-                                   <input type="text" value={editFormData.naturalidade} onChange={(e) => setEditFormData({...editFormData, naturalidade: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Telefone</label>
-                                   <input type="text" value={editFormData.telefone} onChange={(e) => setEditFormData({...editFormData, telefone: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Email</label>
-                                   <input type="email" value={editFormData.email} onChange={(e) => setEditFormData({...editFormData, email: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Deficiência?</label>
-                                   <input type="text" value={editFormData.deficiencia} onChange={(e) => setEditFormData({...editFormData, deficiencia: e.target.value})} className="evaluation-input-small" placeholder="Não ou descreva"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Província de Residência</label>
-                                    <input type="text" value={editFormData.provincia} onChange={(e) => setEditFormData({...editFormData, provincia: e.target.value})} className="evaluation-input-small"/>
-                                 </div>
-                                 <div className="evaluation-input-group">
-                                    <label className="evaluation-label">Município de Residência</label>
-                                    <input type="text" value={editFormData.municipio} onChange={(e) => setEditFormData({...editFormData, municipio: e.target.value})} className="evaluation-input-small"/>
-                                 </div>
-                                 <div className="evaluation-input-group">
-                                    <label className="evaluation-label">Residência (Bairro/Rua)</label>
-                                   <input type="text" value={editFormData.residencia} onChange={(e) => setEditFormData({...editFormData, residencia: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* SECTION 2: ACADÉMICO */}
-                <div className="form-collapse-section">
-                    <button 
-                        className={`collapse-header ${expandedSection === 'academicos' ? 'active' : ''}`}
-                        onClick={() => toggleSection('academicos')}
-                    >
-                        <span style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                            <GraduationCap size={18} /> Dados Académicos
-                        </span>
-                        {expandedSection === 'academicos' ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
-                    </button>
-                    
-                    {expandedSection === 'academicos' && (
-                        <div className="collapse-content animate-fade-in">
-                            <div className="form-grid-2">
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Escola Proveniência</label>
-                                   <input type="text" value={editFormData.escola_proveniencia} onChange={(e) => setEditFormData({...editFormData, escola_proveniencia: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Município Escola</label>
-                                   <input type="text" value={editFormData.municipio_escola} onChange={(e) => setEditFormData({...editFormData, municipio_escola: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Tipo de Escola</label>
-                                   <select value={editFormData.tipo_escola} onChange={(e) => setEditFormData({...editFormData, tipo_escola: e.target.value})} className="evaluation-input-small">
-                                      <option value="Pública">Pública</option>
-                                      <option value="Privada">Privada</option>
-                                   </select>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Ano Conclusão</label>
-                                   <input type="number" value={editFormData.ano_conclusao} onChange={(e) => setEditFormData({...editFormData, ano_conclusao: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Média Final (9ª)</label>
-                                   <input type="number" step="0.1" value={editFormData.media_final} onChange={(e) => setEditFormData({...editFormData, media_final: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* SECTION 3: ENCARREGADO */}
-                <div className="form-collapse-section">
-                    <button 
-                        className={`collapse-header ${expandedSection === 'encarregado' ? 'active' : ''}`}
-                        onClick={() => toggleSection('encarregado')}
-                    >
-                        <span style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                            <ShieldAlert size={18} /> Encarregado de Educação
-                        </span>
-                        {expandedSection === 'encarregado' ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
-                    </button>
-                    
-                    {expandedSection === 'encarregado' && (
-                        <div className="collapse-content animate-fade-in">
-                            <div className="form-grid-2">
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Nome Encarregado</label>
-                                   <input type="text" value={editFormData.enc_nome} onChange={(e) => setEditFormData({...editFormData, enc_nome: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Parentesco</label>
-                                   <input type="text" value={editFormData.enc_parentesco} onChange={(e) => setEditFormData({...editFormData, enc_parentesco: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Telefone Enc.</label>
-                                   <input type="text" value={editFormData.enc_telefone} onChange={(e) => setEditFormData({...editFormData, enc_telefone: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Email Enc.</label>
-                                   <input type="email" value={editFormData.enc_email} onChange={(e) => setEditFormData({...editFormData, enc_email: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Residência Enc.</label>
-                                   <input type="text" value={editFormData.enc_residencia} onChange={(e) => setEditFormData({...editFormData, enc_residencia: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                 {/* SECTION 4: ADMIN / STATUS */}
-                <div className="form-collapse-section">
-                    <button 
-                        className={`collapse-header ${expandedSection === 'admin' ? 'active' : ''}`}
-                        onClick={() => toggleSection('admin')}
-                    >
-                        <span style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                             <CheckCircle2 size={18} /> Situação da Candidatura
-                        </span>
-                        {expandedSection === 'admin' ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
-                    </button>
-                    
-                    {expandedSection === 'admin' && (
-                        <div className="collapse-content animate-fade-in">
-                              <div className="form-grid-2">
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Foto do Candidato</label>
-                                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                       <div style={{ 
-                                           width: '100px', 
-                                           height: '100px', 
-                                           borderRadius: '12px', 
-                                           overflow: 'hidden', 
-                                           border: '2px solid #e2e8f0',
-                                           background: '#f8fafc',
-                                           display: 'flex',
-                                           alignItems: 'center',
-                                           justifyContent: 'center'
-                                       }}>
-                                           {editFormData.foto_preview || editFormData.foto ? (
-                                               <img src={editFormData.foto_preview || editFormData.foto} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                           ) : (
-                                               <User size={40} color="#cbd5e1" />
-                                           )}
-                                       </div>
-                                       <div style={{ flex: 1 }}>
-                                           <input 
-                                              type="file" 
-                                              accept="image/*" 
-                                              onChange={(e) => {
-                                                  const file = e.target.files[0];
-                                                  if (file) {
-                                                      setEditFormData({
-                                                          ...editFormData, 
-                                                          foto_file: file, 
-                                                          foto_preview: URL.createObjectURL(file)
-                                                      });
-                                                  }
-                                              }}
-                                              style={{ fontSize: '12px' }}
-                                           />
-                                           <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Tamanho recomendado: 3x4 (JPG/PNG)</p>
-                                       </div>
-                                   </div>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Nota Exame (0-20)</label>
-                                   <input type="number" value={editFormData.notaExame} onChange={(e) => setEditFormData({...editFormData, notaExame: e.target.value})} className="evaluation-input-small"/>
-                                </div>
-                                <div className="evaluation-input-group">
-                                   <label className="evaluation-label">Estado da Candidatura</label>
-                                   <select 
-                                      value={editFormData.status}
-                                      onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
-                                      className="evaluation-input-small"
-                                   >
-                                      <option value="Pendente">Pendente</option>
-                                      <option value="Em Análise">Em Análise</option>
-                                      <option value="Pago">Pago (Aguardando Exame)</option>
-                                      <option value="Aprovado">Aprovado</option>
-                                      <option value="Não Admitido">Não Admitido</option>
-                                      <option value="Matriculado">Matriculado</option>
-                                   </select>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-             </div>
-
-             <div className="evaluation-actions" style={{padding: '20px', borderTop: '1px solid #e2e8f0', background: 'white'}}>
-               <button onClick={() => setShowEditModal(false)} className="btn-cancel">
-                 Cancelar
-               </button>
-               <button onClick={handleSaveEdit} className="btn-confirm">
-                 Salvar Alterações
-               </button>
-             </div>
-          </div>
-        </div>
-      )}
+      <EditCandidateModal 
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          initialData={initialEditData}
+          onSave={handleSaveEdit}
+      />
 
     </div>
   );

@@ -12,6 +12,8 @@ class Configuracao(models.Model):
         verbose_name="Mensagem de Encerramento",
         blank=True
     )
+    nome_escola = models.CharField(max_length=255, default="Sistema de Gestão Escolar", verbose_name="Nome da Escola")
+    logo = models.ImageField(upload_to='branding/', blank=True, null=True, verbose_name="Logotipo")
     
     # Outras configurações globais podem ser adicionadas aqui
     # ex: ano_lectivo_matricula_default = models.ForeignKey(...)

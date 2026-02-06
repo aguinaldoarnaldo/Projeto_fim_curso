@@ -60,7 +60,7 @@ const Alunos = () => {
         id_sala: '',
         id_periodo: '',
         id_turma: '',
-        status: 'Activo'
+        status: 'Ativo'
     });
     const tableRef = useRef(null);
 
@@ -290,7 +290,7 @@ const Alunos = () => {
             id_sala: '',
             id_periodo: '',
             id_turma: '',
-            status: 'Activo'
+            status: 'Ativo'
         });
         setShowModal(true);
     };
@@ -385,9 +385,10 @@ const Alunos = () => {
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Activo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
-            case 'Suspenso': return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
-            case 'Concluído': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
+            case 'Ativo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
+            case 'Inativo': return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
+            case 'Concluido': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
+            case 'Transferido': return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
             default: return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
         }
     };
@@ -1014,17 +1015,17 @@ const Alunos = () => {
                             <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
                         </button>
                         <div className="submenu">
-                            <button className="dropdown-item success" onClick={() => handleUpdateStatus(menuStudent.id, 'Activo')}>
+                            <button className="dropdown-item success" onClick={() => handleUpdateStatus(menuStudent.id, 'Ativo')}>
                                 <CheckCircle size={14} /> Ativo
                             </button>
-                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Suspenso')}>
-                                <Clock size={14} /> Suspenso
+                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Inativo')}>
+                                <Clock size={14} /> Inativo
                             </button>
                             <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Transferido')}>
                                 <RefreshCw size={14} /> Transferido
                             </button>
-                            <button className="dropdown-item danger" onClick={() => handleUpdateStatus(menuStudent.id, 'Desistente')}>
-                                <UserX size={14} /> Desistente
+                            <button className="dropdown-item feature" onClick={() => handleUpdateStatus(menuStudent.id, 'Concluido')}>
+                                <CheckCircle size={14} /> Concluído
                             </button>
                         </div>
                     </div>
@@ -1079,17 +1080,17 @@ const Alunos = () => {
                             <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
                         </button>
                         <div className="submenu">
-                            <button className="dropdown-item success" onClick={() => handleUpdateStatus(menuStudent.id, 'Activo')}>
+                            <button className="dropdown-item success" onClick={() => handleUpdateStatus(menuStudent.id, 'Ativo')}>
                                 <CheckCircle size={14} /> Ativo
                             </button>
-                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Suspenso')}>
-                                <Clock size={14} /> Suspenso
+                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Inativo')}>
+                                <Clock size={14} /> Inativo
                             </button>
                             <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Transferido')}>
                                 <RefreshCw size={14} /> Transferido
                             </button>
-                            <button className="dropdown-item danger" onClick={() => handleUpdateStatus(menuStudent.id, 'Desistente')}>
-                                <UserX size={14} /> Desistente
+                            <button className="dropdown-item feature" onClick={() => handleUpdateStatus(menuStudent.id, 'Concluido')}>
+                                <CheckCircle size={14} /> Concluído
                             </button>
                         </div>
                     </div>

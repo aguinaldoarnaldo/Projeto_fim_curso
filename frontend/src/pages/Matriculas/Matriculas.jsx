@@ -99,7 +99,7 @@ const Matriculas = () => {
             sala: item.sala_numero || item.sala_nome || 'N/A',
             turno: item.periodo_nome || 'N/A',
             turma: item.turma_codigo || 'Sem Turma',
-            status: item.ativo ? 'Confirmada' : 'Pendente',
+            status: item.status || 'Ativa',
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
             detalhes: {
                 bi: item.bi || 'N/A', 
@@ -179,7 +179,7 @@ const Matriculas = () => {
     const handleEdit = (m) => {
         setEditingMatriculaId(m.real_id);
         setModalFormData({
-            status: m.status === 'Confirmada' ? 'true' : 'false',
+            status: m.status,
             id_sala: '', // Would need IDs from mapping
             id_classe: '',
             id_periodo: '',
@@ -192,7 +192,7 @@ const Matriculas = () => {
         e.preventDefault();
         try {
             const payload = {
-                ativo: modalFormData.status === 'true'
+                status: modalFormData.status
                 // Add more fields if logic implemented in backend
             };
 
@@ -203,6 +203,24 @@ const Matriculas = () => {
         } catch (err) {
             console.error("Erro ao atualizar matrícula:", err);
             alert("Erro ao atualizar matrícula.");
+        }
+    };
+
+    const handleDownloadFicha = async (id, matriculaNum) => {
+        try {
+            const response = await api.get(`matriculas/${id}/download_ficha/`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Ficha_Matricula_${matriculaNum || 'Documento'}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Erro ao baixar PDF", error);
+            alert("Erro ao baixar o documento.");
         }
     };
 
@@ -264,9 +282,11 @@ const Matriculas = () => {
 
     const getStatusBadge = (status) => {
         switch (status) {
+            case 'Ativa': return <span className="status-badge status-confirmed">Ativa</span>;
             case 'Confirmada': return <span className="status-badge status-confirmed">Confirmada</span>;
-            case 'Pendente': return <span className="status-badge status-pending">Pendente</span>;
-            case 'Em Análise': return <span className="status-badge status-analysis">Em Análise</span>;
+            case 'Concluida': return <span className="status-badge status-success">Concluída</span>;
+            case 'Transferido': return <span className="status-badge status-warning">Transferido</span>;
+            case 'Desistente': return <span className="status-badge status-danger">Desistente</span>;
             default: return <span className="status-badge status-default">{status}</span>;
         }
     };
@@ -625,6 +645,31 @@ const Matriculas = () => {
                                     {selectedMatricula.status}
                                 </div>
 
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDownloadFicha(selectedMatricula.real_id, selectedMatricula.id);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: '#fff',
+                                        color: '#b45309',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontWeight: '600',
+                                        marginBottom: '20px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+                                    }}
+                                >
+                                    <FileText size={18} /> Baixar Ficha
+                                </button>
+
                                 <div className="profile-footer">
                                     <div className="profile-footer-item">
                                         <Calendar size={18} />
@@ -783,8 +828,11 @@ const Matriculas = () => {
                                         value={modalFormData.status}
                                         onChange={e => setModalFormData({...modalFormData, status: e.target.value})}
                                     >
-                                        <option value="true">Confirmada (Ativa)</option>
-                                        <option value="false">Pendente (Inativa)</option>
+                                        <option value="Ativa">Ativa</option>
+                                        <option value="Confirmada">Confirmada</option>
+                                        <option value="Concluida">Concluída</option>
+                                        <option value="Transferido">Transferido</option>
+                                        <option value="Desistente">Desistente</option>
                                     </select>
                                 </div>
                                 <div className="form-group">

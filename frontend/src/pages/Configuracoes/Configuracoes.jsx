@@ -91,6 +91,7 @@ const Configuracoes = () => {
     const [editingPermissions, setEditingPermissions] = useState([]); // List of permission strings
     const [isSavingPermissions, setIsSavingPermissions] = useState(false);
     const [userPhoto, setUserPhoto] = useState(null);
+    const [logoFile, setLogoFile] = useState(null);
     const [userSearchTerm, setUserSearchTerm] = useState('');
 
     // Fetch Cargos on Mount (Global for the page)
@@ -100,7 +101,7 @@ const Configuracoes = () => {
 
     // Fetch Academic Years when tab is active
     useEffect(() => {
-        if (activeTab === 'academico') {
+        if (activeTab === 'academico' || activeTab === 'personalizacao') {
             fetchAcademicYears();
             fetchConfig();
         }
@@ -397,6 +398,25 @@ const Configuracoes = () => {
         }
     };
 
+    const handleSaveBranding = async () => {
+        try {
+            const formData = new FormData();
+            formData.append('nome_escola', config.nome_escola);
+            if (logoFile) {
+                formData.append('logo', logoFile);
+            }
+            
+            await api.patch('config/update_config/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            alert("Identidade visual atualizada com sucesso! A página será recarregada para aplicar as mudanças.");
+            window.location.reload(); 
+        } catch (error) {
+            console.error("Erro ao salvar branding:", error);
+            alert("Erro ao salvar alterações.");
+        }
+    };
+
     const handleTogglePortal = async () => {
         // Se estiver aberto, signfica que vai fechar -> Pedir confirmação
         if (config.candidaturas_abertas) {
@@ -627,27 +647,82 @@ const Configuracoes = () => {
                                 <Palette size={24} />
                             </div>
                             <div>
-                                <h2>Branding e Cores</h2>
-                                <p>Personalize a identidade visual da sua plataforma.</p>
+                                <h2>Branding e Personalização</h2>
+                                <p>Adapte a identidade visual da plataforma à sua instituição.</p>
                             </div>
                         </div>
 
+                         <div className="config-group-v2">
+                            <label>Nome da Instituição (Escola)</label>
+                            <input 
+                                type="text" 
+                                className="input-v2"
+                                value={config.nome_escola || ''}
+                                onChange={e => setConfig({...config, nome_escola: e.target.value})}
+                                placeholder="Ex: Instituto Politécnico de Luanda"
+                            />
+                            <p style={{fontSize: '12px', color: '#64748b', marginTop: '6px'}}>Este nome aparecerá na tela de login, sidebar e documentos gerados.</p>
+                        </div>
+
                         <div className="config-group-v2">
-                            <label>Cor Principal do Sistema</label>
+                            <label>Logotipo da Instituição</label>
+                            <div style={{display: 'flex', gap: '24px', alignItems: 'center'}}>
+                                <div style={{
+                                    width: '80px', height: '80px', 
+                                    background: '#f8fafc', border: '1px dashed #cbd5e1', 
+                                    borderRadius: '12px', display: 'flex', 
+                                    alignItems: 'center', justifyContent: 'center',
+                                    overflow: 'hidden'
+                                }}>
+                                    {(logoFile || config.logo) ? (
+                                        <img 
+                                            src={logoFile ? URL.createObjectURL(logoFile) : config.logo} 
+                                            alt="Preview" 
+                                            style={{width: '100%', height: '100%', objectFit: 'contain'}}
+                                        />
+                                    ) : (
+                                        <span style={{fontSize: '10px', color: '#94a3b8'}}>Sem Logo</span>
+                                    )}
+                                </div>
+                                <div style={{flex: 1}}>
+                                    <input 
+                                        type="file" 
+                                        className="input-v2"
+                                        onChange={e => setLogoFile(e.target.files[0])}
+                                        accept="image/*"
+                                        style={{padding: '10px'}}
+                                    />
+                                    <p style={{fontSize: '12px', color: '#64748b', marginTop: '6px'}}>
+                                        Recomendado: PNG ou JPG com fundo transparente (min. 200x200px).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px', borderBottom: '1px solid #e2e8f0', paddingBottom: '30px' }}>
+                             <button onClick={handleSaveBranding} className="btn-premium btn-primary-premium">
+                                <Save size={18} /> Salvar Identidade
+                            </button>
+                        </div>
+
+                        <h3 style={{fontSize: '18px', color: '#334155', marginBottom: '20px'}}>Tema do Sistema</h3>
+
+                        <div className="config-group-v2">
+                            <label>Cor Principal</label>
                             <div className="color-options-v2">
                                 <div 
                                     className={`color-card-v2 ${themeColor === 'blue' ? 'active' : ''}`}
                                     onClick={() => changeColor('blue')}
                                 >
                                     <div className="color-dot" style={{ background: '#1e40af' }}></div>
-                                    <span style={{ fontWeight: 600 }}>Azul Oceano</span>
+                                    <span style={{ fontWeight: 600 }}>Azul Oceano (Padrão)</span>
                                 </div>
                                 <div 
                                     className={`color-card-v2 ${themeColor === 'green' ? 'active' : ''}`}
                                     onClick={() => changeColor('green')}
                                 >
                                     <div className="color-dot" style={{ background: '#059669' }}></div>
-                                    <span style={{ fontWeight: 600 }}>Verde Premium</span>
+                                    <span style={{ fontWeight: 600 }}>Verde Natureza</span>
                                 </div>
                             </div>
                         </div>

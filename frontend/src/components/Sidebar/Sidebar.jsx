@@ -18,12 +18,14 @@ import {
 import logo from '../../assets/img/logo_ipm2.png';
 import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
+import { useConfig } from '../../context/ConfigContext';
 import { PERMISSIONS } from '../../utils/permissions';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { signOut } = useAuth();
   const { hasPermission } = usePermission();
+  const { config } = useConfig();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   const handleLogoutClick = () => {
@@ -54,14 +56,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       <div className="sidebar-header">
         {isOpen ? (
           <div className="sidebar-brand">
-            <img src={logo} alt="Logo" className="sidebar-logo" />
+            <img src={config.logo || logo} alt="Logo" className="sidebar-logo" />
             <div className="sidebar-title">
-              <h1>Sistema Gestão Matriculas</h1>
+              <h1>{config.nome_escola || "Sistema Gestão Matriculas"}</h1>
               <p>Gestão Académica</p>
             </div>
           </div>
         ) : (
-          <img src={logo} alt="Logo" className="sidebar-logo-small" />
+          <img src={config.logo || logo} alt="Logo" className="sidebar-logo-small" />
         )}
         <button
           onClick={toggleSidebar}
