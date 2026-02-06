@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './Matriculas.css';
 import './MatriculasTableResponsive.css';
 
@@ -23,6 +23,8 @@ import {
     ArrowUp,
     ArrowDown,
     ChevronRight,
+    MapPin, // Added for Sala
+    Users // Added for Turma
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +34,7 @@ import PermutaModal from './PermutaModal';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
+import FilterModal from '../../components/Common/FilterModal';
 
 const Matriculas = () => {
     const { hasPermission } = usePermission();
@@ -42,6 +45,7 @@ const Matriculas = () => {
     const [showPermutaModal, setShowPermutaModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingMatriculaId, setEditingMatriculaId] = useState(null);
+    const filterButtonRef = useRef(null);
     const [modalFormData, setModalFormData] = useState({
         status: '',
         id_sala: '',
@@ -65,7 +69,7 @@ const Matriculas = () => {
     }, [currentPage]);
 
 
-    // Mock filter states
+    // Filter states
     const [filters, setFilters] = useState({
         ano: '',
         sala: '',
@@ -119,7 +123,6 @@ const Matriculas = () => {
     };
 
     // 2. Use Data Cache Hook
-    // 2. Use Data Cache Hook
     const { 
         data: cachedMatriculas, 
         loading: isLoading, 
@@ -172,8 +175,14 @@ const Matriculas = () => {
         return () => clearInterval(interval);
     }, [refresh]);
 
-    const handleFilterChange = (e) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
+    const handleFilterChange = (key, value) => {
+        setFilters({ ...filters, [key]: value });
+        setCurrentPage(1);
+    };
+
+    const resetFilters = () => {
+        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
+        setCurrentPage(1);
     };
 
     const handleEdit = (m) => {
@@ -275,11 +284,6 @@ const Matriculas = () => {
         return sortableItems;
     }, [matriculas, searchTerm, filters, sortConfig]);
 
-    const clearFilters = () => {
-        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
-        setCurrentPage(1); // Reset to page 1 on clear
-    };
-
     const getStatusBadge = (status) => {
         switch (status) {
             case 'Ativa': return <span className="status-badge status-confirmed">Ativa</span>;
@@ -295,6 +299,40 @@ const Matriculas = () => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredMatriculas.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Filter Configurations
+    const filterConfigs = useMemo(() => [
+        { 
+            key: 'ano', 
+            label: 'Ano Lectivo', 
+            icon: Calendar,
+            options: anosDisponiveis.map(a => ({ value: a.nome, label: a.nome }))
+        },
+        { 
+            key: 'classe', 
+            label: 'Classe', 
+            icon: BookOpen,
+            options: classesDisponiveis.map(c => ({ value: c.nome_classe, label: c.nome_classe }))
+        },
+        { 
+            key: 'curso', 
+            label: 'Curso', 
+            icon: BookOpen,
+            options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso }))
+        },
+        { 
+            key: 'sala', 
+            label: 'Sala', 
+            icon: MapPin,
+            options: salasDisponiveis.map(s => ({ value: s.numero_sala || s.nome, label: s.numero_sala || s.nome }))
+        },
+        { 
+            key: 'turma', 
+            label: 'Turma', 
+            icon: Users,
+            options: turmasDisponiveis.map(t => ({ value: t.codigo_turma || t.nome, label: t.codigo_turma || t.nome }))
+        }
+    ], [anosDisponiveis, classesDisponiveis, cursosDisponiveis, salasDisponiveis, turmasDisponiveis]);
 
     return (
         <div className="page-container matriculas-page">
@@ -362,10 +400,10 @@ const Matriculas = () => {
                         />
                     </div>
                     <button
-                        onClick={() => setShowFilters(!showFilters)}
+                        ref={filterButtonRef}
+                        onClick={() => setShowFilters(true)}
                         className="btn-filtros-avancados"
-                        aria-expanded={showFilters}
-                        aria-label={showFilters ? "Esconder filtros avançados" : "Mostrar filtros avançados"}
+                        aria-label="Abrir filtros avançados"
                         style={{ background: showFilters ? 'var(--primary-color)' : 'white', color: showFilters ? 'white' : '#374151' }}
                     >
                         <Filter size={18} aria-hidden="true" />
@@ -373,61 +411,16 @@ const Matriculas = () => {
                     </button>
                 </div>
 
-                {/* Filters Panel */}
-                {showFilters && (
-                    <div className="painel-filtros">
-                        <div className="grade-filtros">
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-ano-mat">Ano Lectivo</label>
-                                <select id="filtro-ano-mat" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todos</option>
-                                    {anosDisponiveis.map(ano => (
-                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-classe-mat">Classe</label>
-                                <select id="filtro-classe-mat" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todas</option>
-                                    {classesDisponiveis.map(classe => (
-                                        <option key={classe.id_classe || classe.id} value={classe.nome_classe}>{classe.nome_classe}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-curso-mat">Curso</label>
-                                <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todos</option>
-                                    {cursosDisponiveis.map(curso => (
-                                        <option key={curso.id_curso || curso.id} value={curso.nome_curso}>{curso.nome_curso}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-sala-mat">Sala</label>
-                                <select id="filtro-sala-mat" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todas</option>
-                                    {salasDisponiveis.map(sala => (
-                                        <option key={sala.id_sala || sala.id} value={sala.numero_sala || sala.nome}>{sala.numero_sala || sala.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-turma-mat">Turma</label>
-                                <select id="filtro-turma-mat" name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todas</option>
-                                    {turmasDisponiveis.map(turma => (
-                                        <option key={turma.id_turma || turma.id} value={turma.codigo_turma || turma.nome}>{turma.codigo_turma || turma.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button onClick={clearFilters} className="btn-limpar-filtros">Limpar Filtros</button>
-                        </div>
-                    </div>
-                )}
+                {/* Filter Modal */}
+                <FilterModal 
+                    triggerRef={filterButtonRef}
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    filterConfigs={filterConfigs}
+                    activeFilters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={resetFilters}
+                />
 
                 {/* Detailed Table */}
                 <div className="table-wrapper">
@@ -797,79 +790,6 @@ const Matriculas = () => {
                     </div>
                 </div>
             )}
-
-            {/* PERMUTA MODAL */}
-            <PermutaModal 
-                isOpen={showPermutaModal} 
-                onClose={() => setShowPermutaModal(false)} 
-                onSuccess={() => { setShowPermutaModal(false); refresh(true); }}
-            />
-
-            {/* EDIT MATRICULA MODAL */}
-            {showEditModal && (
-                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-                    <div className="form-modal-card" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px'}}>
-                        <div className="form-modal-header">
-                            <div>
-                                <h2>Editar Matrícula</h2>
-                                <p>Atualize o estado e vínculo acadêmico.</p>
-                            </div>
-                            <button onClick={() => setShowEditModal(false)} className="btn-close-form">
-                                <X size={24} color="#64748b" />
-                            </button>
-                        </div>
-
-                        <form className="form-container" onSubmit={handleUpdate}>
-                            <div className="form-grid">
-                                <div className="form-group form-group-full">
-                                    <label>Estado da Matrícula</label>
-                                    <select 
-                                        className="form-select"
-                                        value={modalFormData.status}
-                                        onChange={e => setModalFormData({...modalFormData, status: e.target.value})}
-                                    >
-                                        <option value="Ativa">Ativa</option>
-                                        <option value="Confirmada">Confirmada</option>
-                                        <option value="Concluida">Concluída</option>
-                                        <option value="Transferido">Transferido</option>
-                                        <option value="Desistente">Desistente</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Sala</label>
-                                    <select 
-                                        className="form-select"
-                                        value={modalFormData.id_sala}
-                                        onChange={e => setModalFormData({...modalFormData, id_sala: e.target.value})}
-                                    >
-                                        <option value="">Manter Atual</option>
-                                        {salasDisponiveis.map(s => <option key={s.id_sala} value={s.id_sala}>Sala {s.numero_sala}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Turma</label>
-                                    <select 
-                                        className="form-select"
-                                        value={modalFormData.id_turma}
-                                        onChange={e => setModalFormData({...modalFormData, id_turma: e.target.value})}
-                                    >
-                                        <option value="">Manter Atual / Sem Turma</option>
-                                        {turmasDisponiveis.map(t => <option key={t.id_turma} value={t.id_turma}>{t.codigo_turma}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="form-actions">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="btn-cancel">Cancelar</button>
-                                <button type="submit" className="btn-confirm">
-                                    Salvar Alterações <ChevronRight size={20} />
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
         </div>
     );
 };

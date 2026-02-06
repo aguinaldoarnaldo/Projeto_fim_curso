@@ -5,7 +5,9 @@ import {
   Printer,
   Search,
   Filter,
-  RotateCcw
+  RotateCcw,
+  BookOpen,
+  Activity
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +17,7 @@ import api from '../../services/api';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
+import FilterModal from '../../components/Common/FilterModal';
 
 // Sub-components
 import InscritosTable from './components/InscritosTable';
@@ -71,8 +74,8 @@ const Inscritos = () => {
   });
   const [isProcessingExams, setIsProcessingExams] = useState(false);
   const [showCallListModal, setShowCallListModal] = useState(false);
-  const [callListData, setCallListData] = useState({});
-
+  const [callListData, setCallListData] = useState([]);
+  const filterButtonRef = useRef(null);
   const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
   const [anosDisponiveis, setAnosDisponiveis] = useState([]);
 
@@ -254,7 +257,7 @@ const Inscritos = () => {
           escola_proveniencia: candidato.nomeEscola,
           municipio_escola: candidato.municipioEscola,
           tipo_escola: candidato.tipo_escola,
-          ano_conclusao: candidato.anoConclusao,
+          ano_conclusao: candidato.ano_conclusao,
           media_final: candidato.nota9,
           
           // Encarregado
@@ -396,8 +399,9 @@ const Inscritos = () => {
     setRupGenerated(false);
   };
 
-  const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+  // UPDATED: Handle Filter Change for Modal
+  const handleFilterChange = (key, value) => {
+    setFilters({ ...filters, [key]: value });
     setCurrentPage(1); 
   };
 
@@ -454,6 +458,34 @@ const Inscritos = () => {
 
   const currentData = filteredInscritos.slice((currentPage - 1) * 24, currentPage * 24);
 
+  // Filter Configuration for Modal
+  const filterConfigs = useMemo(() => [
+    {
+      key: 'ano',
+      label: 'Ano de Inscrição',
+      icon: Calendar,
+      options: anosDisponiveis.map(a => ({ value: a.nome, label: a.nome }))
+    },
+    {
+      key: 'status',
+      label: 'Estado/Status',
+      icon: Activity,
+      options: [
+        { value: 'Pendente', label: 'Pendente' },
+        { value: 'Em Análise', label: 'Em Análise' },
+        { value: 'Aprovado', label: 'Aprovado' },
+        { value: 'Não Admitido', label: 'Não Admitido' },
+        { value: 'Matriculado', label: 'Matriculado' }
+      ]
+    },
+    {
+      key: 'curso',
+      label: 'Curso',
+      icon: BookOpen,
+      options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso }))
+    }
+  ], [anosDisponiveis, cursosDisponiveis]);
+
   return (
     <div className="page-container inscritos-page">
       <header className="page-header">
@@ -492,61 +524,26 @@ const Inscritos = () => {
             />
           </div>
           <button
-            onClick={() => setShowFilters(!showFilters)}
+            ref={filterButtonRef}
+            onClick={() => setShowFilters(true)}
             className="btn-alternar-filtros"
-            aria-expanded={showFilters}
-            aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
-            style={{
-              background: showFilters ? '#1e3a8a' : 'white',
-              color: showFilters ? 'white' : '#374151'
-            }}
+            aria-label="Abrir filtros"
           >
             <Filter size={18} aria-hidden="true" />
             Filtros
           </button>
         </div>
 
-        {/* Dynamic Filters Panel */}
-        {showFilters && (
-          <div className="painel-filtros">
-            <div className="grade-filtros">
-              <div className="grupo-filtro">
-                <label htmlFor="filtro-ano-ins">Ano de Inscrição</label>
-                <select id="filtro-ano-ins" name="ano" value={filters.ano} onChange={handleFilterChange} className="selecao-filtro">
-                  <option value="">Todos os Anos</option>
-                  {anosDisponiveis.map(ano => (
-                    <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grupo-filtro">
-                <label htmlFor="filtro-status-ins">Estado/Status</label>
-                <select id="filtro-status-ins" name="status" value={filters.status} onChange={handleFilterChange} className="selecao-filtro">
-                  <option value="">Todos os Estados</option>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Em Análise">Em Análise</option>
-                  <option value="Aprovado">Aprovado</option>
-                  <option value="Não Admitido">Não Admitido</option>
-                  <option value="Matriculado">Matriculado</option>
-                </select>
-              </div>
-              <div className="grupo-filtro">
-                <label htmlFor="filtro-curso-ins">Curso</label>
-                <select id="filtro-curso-ins" name="curso" value={filters.curso} onChange={handleFilterChange} className="selecao-filtro">
-                  <option value="">Todos os Cursos</option>
-                  {cursosDisponiveis.map(c => (
-                     <option key={c.id_curso || c.id} value={c.nome_curso}>{c.nome_curso}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <button onClick={resetFilters} className="btn-limpar-filtros">
-                <RotateCcw size={16} /> Limpar Filtros
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Filter Modal */}
+        <FilterModal 
+            triggerRef={filterButtonRef}
+            isOpen={showFilters}
+            onClose={() => setShowFilters(false)}
+            filterConfigs={filterConfigs}
+            activeFilters={filters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={resetFilters}
+        />
 
         {/* TABLE COMPONENT */}
         <InscritosTable 
