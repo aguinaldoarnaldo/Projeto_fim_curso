@@ -1,0 +1,240 @@
+/* Popover Overlay - Transparent but blocks interactivity with background */
+.filter-popover-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    /* Transparent background for "click out to close" feel */
+    background: transparent; 
+}
+
+/* Container */
+.filter-popover-container {
+    background: white;
+    width: 320px; /* Condensed Width */
+    border-radius: 12px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15), 
+                0 4px 6px -2px rgba(0,0,0,0.05),
+                0 0 0 1px rgba(0,0,0,0.05); /* Border ring */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 500px;
+    animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    /* Default centering if no ref provided (fallback) */
+    /* If styles are applied inline, these are overridden */
+    position: absolute;
+}
+
+/* Header */
+.filter-popover-header {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-popover-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #334155;
+    font-size: 0.9rem;
+}
+
+.btn-close-mini {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-clear-mini {
+    background: transparent;
+    border: none;
+    color: #ef4444; /* Red when active/enabled */
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-close-mini:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-clear-mini:hover {
+    background: #fee2e2;
+    color: #dc2626; /* Darker red on hover */
+}
+
+.btn-clear-mini:disabled {
+    opacity: 1; /* Reset opacity control if we use color */
+    color: #cbd5e1; /* Grey when disabled */
+    cursor: not-allowed;
+    pointer-events: none;
+    background: transparent;
+}
+
+/* Body */
+.filter-popover-body {
+    padding: 8px; /* Compact padding */
+    overflow-x: hidden;
+    min-height: 150px;
+}
+
+/* List of Filter Types */
+.filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-item-row {
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.filter-item-row:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.filter-item-row.active {
+    background: #eff6ff;
+    color: var(--primary-color, #2563eb);
+}
+
+.filter-label-text {
+    font-weight: 500;
+}
+
+.filter-value-pill {
+    font-size: 0.75rem;
+    background: var(--primary-color, #2563eb);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    max-width: 100px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Options View */
+.filter-options-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.filter-options-sub-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.btn-back-mini {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    color: #64748b;
+    display: flex;
+}
+.btn-back-mini:hover { background: #f1f5f9; color: #334155; }
+
+.sub-header-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.options-scroll-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Scrollbar styling for options */
+.options-scroll-list::-webkit-scrollbar {
+    width: 4px;
+}
+.options-scroll-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.option-row {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #475569;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.option-row:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.option-row.selected {
+    background: #eff6ff;
+    color: var(--primary-color, #2563eb);
+    font-weight: 600;
+}
+
+.check-mini {
+    color: currentColor;
+}
+
+/* Animations using previous keyframes */
+.slide-out-left { animation: slideOutLeft 0.2s forwards; }
+.slide-in-right { animation: slideInRight 0.2s forwards; }
+.slide-out-right { animation: slideOutRight 0.2s forwards; }
+.slide-in-left { animation: slideInLeft 0.2s forwards; }
+.slide-in { animation: fadeIn 0.15s forwards; }
+
+@keyframes popIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}

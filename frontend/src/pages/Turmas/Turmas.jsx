@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './Turmas.css';
 import './TurmasTableResponsive.css';
 
@@ -15,7 +15,9 @@ import {
     Calendar,
     BookOpen,
     ChevronRight,
-    AlertTriangle
+    AlertTriangle,
+    MapPin,
+    Activity // Added for Status
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
@@ -23,6 +25,7 @@ import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
+import FilterModal from '../../components/Common/FilterModal';
 
 const Turmas = () => {
     const { hasPermission } = usePermission();
@@ -32,6 +35,7 @@ const Turmas = () => {
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedTurma, setSelectedTurma] = useState(null);
     const tableRef = useRef(null);
+    const filterButtonRef = useRef(null);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -108,8 +112,6 @@ const Turmas = () => {
                  setPeriodosDisponiveis(cPeriodos);
                  setAnosDisponiveis(cAnos);
                  setLoading(false);
-                 // Continue to fetch fresh data in background
-                 // return; // REMOVED to force background refresh
             }
         }
 
@@ -209,8 +211,6 @@ const Turmas = () => {
                 id_periodo: formData.id_periodo
             };
             
-            // NOTE: You might need to adjust payload keys to match your exact serializer expectations
-            
             if (modalMode === 'add') {
                  await api.post('turmas/', payload);
                  alert('Turma criada com sucesso!');
@@ -227,8 +227,14 @@ const Turmas = () => {
         }
     };
 
-    const handleFilterChange = (e) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
+    const handleFilterChange = (key, value) => {
+        setFilters({ ...filters, [key]: value });
+        setCurrentPage(1);
+    };
+
+    const resetFilters = () => {
+        setFilters({ ano: '', curso: '', classe: '', sala: '', turno: '', status: '' });
+        setCurrentPage(1);
     };
 
     const handleEdit = (turma) => {
@@ -279,7 +285,7 @@ const Turmas = () => {
         const matchesAno = filters.ano === '' || String(item.ano) === filters.ano;
         const matchesCurso = filters.curso === '' || item.curso === filters.curso;
         const matchesClasse = filters.classe === '' || (item.classe && item.classe.includes(filters.classe));
-        const matchesSala = filters.sala === '' || item.sala.includes(filters.sala); // Adapted since sala formatting changed
+        const matchesSala = filters.sala === '' || item.sala.includes(filters.sala); 
         const matchesTurno = filters.turno === '' || item.turno === filters.turno;
         const matchesStatus = filters.status === '' || item.status === filters.status;
 
@@ -290,6 +296,49 @@ const Turmas = () => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentTurmas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Filter Configs
+    const filterConfigs = useMemo(() => [
+        { 
+            key: 'ano', 
+            label: 'Ano Lectivo', 
+            icon: Calendar,
+            options: anosDisponiveis.map(a => ({ value: a.nome, label: a.nome }))
+        },
+        { 
+            key: 'classe', 
+            label: 'Classe', 
+            icon: BookOpen,
+            options: classesDisponiveis.map(c => ({ value: c.nome_classe, label: c.nome_classe }))
+        },
+        { 
+            key: 'curso', 
+            label: 'Curso', 
+            icon: BookOpen,
+            options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso }))
+        },
+        { 
+            key: 'sala', 
+            label: 'Sala', 
+            icon: MapPin,
+            options: salas.map(s => ({ value: `${s.numero_sala}`, label: `Sala ${s.numero_sala}` }))
+        },
+        { 
+            key: 'turno', 
+            label: 'Turno', 
+            icon: Clock,
+            options: periodosDisponiveis.map(p => ({ value: p.periodo, label: p.periodo }))
+        },
+        { 
+            key: 'status', 
+            label: 'Estado', 
+            icon: Activity,
+            options: [
+                { value: 'Ativa', label: 'Ativa' },
+                { value: 'Concluida', label: 'Concluída' }
+            ]
+        }
+    ], [anosDisponiveis, classesDisponiveis, cursosDisponiveis, salas, periodosDisponiveis]);
 
     return (
         <div className="page-container turmas-page">
@@ -305,12 +354,11 @@ const Turmas = () => {
                             className="btn-primary-action"
                         >
                             <Plus size={20} />
-                            Nova Turma
+                            Novo Turma
                         </button>
                     )}
                 </div>
             </header>
-
 
             <div className="table-card" style={{ padding: '0' }} ref={tableRef}>
                 <div className="search-filters-header">
@@ -326,86 +374,27 @@ const Turmas = () => {
                         />
                     </div>
                     <button
-                        onClick={() => setShowFilters(!showFilters)}
+                        ref={filterButtonRef}
+                        onClick={() => setShowFilters(true)}
                         className={`btn-toggle-filters ${showFilters ? 'btn-active' : ''}`}
                         aria-expanded={showFilters}
-                        aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
+                        aria-label="Mostrar filtros"
                     >
                         <Filter size={18} aria-hidden="true" />
                         Filtros
                     </button>
                 </div>
 
-
-                {/* Dynamic Filters */}
-                {showFilters && (
-                    <div className="filters-expanded-pane">
-                        <div className="filters-grid-turmas">
-                            <div>
-                                <label htmlFor="filtro-ano-tur" className="filter-label-turma">Ano Lectivo</label>
-                                <select id="filtro-ano-tur" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    {anosDisponiveis.map(ano => (
-                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-classe-tur" className="filter-label-turma">Classe</label>
-                                <select id="filtro-classe-tur" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todas</option>
-                                    {classesDisponiveis.map(c => (
-                                        <option key={c.id_classe} value={c.nome_classe}>{c.nome_classe}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-curso-tur" className="filter-label-turma">Curso</label>
-                                <select id="filtro-curso-tur" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    {cursosDisponiveis.map(c => (
-                                        <option key={c.id_curso} value={c.nome_curso}>{c.nome_curso}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-sala-tur" className="filter-label-turma">Sala</label>
-                                <select id="filtro-sala-tur" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todas</option>
-                                    {salas.map(s => (
-                                        <option key={s.id_sala} value={`${s.numero_sala}`}>Sala {s.numero_sala}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-turno-tur" className="filter-label-turma">Turno</label>
-                                <select id="filtro-turno-tur" name="turno" value={filters.turno} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    {periodosDisponiveis.map(p => (
-                                        <option key={p.id_periodo} value={p.periodo}>{p.periodo}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-status-tur" className="filter-label-turma">Estado</label>
-                                <select id="filtro-status-tur" name="status" value={filters.status} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    <option value="Ativa">Ativa</option>
-                                    <option value="Concluida">Concluída</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="clear-filters-box">
-                            <button
-                                onClick={() => { setFilters({ ano: '', curso: '', classe: '', sala: '', turno: '', status: '' }); setCurrentPage(1); }}
-                                className="btn-clear-filters"
-                            >
-                                Limpar Filtros
-                            </button>
-                        </div>
-                    </div>
-                )}
-
+                {/* Filter Modal */}
+                <FilterModal 
+                    triggerRef={filterButtonRef}
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    filterConfigs={filterConfigs}
+                    activeFilters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={resetFilters}
+                />
 
                 {/* Turmas Table */}
                 {loading ? (
