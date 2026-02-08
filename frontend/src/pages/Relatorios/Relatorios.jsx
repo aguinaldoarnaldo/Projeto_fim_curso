@@ -159,139 +159,155 @@ const Relatorios = () => {
     return (
         <div className="page-container relatorios-page">
             <header className="page-header">
-                <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px'}}>
-                    <div className="icon-badge-report">
-                        <FileText size={24} />
+                <div className="page-header-content">
+                    <div>
+                        <h1>Central de Relatórios</h1>
+                        <p>Gere documentos oficiais, listas nominais e analise dados institucionais.</p>
                     </div>
-                    <h1>Central de Relatórios</h1>
                 </div>
-                <p>Gere documentos oficiais, listas nominais e analise dados institucionais em tempo real.</p>
             </header>
 
-            {/* QUICK STATS */}
-            <div className="stats-grid animate-fade-in" style={{ marginBottom: '32px' }}>
-                {hasPermission(PERMISSIONS.VIEW_FINANCEIRO) && (
-                    <div className="stat-card premium">
-                        <div className="stat-card-inner">
-                            <div>
-                                <p className="stat-label-small">Arrecadação Total</p>
-                                <h3 className="stat-value-large">{stats.total_financeiro.toLocaleString('pt-AO', {style: 'currency', currency: 'AOA'})}</h3>
-                            </div>
-                            <div className="stat-icon-container" style={{background: '#ecfdf5', color: '#059669'}}>
-                                <TrendingUp size={20} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div className="stat-card premium">
-                    <div className="stat-card-inner">
-                        <div>
-                            <p className="stat-label-small">Novos Candidatos</p>
-                            <h3 className="stat-value-large">{stats.total_candidatos}</h3>
-                        </div>
-                        <div className="stat-icon-container" style={{background: '#eff6ff', color: '#2563eb'}}>
-                            <Users size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div className="stat-card premium">
-                    <div className="stat-card-inner">
-                        <div>
-                            <p className="stat-label-small">Alunos Matriculados</p>
-                            <h3 className="stat-value-large">{stats.total_alunos}</h3>
-                        </div>
-                        <div className="stat-icon-container" style={{background: '#fef3c7', color: '#d97706'}}>
-                            <TrendingUp size={20} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="reports-main-layout">
-                {/* CATEGORIES / FILTER */}
-                <div className="reports-sidebar">
-                    <div className="sidebar-card">
-                        <h3>Categorias</h3>
-                        <div className="category-list">
-                            {['Todos', 'Académico', 'Financeiro', 'Administrativo', 'Infraestrutura'].map(cat => (
-                                <button 
-                                    key={cat}
-                                    className={`category-item ${activeCategory === cat ? 'active' : ''}`}
-                                    onClick={() => setActiveCategory(cat)}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    
-                    <div className="sidebar-card info-box">
-                        <div style={{display: 'flex', gap: '10px', color: '#1e3a8a'}}>
-                            <Info size={20} />
-                            <h4 style={{margin: 0}}>Dica de Uso</h4>
-                        </div>
-                        <p style={{fontSize: '13px', color: '#475569', marginTop: '10px', lineHeight: '1.5'}}>
-                            Relatórios acadêmicos como a "Lista Nominal" exigem que selecione a turma antes de gerar o documento.
-                        </p>
-                    </div>
-                </div>
-
-                {/* REPORTS CONTENT */}
-                <div className="reports-content">
-                    <div className="search-filter-box">
-                        <Search className="search-icon-abs" size={20} />
+            <div className="table-card" style={{ marginTop: '24px' }}>
+                {/* TOOLBAR */}
+                <div className="search-filter-row">
+                    <div className="search-box">
+                        <Search className="search-icon" size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                         <input 
                             type="text" 
-                            placeholder="Pesquisar por nome do relatório..."
+                            className="search-box-input" 
+                            placeholder="Pesquisar relatório..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-
-                    <div className="reports-grid">
-                        {filteredReports.map((report) => (
-                            <div key={report.id} className="report-card animate-fade-in" onClick={() => openConfig(report)}>
-                                <div className="report-card-header">
-                                    <div className={`report-icon-tag ${report.categoria.toLowerCase()}`}>
-                                        <FileText size={20} />
-                                    </div>
-                                    <span className="report-badge-format">{report.formato}</span>
-                                </div>
-                                
-                                <div className="report-card-body">
-                                    <h4>{report.titulo}</h4>
-                                    <p>{report.descricao}</p>
-                                </div>
-
-                                <div className="report-card-footer">
-                                    <span className="last-run" style={{color: '#64748b'}}>{report.categoria}</span>
-                                    <button className="btn-generate-card">
-                                        {generating === report.id ? <Loader2 size={16} className="spinner" /> : <ChevronRight size={18} />}
-                                    </button>
-                                </div>
-                            </div>
+                    
+                    <div className="filter-group" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                       {['Todos', 'Académico', 'Financeiro', 'Administrativo', 'Infraestrutura'].map(cat => (
+                            <button 
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`btn-filter-pill ${activeCategory === cat ? 'active' : ''}`}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '20px',
+                                    border: activeCategory === cat ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                                    background: activeCategory === cat ? '#eff6ff' : 'white',
+                                    color: activeCategory === cat ? '#2563eb' : '#64748b',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {cat}
+                            </button>
                         ))}
                     </div>
+                </div>
+
+                {/* TABLE */}
+                <div className="table-wrapper">
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>NOME DO RELATÓRIO</th>
+                                <th>CATEGORIA</th>
+                                <th>DESCRIÇÃO</th>
+                                <th>FORMATO</th>
+                                <th style={{ textAlign: 'right' }}>AÇÃO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredReports.map((report) => (
+                                <tr key={report.id} className="clickable-row" onClick={() => openConfig(report)}>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ 
+                                                width: '36px', height: '36px', 
+                                                borderRadius: '8px', 
+                                                background: '#f1f5f9', 
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#475569'
+                                            }}>
+                                                <FileText size={18} />
+                                            </div>
+                                            <span style={{ fontWeight: 600, color: '#1e293b' }}>{report.titulo}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className={`status-badge ${report.categoria.toLowerCase()}`} 
+                                              style={{ 
+                                                  background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569',
+                                                  padding: '4px 10px', borderRadius: '6px', fontSize: '12px'
+                                              }}>
+                                            {report.categoria}
+                                        </span>
+                                    </td>
+                                    <td style={{ color: '#64748b', maxWidth: '400px', whiteSpace: 'normal' }}>
+                                        {report.descricao}
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ 
+                                                background: '#fee2e2', color: '#ef4444', 
+                                                padding: '2px 8px', borderRadius: '4px', 
+                                                fontSize: '11px', fontWeight: 700 
+                                            }}>PDF</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <button 
+                                            className="btn-action"
+                                            onClick={(e) => { e.stopPropagation(); openConfig(report); }}
+                                            style={{
+                                                background: '#2563eb', color: 'white', border: 'none',
+                                                padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+                                                fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px'
+                                            }}
+                                        >
+                                            {generating === report.id ? <Loader2 size={16} className="spinner" /> : <Download size={16} />}
+                                            Gerar
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredReports.length === 0 && (
+                                <tr>
+                                    <td colspan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                        Nenhum relatório encontrado para esta categoria.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             {/* CONFIG MODAL */}
             {showConfigModal && (
-                <div className="modal-overlay" onClick={() => setShowConfigModal(false)}>
-                    <div className="modal-content-small" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Configuração do Relatório</h3>
-                            <button onClick={() => setShowConfigModal(false)}><X size={20} /></button>
+                <div className="modal-overlay" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}} onClick={() => setShowConfigModal(false)}>
+                    <div className="detail-modal-card" style={{maxWidth: '500px', margin: '20px'}} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px' }}>Configurar Relatório</h3>
+                            <button className="btn-close-modal" onClick={() => setShowConfigModal(false)}><X size={20} color="white" /></button>
                         </div>
-                        <div className="modal-body">
-                            <p style={{marginBottom: '20px', fontSize: '14px', color: '#64748b'}}>
-                                {selectedReportTemplate?.titulo}
-                            </p>
+                        
+                        <div className="modal-body" style={{ padding: '24px' }}>
+                            <div style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                    <FileText size={20} color="#3b82f6" />
+                                    <h4 style={{ margin: 0, color: '#1e293b' }}>{selectedReportTemplate?.titulo}</h4>
+                                </div>
+                                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{selectedReportTemplate?.descricao}</p>
+                            </div>
 
                             {selectedReportTemplate?.id === 'alunos_por_turma' && (
-                                <div className="form-group-report">
-                                    <label>Selecione a Turma</label>
+                                <div className="form-group" style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Selecione a Turma</label>
                                     <select 
+                                        className="form-select"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                                         value={configData.turma_id} 
                                         onChange={(e) => setConfigData({...configData, turma_id: e.target.value})}
                                     >
@@ -304,9 +320,11 @@ const Relatorios = () => {
                             )}
 
                              {selectedReportTemplate?.id === 'inscritos_por_ano' && (
-                                <div className="form-group-report">
-                                    <label>Ano Lectivo (Opcional)</label>
+                                <div className="form-group" style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Ano Lectivo (Opcional)</label>
                                     <select 
+                                        className="form-select"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                                         value={configData.ano_id} 
                                         onChange={(e) => setConfigData({...configData, ano_id: e.target.value})}
                                     >
@@ -317,16 +335,15 @@ const Relatorios = () => {
                                     </select>
                                 </div>
                             )}
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn-cancel-modal" onClick={() => setShowConfigModal(false)}>Cancelar</button>
+                        
                             <button 
-                                className="btn-confirm-report" 
+                                className="btn-primary" 
+                                style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
                                 disabled={generating === selectedReportTemplate?.id}
                                 onClick={() => handleGenerateReport(selectedReportTemplate.id, configData)}
                             >
                                 {generating === selectedReportTemplate?.id ? <Loader2 size={18} className="spinner" /> : <Download size={18} />}
-                                Gerar Documento
+                                Gerar Documento PDF
                             </button>
                         </div>
                     </div>

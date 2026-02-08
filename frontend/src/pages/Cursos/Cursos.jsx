@@ -7,8 +7,10 @@ import {
     Edit3,
     BookOpen,
     Clock,
-    User
+    User,
+    Filter
 } from 'lucide-react';
+import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
@@ -17,6 +19,11 @@ import { PERMISSIONS } from '../../utils/permissions';
 const Cursos = () => {
     const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        area: '',
+        duracao: ''
+    });
 
     // State for courses
     const [courses, setCourses] = useState([]);
@@ -181,33 +188,41 @@ const Cursos = () => {
     const filteredCourses = (Array.isArray(courses) ? courses : []).filter(course => {
         if (!course) return false;
         const search = searchTerm.toLowerCase();
-        return (
+        const matchesSearch = (
             (course.nome && String(course.nome).toLowerCase().includes(search)) ||
             (course.id && String(course.id).toLowerCase().includes(search)) ||
             (course.coordenador && String(course.coordenador).toLowerCase().includes(search))
         );
+
+        const matchesFilters = 
+            (filters.area === '' || course.area === filters.area) &&
+            (filters.duracao === '' || course.duracao === filters.duracao);
+
+        return matchesSearch && matchesFilters;
     });
 
     return (
         <div className="page-container">
             <header className="page-header">
-                <div className="cursos-header-content">
+                <div className="page-header-content">
                     <div>
                         <h1>Gestão de Cursos</h1>
                         <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
-                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && ( // Using MANAGE_TURMAS as proxy for general academic config or we can use a generic one
-                        <button className="btn-new-course" onClick={() => { resetForm(); setShowCreateModal(true); }}>
-                            <Plus size={18} />
-                            Novo Curso
-                        </button>
-                    )}
+                    <div className="page-header-actions">
+                        {hasPermission(PERMISSIONS.MANAGE_TURMAS) && ( // Using MANAGE_TURMAS as proxy for general academic config or we can use a generic one
+                            <button className="btn-primary-action" onClick={() => { resetForm(); setShowCreateModal(true); }}>
+                                <Plus size={18} />
+                                Novo Curso
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
             
             <div className="table-card">
-                <div className="search-container">
-                    <div className="search-wrapper">
+                <div className="search-container" style={{ display: 'flex', gap: '15px' }}>
+                    <div className="search-wrapper" style={{ flex: 1 }}>
                         <Search className="cursos-search-icon" size={18} aria-hidden="true" />
                         <input
                             type="text"
@@ -218,7 +233,61 @@ const Cursos = () => {
                             aria-label="Pesquisar cursos"
                         />
                     </div>
+                    <button 
+                        onClick={() => setShowFilters(!showFilters)} 
+                        className="btn-alternar-filtros"
+                        style={{
+                            background: showFilters ? 'var(--primary-color)' : 'white',
+                            color: showFilters ? 'white' : 'var(--text-color)',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '10px',
+                            padding: '0 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                        }}
+                    >
+                        <Filter size={18} />
+                        Filtros
+                    </button>
                 </div>
+
+                <FilterModal
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    onClear={() => setFilters({ area: '', duracao: '' })}
+                    activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+                >
+                    <div className="grupo-filtro">
+                        <label>Área de Formação</label>
+                        <select 
+                            value={filters.area} 
+                            onChange={(e) => setFilters({...filters, area: e.target.value})}
+                            className="selecao-filtro"
+                        >
+                            <option value="">Todas as Áreas</option>
+                            {[...new Set(courses.map(c => c.area))].filter(Boolean).map(area => (
+                                <option key={area} value={area}>{area}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="grupo-filtro">
+                        <label>Duração</label>
+                        <select 
+                            value={filters.duracao} 
+                            onChange={(e) => setFilters({...filters, duracao: e.target.value})}
+                            className="selecao-filtro"
+                        >
+                            <option value="">Todas as Durações</option>
+                            {[...new Set(courses.map(c => c.duracao))].filter(Boolean).map(dur => (
+                                <option key={dur} value={dur}>{dur}</option>
+                            ))}
+                        </select>
+                    </div>
+                </FilterModal>
 
 
                 {loading ? (

@@ -26,7 +26,8 @@ import {
     ShieldCheck,
     HelpCircle,
     FileText,
-    BookOpen
+    BookOpen,
+    Archive
 } from 'lucide-react';
 import { PERMISSIONS, PERMISSIONS_PT, PERMISSION_GROUPS } from '../../utils/permissions';
 import { useTheme } from '../../context/ThemeContext';
@@ -507,6 +508,21 @@ const Configuracoes = () => {
         }
     };
 
+    const handleCloseYear = async (id) => {
+        if (!window.confirm("Deseja realmente encerrar este ano lectivo? Isso impedirá novas matrículas e alterações nos dados académicos deste período.")) {
+            return;
+        }
+
+        try {
+            await api.post(`anos-lectivos/${id}/encerrar/`);
+            alert("Ano Lectivo encerrado com sucesso.");
+            fetchAcademicYears();
+        } catch (error) {
+            console.error("Erro ao encerrar ano:", error);
+            alert("Erro ao encerrar ano lectivo.");
+        }
+    };
+
     const renderContent = () => {
         switch (activeTab) {
             case 'manutencao':
@@ -514,7 +530,7 @@ const Configuracoes = () => {
                 return (
                     <div style={{ animation: 'fadeIn 0.5s' }}>
                         <div className="section-title-v2">
-                            <div className="icon-circle" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                            <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
                                 <Database size={24} />
                             </div>
                             <div>
@@ -531,7 +547,7 @@ const Configuracoes = () => {
                                         {backupsList.length > 0 ? backupsList[0].created_at : 'Nenhum backup encontrado'}
                                     </p>
                                 </div>
-                                <div className="info-badge" style={{ color: backupsList.length > 0 ? '#059669' : '#64748b' }}>
+                                <div className="info-badge" style={{ color: backupsList.length > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
                                     {backupsList.length > 0 ? 'Integridade OK' : 'Sem registos'}
                                 </div>
                             </div>
@@ -558,7 +574,7 @@ const Configuracoes = () => {
                         </div>
 
                         {backupStatus === 'completed' && (
-                            <div className="info-card-v2 alert-success" style={{ animation: 'fadeIn 0.3s', background: '#ecfdf5', borderColor: '#34d399', color: '#064e3b' }}>
+                            <div className="info-card-v2 alert-success" style={{ animation: 'fadeIn 0.3s', background: 'var(--success-light)', borderColor: 'var(--success)', color: 'var(--success-dark)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <CheckCircle size={20} />
                                     <span>Backup criado com sucesso e adicionado à lista abaixo!</span>
@@ -606,7 +622,7 @@ const Configuracoes = () => {
                                                     onClick={() => handleDeleteBackup(b.filename)}
                                                     className="btn-icon-action" 
                                                     title="Eliminar"
-                                                    style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>
@@ -643,7 +659,7 @@ const Configuracoes = () => {
                 return (
                     <div style={{ animation: 'fadeIn 0.5s' }}>
                         <div className="section-title-v2">
-                            <div className="icon-circle" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                            <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
                                 <Palette size={24} />
                             </div>
                             <div>
@@ -669,7 +685,7 @@ const Configuracoes = () => {
                             <div style={{display: 'flex', gap: '24px', alignItems: 'center'}}>
                                 <div style={{
                                     width: '80px', height: '80px', 
-                                    background: '#f8fafc', border: '1px dashed #cbd5e1', 
+                                    background: 'var(--bg-light)', border: '1px dashed var(--border-color)', 
                                     borderRadius: '12px', display: 'flex', 
                                     alignItems: 'center', justifyContent: 'center',
                                     overflow: 'hidden'
@@ -699,13 +715,13 @@ const Configuracoes = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px', borderBottom: '1px solid #e2e8f0', paddingBottom: '30px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px', borderBottom: '1px solid var(--border-color)', paddingBottom: '30px' }}>
                              <button onClick={handleSaveBranding} className="btn-premium btn-primary-premium">
                                 <Save size={18} /> Salvar Identidade
                             </button>
                         </div>
 
-                        <h3 style={{fontSize: '18px', color: '#334155', marginBottom: '20px'}}>Tema do Sistema</h3>
+                        <h3 style={{fontSize: '18px', color: 'var(--text-color)', marginBottom: '20px'}}>Tema do Sistema</h3>
 
                         <div className="config-group-v2">
                             <label>Cor Principal</label>
@@ -742,7 +758,7 @@ const Configuracoes = () => {
                         {showUserModal ? (
                             <div className="config-form-v2" style={{ animation: 'fadeIn 0.4s ease-out' }}>
                                 <div className="section-title-v2">
-                                    <div className="icon-circle" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                                    <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
                                         {isEditingUser ? <Edit size={24} /> : <UserPlus size={24} />}
                                     </div>
                                     <div>
@@ -888,19 +904,19 @@ const Configuracoes = () => {
                                                 <span style={{ 
                                                     fontSize: '11px', 
                                                     fontWeight: 700, 
-                                                    color: u.is_active ? '#10b981' : '#ef4444',
+                                                    color: u.is_active ? 'var(--success)' : 'var(--danger)',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '4px'
                                                 }}>
-                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.is_active ? '#10b981' : '#ef4444' }}></div>
+                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.is_active ? 'var(--success)' : 'var(--danger)' }}></div>
                                                     {u.is_active ? 'ATIVO' : 'INATIVO'}
                                                 </span>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleEditSelectedUser(); }} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748b' }}>
                                                         <Edit size={14} />
                                                     </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleManagePermissions(); }} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#1e40af' }}>
+                                                    <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleManagePermissions(); }} style={{ background: 'var(--primary-light-bg)', border: '1px solid var(--config-accent)', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'var(--primary-color)' }}>
                                                         <ShieldCheck size={14} />
                                                     </button>
                                                 </div>
@@ -1034,7 +1050,7 @@ const Configuracoes = () => {
                     <div style={{ animation: 'fadeIn 0.5s' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <div className="section-title-v2">
-                                <div className="icon-circle" style={{ background: '#fff7ed', color: '#ea580c' }}>
+                                <div className="icon-circle" style={{ background: 'var(--warning-light)', color: 'var(--warning-dark)' }}>
                                     <Calendar size={24} />
                                 </div>
                                 <div>
@@ -1061,29 +1077,31 @@ const Configuracoes = () => {
                         {showYearForm && (
                             <div className="info-card-v2" style={{ 
                                 animation: 'slideUpFade 0.4s ease-out',
-                                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                                border: '1px solid #7dd3fc',
+                                background: 'var(--primary-light-bg)',
+                                border: '1px solid var(--config-accent)',
                                 padding: '28px'
                             }}>
                                 {/* Header */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                                    <div style={{
-                                        width: '44px',
-                                        height: '44px',
-                                        background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
-                                        borderRadius: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)'
-                                    }}>
+                                    <div
+                                        style={{
+                                            width: '44px',
+                                            height: '44px',
+                                            background: 'linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%)',
+                                            borderRadius: '12px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: '0 4px 12px var(--primary-shadow)'
+                                        }}
+                                    >
                                         <Calendar size={22} color="white" />
                                     </div>
                                     <div>
                                         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0c4a6e' }}>
                                             {isEditingYear ? 'Editar Ano Lectivo' : 'Novo Ano Lectivo'}
                                         </h3>
-                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: '#0369a1' }}>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: 'var(--primary-color)' }}>
                                             Preencha as informações do período académico
                                         </p>
                                     </div>
@@ -1097,7 +1115,7 @@ const Configuracoes = () => {
                                     background: 'white',
                                     padding: '24px',
                                     borderRadius: '16px',
-                                    border: '1px solid #bae6fd'
+                                    border: '1px solid var(--primary-light-bg)'
                                 }}>
                                     <div className="config-group-v2">
                                         <label style={{ 
@@ -1105,21 +1123,21 @@ const Configuracoes = () => {
                                             alignItems: 'center', 
                                             gap: '8px',
                                             fontWeight: '600',
-                                            color: '#0c4a6e',
+                                            color: 'var(--primary-color)',
                                             marginBottom: '8px',
                                             fontSize: '14px'
                                         }}>
                                             <span style={{ 
                                                 width: '20px', 
                                                 height: '20px', 
-                                                background: '#e0f2fe', 
+                                                background: 'var(--primary-light-bg)', 
                                                 borderRadius: '6px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 fontSize: '12px',
                                                 fontWeight: '700',
-                                                color: '#0284c7'
+                                                color: 'var(--primary-color)'
                                             }}>1</span>
                                             Nome do Ano Lectivo
                                         </label>
@@ -1127,7 +1145,7 @@ const Configuracoes = () => {
                                             type="text" 
                                             className="input-v2"
                                             style={{ 
-                                                border: '2px solid #bae6fd',
+                                                border: '2px solid var(--primary-light-bg)',
                                                 borderRadius: '12px',
                                                 padding: '14px 16px',
                                                 fontSize: '16px',
@@ -1181,7 +1199,7 @@ const Configuracoes = () => {
                                             alignItems: 'center', 
                                             gap: '8px',
                                             fontWeight: '600',
-                                            color: '#0c4a6e',
+                                            color: 'var(--primary-color)',
                                             marginBottom: '8px',
                                             fontSize: '14px'
                                         }}>
@@ -1221,7 +1239,7 @@ const Configuracoes = () => {
                                     gap: '12px', 
                                     marginTop: '20px',
                                     paddingTop: '20px',
-                                    borderTop: '1px solid #bae6fd'
+                                    borderTop: '1px solid var(--primary-light-bg)'
                                 }}>
                                     <button 
                                         onClick={handleCancelEditYear} 
@@ -1234,10 +1252,10 @@ const Configuracoes = () => {
                                         onClick={handleCreateYear} 
                                         className="btn-premium"
                                         style={{
-                                            background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                                            background: 'linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%)',
                                             color: 'white',
                                             border: 'none',
-                                            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)'
+                                            boxShadow: '0 4px 12px var(--primary-shadow)'
                                         }}
                                     >
                                         <Save size={18} /> {isEditingYear ? 'Atualizar Dados' : 'Criar Ano Lectivo'}
@@ -1277,13 +1295,30 @@ const Configuracoes = () => {
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    {!year.activo && (
+                                                    {!year.activo ? (
                                                         <button 
                                                             onClick={() => handleToggleActiveYear(year.id_ano, year.activo)}
                                                             className="btn-premium btn-secondary-premium"
                                                             style={{ padding: '6px 12px', fontSize: '12px' }}
                                                         >
                                                             Ativar
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleCloseYear(year.id_ano)}
+                                                            className="btn-premium"
+                                                            style={{ 
+                                                                padding: '6px 12px', 
+                                                                fontSize: '12px', 
+                                                                background: '#fef2f2', 
+                                                                color: '#ef4444', 
+                                                                border: '1px solid #fee2e2',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            <Archive size={14} /> Encerrar
                                                         </button>
                                                     )}
                                                     <button 
@@ -1302,7 +1337,7 @@ const Configuracoes = () => {
                         </div>
 
                         <div className="section-title-v2" style={{ marginTop: '48px', marginBottom: '24px' }}>
-                            <div className="icon-circle" style={{ background: '#f0f9ff', color: '#0369a1' }}>
+                            <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
                                 <Lock size={20} />
                             </div>
                             <div>
@@ -1407,7 +1442,7 @@ const Configuracoes = () => {
                                         minHeight: '120px', 
                                         width: '100%', 
                                         resize: 'none',
-                                        border: '2px solid #fde047',
+                                        border: '2px solid var(--warning-color, #fde047)',
                                         background: 'white',
                                         borderRadius: '14px',
                                         padding: '16px',
@@ -1434,10 +1469,10 @@ const Configuracoes = () => {
                                         onClick={handleSaveConfig} 
                                         className="btn-premium"
                                         style={{
-                                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                            background: 'linear-gradient(135deg, var(--warning-color, #f59e0b) 0%, var(--warning-dark, #d97706) 100%)',
                                             color: 'white',
                                             border: 'none',
-                                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                                            boxShadow: '0 4px 12px var(--warning-shadow, rgba(245, 158, 11, 0.3))'
                                         }}
                                     >
                                         <Save size={18} /> Salvar Mensagem
@@ -1452,7 +1487,7 @@ const Configuracoes = () => {
                 return (
                     <div style={{ animation: 'fadeIn 0.5s' }}>
                         <div className="section-title-v2">
-                            <div className="icon-circle" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                            <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
                                 <User size={24} />
                             </div>
                             <div>
@@ -1466,14 +1501,14 @@ const Configuracoes = () => {
                                 width: '100px', 
                                 height: '100px', 
                                 borderRadius: '50%', 
-                                background: 'linear-gradient(135deg, #3b82f6, #2563eb)', 
+                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-hover))', 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 justifyContent: 'center', 
                                 color: 'white', 
                                 fontSize: '36px', 
                                 fontWeight: '700',
-                                boxShadow: '0 10px 20px rgba(37, 99, 235, 0.2)'
+                                boxShadow: '0 10px 20px var(--primary-shadow)'
                             }}>
                                 {user?.name ? user.name.charAt(0) : 'U'}
                             </div>
@@ -1481,8 +1516,8 @@ const Configuracoes = () => {
                                 <h3 style={{ fontSize: '24px', margin: 0, color: '#1e293b' }}>{user?.name || 'Utilizador'}</h3>
                                 <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>{user?.role || 'Acesso Padrão'}</p>
                                 <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                                    <span className="info-badge" style={{ background: '#dcfce7', color: '#15803d' }}>Conta Ativa</span>
-                                    <span className="info-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>ID: #00{user?.id || '1'}</span>
+                                    <span className="info-badge" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>Conta Ativa</span>
+                                    <span className="info-badge" style={{ background: 'var(--bg-light)', color: 'var(--text-muted)' }}>ID: #00{user?.id || '1'}</span>
                                 </div>
                             </div>
                         </div>
@@ -1504,7 +1539,7 @@ const Configuracoes = () => {
                 return (
                     <div style={{ animation: 'fadeIn 0.5s' }}>
                         <div className="section-title-v2">
-                            <div className="icon-circle" style={{ background: '#fff1f2', color: '#e11d48' }}>
+                            <div className="icon-circle" style={{ background: 'var(--danger-light)', color: 'var(--danger)' }}>
                                 <Bell size={24} />
                             </div>
                             <div>
@@ -1522,12 +1557,12 @@ const Configuracoes = () => {
                                     { label: 'Relatórios de Manutenção', desc: 'Status diário da integridade do banco de dados.' },
                                     { label: 'Logs de Segurança', desc: 'Avisos sobre tentativas de login suspeitas.' }
                                 ].map((item, index) => (
-                                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-light)', borderRadius: '12px' }}>
                                         <div>
                                             <p style={{ margin: 0, fontWeight: '600', color: '#1e293b' }}>{item.label}</p>
                                             <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{item.desc}</p>
                                         </div>
-                                        <div style={{ width: '40px', height: '22px', background: index < 2 ? '#22c55e' : '#cbd5e1', borderRadius: '20px', position: 'relative' }}>
+                                        <div style={{ width: '40px', height: '22px', background: index < 2 ? 'var(--success)' : 'var(--border-color)', borderRadius: '20px', position: 'relative' }}>
                                             <div style={{ width: '16px', height: '16px', background: 'white', borderRadius: '50%', position: 'absolute', top: '3px', left: index < 2 ? '21px' : '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
                                         </div>
                                     </div>
@@ -1563,9 +1598,9 @@ const Configuracoes = () => {
                                             Baixe o manual completo do utilizador para aprender a usar todas as funcionalidades do sistema, desde o cadastro de alunos até a emissão de relatórios financeiros.
                                         </p>
                                         <ul style={{ listStyle: 'none', padding: 0, marginBottom: '20px', color: '#64748b' }}>
-                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}><CheckCircle size={16} color="#22c55e" /> Guia passo-a-passo ilustrado</li>
-                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}><CheckCircle size={16} color="#22c55e" /> Dicas de segurança e boas práticas</li>
-                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={16} color="#22c55e" /> Solução de problemas comuns</li>
+                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}><CheckCircle size={16} color="var(--success)" /> Guia passo-a-passo ilustrado</li>
+                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}><CheckCircle size={16} color="var(--success)" /> Dicas de segurança e boas práticas</li>
+                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={16} color="var(--success)" /> Solução de problemas comuns</li>
                                         </ul>
                                     </div>
                                     <div className="manual-download-card">
@@ -1594,7 +1629,7 @@ const Configuracoes = () => {
                                 <p style={{ color: '#64748b', fontSize: '14px', marginTop: '12px', lineHeight: '1.5' }}>
                                     Se encontrar algum erro ou tiver dificuldades técnicas, entre em contato com a equipe de TI.
                                 </p>
-                                <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-light)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                                     <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#475569' }}><strong>Email:</strong> suporte@escola.ao</p>
                                     <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}><strong>Ramal:</strong> 1234 (TI)</p>
                                 </div>

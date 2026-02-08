@@ -60,10 +60,10 @@ const Candidatura = () => {
         fetchCourses();
         refreshConfig();
 
-        // Polling every 5 seconds for real-time updates
+        // Polling every 30 seconds for real-time updates
         const interval = setInterval(() => {
             refreshConfig();
-        }, 5000);
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -109,7 +109,7 @@ const Candidatura = () => {
                    data.append(key, value);
                 }
             });
-            // Ensure media_final uses comma or dot correctly expected by backend, or just send as string, backend DecimalField handles it usually.
+            // Ensure media_final uses comma or dot correctly expected by backend, or just send as string, backend DecimalField
             
             const response = await api.post('candidaturas/', data, {
                 headers: {
@@ -138,6 +138,27 @@ const Candidatura = () => {
             setStep(1); // Go back to form to fix
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadComprovativo = async (id) => {
+        try {
+            // Using local 'api' instance which is pre-configured without auth interceptors
+            const response = await api.get(`candidaturas/${id}/download_comprovativo/`, {
+                responseType: 'blob', // Important for PDF
+            });
+            
+            // Create Blob URL
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Comprovativo_${id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Erro ao baixar comprovativo", error);
+            alert("Erro ao baixar documento. Tente novamente.");
         }
     };
 
@@ -595,8 +616,30 @@ const Candidatura = () => {
                     </div>
                     <Calendar size={28} color="#60a5fa" />
                 </div>
-                
                 <div style={{padding: '30px'}}>
+                    
+                    <div style={{display: 'flex', justifyContent: 'center', marginBottom: '24px'}}>
+                         <button 
+                            onClick={() => handleDownloadComprovativo(createdCandidate?.id_candidato || createdCandidate?.id)}
+                            className="btn-secondary-action"
+                            style={{
+                                background: 'white',
+                                color: '#1e40af',
+                                border: '1px solid #1e40af',
+                                padding: '12px 24px',
+                                borderRadius: '50px',
+                                fontWeight: '600',
+                                fontSize: '16px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <ClipboardList size={18} /> Baixar Comprovativo
+                        </button>
+                    </div>
+
                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px'}}>
                         <div>
                             <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>DATA & HORA</span>
@@ -718,12 +761,7 @@ const Candidatura = () => {
         }
     };
 
-    const handleDownloadComprovativo = (id) => {
-        if (!id) return;
-        // Public API base URL
-        const baseURL = api.defaults.baseURL;
-        window.open(`${baseURL}candidaturas/${id}/download_comprovativo/`, '_blank');
-    };
+
 
 
 

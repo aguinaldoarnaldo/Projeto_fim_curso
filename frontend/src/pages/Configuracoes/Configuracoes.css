@@ -2,23 +2,23 @@
 
 :root {
     --config-sidebar-width: 280px;
-    --config-bg: #f1f5f9; /* Slate 100 */
-    --config-accent: #3b82f6;
-    --config-accent-soft: rgba(59, 130, 246, 0.1);
+    --config-bg: var(--bg-color, #f1f5f9);
+    --config-accent: var(--primary-color, #3b82f6);
+    --config-accent-soft: var(--primary-light-bg, rgba(59, 130, 246, 0.1));
     --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-border: rgba(255, 255, 255, 0.4);
     --danger: #ef4444;
     --success: #10b981;
-    --config-text: #1e293b;
-    --config-text-secondary: #64748b;
-    --config-border: #e2e8f0;
+    --config-text: var(--text-color, #1e293b);
+    --config-text-secondary: var(--text-muted, #64748b);
+    --config-border: var(--border-color, #e2e8f0);
 }
 
 .config-page {
     background-color: var(--config-bg);
     background-image: 
-        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%), 
-        radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.03) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, var(--primary-shadow) 0px, transparent 50%), 
+        radial-gradient(at 100% 100%, var(--primary-shadow) 0px, transparent 50%);
     background-attachment: fixed;
     min-height: 100vh;
     padding: 40px;
@@ -94,7 +94,7 @@
 }
 
 .config-nav-item.active {
-    background: #eff6ff; /* Light Blue Background */
+    background: var(--config-accent-soft); /* Adaptable Background */
     color: var(--config-accent);
     box-shadow: none; /* Removed heavy shadow */
 }
@@ -267,21 +267,21 @@
 .user-card-v2.selected {
     border-color: var(--config-accent);
     box-shadow: 0 0 0 2px var(--config-accent-soft);
-    background: linear-gradient(to bottom right, #eff6ff, white);
+    background: linear-gradient(to bottom right, var(--config-accent-soft), white);
 }
 
 .user-avatar-v2 {
     width: 56px;
     height: 56px;
     border-radius: 18px;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 20px;
-    box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 8px 16px -4px var(--primary-shadow);
     flex-shrink: 0;
 }
 
@@ -338,13 +338,13 @@
 .btn-primary-premium {
     background: var(--config-accent);
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 12px var(--primary-shadow);
 }
 
 .btn-primary-premium:hover {
-    background: #2563eb;
+    background: var(--primary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 20px var(--primary-shadow);
 }
 
 .btn-secondary-premium {
@@ -557,12 +557,12 @@
 .btn-modal-confirm {
     background: var(--config-accent);
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px var(--primary-shadow);
 }
 
 .btn-modal-confirm:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 24px var(--primary-shadow);
 }
 
 /* Animations */
@@ -637,9 +637,9 @@
 }
 
 .role-selector-btn.active {
-    border: 2px solid #2563eb;
-    background: #eff6ff;
-    color: #1e40af;
+    border: 2px solid var(--primary-color);
+    background: var(--primary-light-bg);
+    color: var(--primary-color);
 }
 
 @media (max-width: 768px) {
@@ -705,14 +705,14 @@
 .modal-icon-badge {
     width: 64px;
     height: 64px;
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--primary-light-bg);
+    color: var(--primary-color);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 16px auto;
-    box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 8px 16px -4px var(--primary-shadow);
 }
 
 .modal-header-center h3 {
@@ -767,8 +767,8 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #2563eb; /* Primary color */
-    box-shadow: 0 0 0 4px #eff6ff;
+    background: var(--primary-color); /* Primary color */
+    box-shadow: 0 0 0 4px var(--primary-light-bg);
 }
 
 .permission-group-header h4 {
@@ -797,7 +797,7 @@
     transition: all 0.2s;
 }
 
-.link-btn-blue { color: #2563eb; background: #eff6ff; }
+.link-btn-blue { color: var(--primary-color); background: var(--primary-light-bg); }
 .link-btn-blue:hover { background: #dbeafe; }
 
 .link-btn-red { color: #ef4444; background: #fef2f2; }

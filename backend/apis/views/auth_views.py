@@ -340,6 +340,11 @@ def me_view(request):
             'user': user_data
         }, status=status.HTTP_200_OK)
         
+    except (Usuario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
+        return Response(
+            {'error': 'Usuário associado ao token não encontrado.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
     except Exception as e:
         return Response(
             {'error': f'Erro ao obter dados do usuário: {str(e)}'},

@@ -80,6 +80,10 @@ class Candidato(BaseModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pendente')
     
     def save(self, *args, **kwargs):
+        # Auto-assign active year if not provided
+        if not self.ano_lectivo:
+            self.ano_lectivo = AnoLectivo.get_active_year()
+            
         if not self.numero_inscricao:
             import datetime
             year = datetime.datetime.now().year

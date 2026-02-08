@@ -74,7 +74,7 @@ const InscritosTable = ({
                 className={`sortable-header ${sortConfig.key === 'anoInscricao' ? 'active-sort' : ''}`} 
                 onClick={() => requestSort('anoInscricao')}
             >
-                Ano
+                Ano Lectivo
                  <span className="sort-icon">
                     {sortConfig.key === 'anoInscricao' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
                 </span>

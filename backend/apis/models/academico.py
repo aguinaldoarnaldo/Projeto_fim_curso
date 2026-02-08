@@ -27,6 +27,11 @@ class AnoLectivo(BaseModel):
     def __str__(self):
         return f"{self.nome} ({'Activo' if self.activo else 'Inactivo'})"
 
+    @staticmethod
+    def get_active_year():
+        """Retorna o ano lectivo actualmente activo"""
+        return AnoLectivo.objects.filter(activo=True).first()
+
 
 class Sala(BaseModel):
     """Salas de aula"""
@@ -225,14 +230,24 @@ class Turma(BaseModel):
         ordering = ['codigo_turma']
     
     def save(self, *args, **kwargs):
-        if self.id_sala and self.id_curso and self.id_classe and self.id_periodo and self.ano:
+        # Auto-assign active year if not provided
+        if not self.ano_lectivo:
+            self.ano_lectivo = AnoLectivo.get_active_year()
+            
+        if self.id_sala and self.id_curso and self.id_classe and self.id_periodo:
             sala = str(self.id_sala.numero_sala)
             curso = self.id_curso.nome_curso[:2].upper()
             classe = str(self.id_classe.nivel)
             periodo = self.id_periodo.periodo[0].upper()
-            ano = str(self.ano)[-2:]
             
-            self.codigo_turma = f"{sala}{curso}{classe}{periodo}{ano}"
+            # Use ano_lectivo name if available, fallback to legacy ano
+            ano_str = self.ano
+            if self.ano_lectivo:
+                ano_str = self.ano_lectivo.nome
+            
+            ano_suffix = str(ano_str)[-2:] if ano_str else "25"
+            
+            self.codigo_turma = f"{sala}{curso}{classe}{periodo}{ano_suffix}"
             
         if self.ano_lectivo and not self.ano_lectivo.activo:
              raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")

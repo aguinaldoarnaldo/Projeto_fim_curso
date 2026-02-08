@@ -69,9 +69,7 @@
 @media (max-width: 1440px) {
     /* Hide less critical columns to save space */
     .turmas-page .data-table th:nth-child(5), /* Coordenador Header */
-    .turmas-page .data-table td:nth-child(5), /* Coordenador Data */
-    .turmas-page .data-table th:nth-child(6), /* Ano Header */
-    .turmas-page .data-table td:nth-child(6)  /* Ano Data */
+    .turmas-page .data-table td:nth-child(5) /* Coordenador Data */
     {
         display: none;
     }

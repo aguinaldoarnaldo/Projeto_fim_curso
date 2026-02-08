@@ -42,7 +42,11 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
                 }
             } catch (err) {
                 console.error(`Error fetching ${key}:`, err);
-                setError(err);
+                // Only set error if we don't have any data show (initial load failure)
+                // This prevents background refresh errors from blocking the UI
+                if (!data) {
+                    setError(err);
+                }
             } finally {
                 setLoading(false);
             }

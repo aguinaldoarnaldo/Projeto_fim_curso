@@ -36,8 +36,8 @@ from apis.models import (
 
 @admin.register(Candidato)
 class CandidatoAdmin(ModelAdmin):
-    list_display = ['numero_inscricao', 'nome_completo', 'numero_bi', 'curso1_nome', 'status_badge', 'criado_em']
-    list_filter = ['status', 'genero', 'curso_primeira_opcao']
+    list_display = ['numero_inscricao', 'nome_completo', 'numero_bi', 'curso1_nome', 'ano_lectivo', 'status_badge', 'criado_em']
+    list_filter = ['ano_lectivo', 'status', 'genero', 'curso_primeira_opcao']
     search_fields = ['nome_completo', 'numero_bi', 'numero_inscricao']
     list_per_page = 20
     
@@ -153,8 +153,8 @@ class EncarregadoAdmin(ModelAdmin):
 @admin.register(Aluno)
 class AlunoAdmin(ModelAdmin):
     list_display = ['id_aluno', 'foto_badge', 'nome_completo', 'numero_matricula', 'turma_badge', 
-                    'status_badge', 'genero', 'online_badge']
-    list_filter = ['status_aluno', 'id_turma', 'genero']
+                    'get_ano_lectivo', 'status_badge', 'genero', 'online_badge']
+    list_filter = ['id_turma__ano_lectivo', 'status_aluno', 'id_turma', 'genero']
     search_fields = ['nome_completo', 'numero_matricula', 'email']
     list_per_page = 20
 
@@ -270,13 +270,19 @@ class AlunoAdmin(ModelAdmin):
     def online_badge(self, obj):
         return obj.is_online
 
+    @display(description='Ano Lectivo', ordering='id_turma__ano_lectivo__nome')
+    def get_ano_lectivo(self, obj):
+        if obj.id_turma and obj.id_turma.ano_lectivo:
+            return obj.id_turma.ano_lectivo.nome
+        return "-"
+
 
 @admin.register(Turma)
 class TurmaAdmin(ModelAdmin):
-    list_display = ['id_turma', 'codigo_turma', 'curso_badge', 'classe_badge', 'sala_badge', 
-                    'periodo_badge', 'total_alunos', 'status_badge', 'ano']
-    list_filter = ['status', 'id_curso', 'id_classe', 'id_periodo', 'id_sala', 'ano']
-    search_fields = ['codigo_turma', 'id_curso__nome_curso']
+    list_display = ['id_turma', 'codigo_turma', 'ano_lectivo_display', 'curso_badge', 'classe_badge', 'sala_badge', 
+                    'periodo_badge', 'total_alunos', 'status_badge']
+    list_filter = ['ano_lectivo', 'status', 'id_curso', 'id_classe', 'id_periodo', 'id_sala']
+    search_fields = ['codigo_turma', 'id_curso__nome_curso', 'ano_lectivo__nome']
     list_per_page = 20
     
     @display(description='Estado', ordering='status')
@@ -316,6 +322,10 @@ class TurmaAdmin(ModelAdmin):
     def total_alunos(self, obj):
         total = Aluno.objects.filter(id_turma=obj).count()
         return format_html('<span class="badge badge-success">{}</span>', total)
+
+    @display(description='Ano Lectivo', ordering='ano_lectivo__nome')
+    def ano_lectivo_display(self, obj):
+        return obj.ano_lectivo.nome if obj.ano_lectivo else obj.ano
 
 
 @admin.register(Curso)
@@ -522,7 +532,7 @@ class MatriculaAdmin(ModelAdmin):
         'curso_nome', 'sala_nome', 'turno_nome', 
         'status_badge', 'tipo', 'data_display'
     ]
-    list_filter = ['status', 'tipo', 'ativo', 'id_turma__ano', 'id_turma__id_classe', 'id_turma__id_curso']
+    list_filter = ['ano_lectivo', 'status', 'tipo', 'ativo', 'id_turma__id_classe', 'id_turma__id_curso']
     search_fields = ['id_aluno__nome_completo', 'id_matricula']
     autocomplete_fields = ['id_turma'] # Removemos id_aluno daqui pois não será usado para seleção
     list_per_page = 20
@@ -663,8 +673,10 @@ class MatriculaAdmin(ModelAdmin):
     def aluno_nome(self, obj):
         return obj.id_aluno.nome_completo
 
-    @display(description='Ano Lectivo', ordering='id_turma__ano')
+    @display(description='Ano Lectivo', ordering='id_turma__ano_lectivo__nome')
     def ano_lectivo(self, obj):
+        if obj.id_turma and obj.id_turma.ano_lectivo:
+            return obj.id_turma.ano_lectivo.nome
         return obj.id_turma.ano if obj.id_turma else "N/A"
 
     @display(description='Classe', ordering='id_turma__id_classe__nivel')

@@ -30,8 +30,20 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
         'update': 'manage_configuracoes',
         'partial_update': 'manage_configuracoes',
         'destroy': 'manage_configuracoes',
+        'encerrar': 'manage_configuracoes',
         'stats_by_year': 'view_dashboard',
     }
+
+    @action(detail=True, methods=['post'])
+    def encerrar(self, request, pk=None):
+        """Encerra o ano lectivo (desativa)"""
+        ano_lectivo = self.get_object()
+        if not ano_lectivo.activo:
+            return Response({"detail": "O ano lectivo já está encerrado."}, status=400)
+        
+        ano_lectivo.activo = False
+        ano_lectivo.save()
+        return Response({"detail": f"Ano lectivo {ano_lectivo.nome} encerrado com sucesso."}, status=200)
 
     @action(detail=True, methods=['get'])
     def stats_by_year(self, request, pk=None):

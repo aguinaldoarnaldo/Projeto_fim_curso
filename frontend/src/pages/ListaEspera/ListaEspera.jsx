@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './ListaEspera.css';
 import { 
-    Search, Plus, Bell, RefreshCw, X, ArrowUpRight 
+    Search, Plus, Bell, RefreshCw, X, ArrowUpRight, Filter 
 } from 'lucide-react';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
 import { useDataCache } from '../../hooks/useDataCache'; // Import hook
 import api from '../../services/api';
 
@@ -13,6 +14,11 @@ const ListaEspera = () => {
     const { hasPermission } = usePermission();
     // UI Local State (NOT cached)
     const [searchTerm, setSearchTerm] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        curso: '',
+        status: ''
+    });
     const [showModal, setShowModal] = useState(false);
     const [newEntry, setNewEntry] = useState({ id_candidato: '', prioridade: 0, observacao: '' });
 
@@ -61,27 +67,36 @@ const ListaEspera = () => {
         }
     };
 
-    const filtered = lista.filter(item => 
-        (item.candidato_nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.candidato_numero?.includes(searchTerm))
-    );
+    const filtered = lista.filter(item => {
+        const matchesSearch = 
+            (item.candidato_nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (item.candidato_numero?.includes(searchTerm));
+        
+        const matchesFilters = 
+            (filters.curso === '' || item.curso1 === filters.curso) &&
+            (filters.status === '' || item.status === filters.status);
+
+        return matchesSearch && matchesFilters;
+    });
 
     return (
         <div className="page-container lista-espera-page">
             <header className="page-header">
-                <div>
-                    <h1>Lista de Espera</h1>
-                    <p>Gerenciamento de candidatos aguardando vagas.</p>
-                </div>
-                <div style={{display:'flex', gap:'10px'}}>
-                     <button className="btn-action" onClick={() => refresh()} style={{background:'white', color:'#0f172a', border:'1px solid #e2e8f0'}}>
-                        <RefreshCw size={18} /> Atualizar
-                    </button>
-                    {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                        <button className="btn-action" onClick={() => setShowModal(true)}>
-                            <Plus size={18} /> Adicionar Candidato
+                <div className="page-header-content">
+                    <div>
+                        <h1>Lista de Espera</h1>
+                        <p>Gerenciamento de candidatos aguardando vagas.</p>
+                    </div>
+                    <div className="page-header-actions">
+                        <button className="btn-action" onClick={() => refresh()} style={{background:'white', color:'#0f172a', border:'1px solid #e2e8f0'}}>
+                            <RefreshCw size={18} /> Atualizar
                         </button>
-                    )}
+                        {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
+                            <button className="btn-action" onClick={() => setShowModal(true)}>
+                                <Plus size={18} /> Adicionar Candidato
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -96,6 +111,43 @@ const ListaEspera = () => {
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                         />
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                        <button 
+                            onClick={() => setShowFilters(!showFilters)} 
+                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+                        >
+                            <Filter size={18} />
+                            Filtros
+                        </button>
+
+                        <FilterModal
+                            isOpen={showFilters}
+                            onClose={() => setShowFilters(false)}
+                            onClear={() => setFilters({ curso: '', status: '' })}
+                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+                            title="Filtrar Lista de Espera"
+                        >
+                            <FilterSection 
+                                label="Curso"
+                                value={filters.curso}
+                                onChange={(val) => setFilters({...filters, curso: val})}
+                                options={[
+                                    { label: 'Todos os Cursos', value: '' },
+                                    ...[...new Set(lista.map(item => item.curso1))].filter(Boolean).map(curso => ({ label: curso, value: curso }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Status"
+                                value={filters.status}
+                                onChange={(val) => setFilters({...filters, status: val})}
+                                options={[
+                                    { label: 'Todos os Estados', value: '' },
+                                    ...[...new Set(lista.map(item => item.status))].filter(Boolean).map(status => ({ label: status, value: status }))
+                                ]}
+                            />
+                        </FilterModal>
                     </div>
                 </div>
 

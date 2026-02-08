@@ -106,6 +106,10 @@ class Matricula(models.Model):
             raise ValidationError("O Ano Lectivo é obrigatório para realizar a matrícula.")
 
     def save(self, *args, **kwargs):
+        # Auto-assign active year if not provided
+        if not self.ano_lectivo:
+            self.ano_lectivo = AnoLectivo.get_active_year()
+            
         self.clean()
         
         # Check capacity and notify if full

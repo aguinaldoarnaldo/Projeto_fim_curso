@@ -10,9 +10,12 @@ import {
     MapPin,
     Grid,
     Layers,
-    LayoutGrid
+    LayoutGrid,
+    Filter
 } from 'lucide-react';
+
 import Pagination from '../../components/Common/Pagination';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
@@ -22,6 +25,11 @@ import './Salas.css';
 const Salas = () => {
     const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        bloco: '',
+        tipo: ''
+    });
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedSala, setSelectedSala] = useState(null);
@@ -30,6 +38,8 @@ const Salas = () => {
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
+
+
 
     const [salas, setSalas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -53,7 +63,7 @@ const Salas = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             fetchData(true); // Silent force fetch
-        }, 2000);
+        }, 30000); // 30 seconds interval
         return () => clearInterval(interval);
     }, []);
 
@@ -136,6 +146,21 @@ const Salas = () => {
         setShowModal(true);
     };
 
+    // Helper to determine Room Type based on capacity/name
+    function getRoomType(sala) {
+        const cap = parseInt(sala.capacidade_alunos);
+        if (cap >= 60) return { label: 'Auditório', color: '#7c3aed', bg: '#f5f3ff' };
+        if (cap <= 25) return { label: 'Laboratório', color: '#059669', bg: '#ecfdf5' };
+        return { label: 'Sala de Aula', color: '#2563eb', bg: '#eff6ff' };
+    }
+
+    // Helper for progress bar color
+    function getCapacityColor(cap) {
+        if (cap >= 60) return '#7c3aed';
+        if (cap >= 40) return '#2563eb';
+        return '#059669';
+    }
+
     // Filter Logic
     const filteredData = salas.filter(item => {
         const term = searchTerm.toLowerCase();
@@ -143,7 +168,12 @@ const Salas = () => {
             String(item.numero_sala).includes(term) ||
             String(item.bloco || '').toLowerCase().includes(term);
         
-        return matchesSearch;
+        const type = getRoomType(item).label;
+        const matchesFilters = 
+            (filters.bloco === '' || item.bloco === filters.bloco) &&
+            (filters.tipo === '' || type === filters.tipo);
+
+        return matchesSearch && matchesFilters;
     });
 
     // Pagination Slicing
@@ -151,35 +181,22 @@ const Salas = () => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentSalas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
-    // Helper to determine Room Type based on capacity/name
-    const getRoomType = (sala) => {
-        const cap = parseInt(sala.capacidade_alunos);
-        if (cap >= 60) return { label: 'Auditório', color: '#7c3aed', bg: '#f5f3ff' };
-        if (cap <= 25) return { label: 'Laboratório', color: '#059669', bg: '#ecfdf5' };
-        return { label: 'Sala de Aula', color: '#2563eb', bg: '#eff6ff' };
-    };
-
-    // Helper for progress bar color
-    const getCapacityColor = (cap) => {
-        if (cap >= 60) return '#7c3aed';
-        if (cap >= 40) return '#2563eb';
-        return '#059669';
-    };
-
     return (
         <div className="page-container salas-page">
             <header className="page-header">
-                <div className="salas-header-content">
+                <div className="page-header-content">
                     <div>
                         <h1>Gestão de Salas</h1>
                         <p>Controlo e distribuição das salas de aula e laboratórios.</p>
                     </div>
-                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
-                        <button onClick={handleAdd} className="btn-primary-action">
-                            <Plus size={20} />
-                            Nova Sala
-                        </button>
-                    )}
+                    <div className="page-header-actions">
+                        {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                            <button onClick={handleAdd} className="btn-primary-action">
+                                <Plus size={20} />
+                                Nova Sala
+                            </button>
+                        )}
+                    </div>
                 </div>
 
 
@@ -196,6 +213,50 @@ const Salas = () => {
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-input-sala"
                         />
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                        <button 
+                            onClick={() => setShowFilters(!showFilters)} 
+                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+                        >
+                            <Filter size={18} />
+                            Filtros
+                        </button>
+
+                        <FilterModal
+                            isOpen={showFilters}
+                            onClose={() => setShowFilters(false)}
+                            onClear={() => { 
+                                setFilters({ bloco: '', tipo: '' }); 
+                                setSearchTerm('');
+                                setCurrentPage(1);
+                                setShowFilters(false);
+                            }}
+                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+                            title="Filtrar Salas"
+                        >
+                            <FilterSection 
+                                label="Bloco"
+                                value={filters.bloco}
+                                onChange={(val) => setFilters({...filters, bloco: val})}
+                                options={[
+                                    { label: 'Todos os Blocos', value: '' },
+                                    ...[...new Set(salas.map(s => s.bloco))].filter(Boolean).map(bloco => ({ label: bloco, value: bloco }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Tipo de Sala"
+                                value={filters.tipo}
+                                onChange={(val) => setFilters({...filters, tipo: val})}
+                                options={[
+                                    { label: 'Todos os Tipos', value: '' },
+                                    { label: 'Sala de Aula', value: 'Sala de Aula' },
+                                    { label: 'Laboratório', value: 'Laboratório' },
+                                    { label: 'Auditório', value: 'Auditório' }
+                                ]}
+                            />
+                        </FilterModal>
                     </div>
                 </div>
 
@@ -340,12 +401,14 @@ const Salas = () => {
                     </div>
                 )}
 
-                <Pagination 
-                    totalItems={filteredData.length} 
-                    itemsPerPage={itemsPerPage} 
-                    currentPage={currentPage}
-                    onPageChange={setCurrentPage}
-                />
+                {filteredData.length > itemsPerPage && (
+                    <Pagination 
+                        totalItems={filteredData.length} 
+                        itemsPerPage={itemsPerPage} 
+                        currentPage={currentPage}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
 
             {/* Modal de Criar/Editar Sala */}

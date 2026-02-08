@@ -28,6 +28,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Pagination from '../../components/Common/Pagination';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
 import PermutaModal from './PermutaModal';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
@@ -63,6 +64,37 @@ const Matriculas = () => {
             if (tableWrapper) tableWrapper.scrollTop = 0;
         }
     }, [currentPage]);
+
+    // Menu States
+    const [activeMenuId, setActiveMenuId] = useState(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [menuMatricula, setMenuMatricula] = useState(null);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (activeMenuId && 
+                !event.target.closest('.actions-dropdown-container') && 
+                !event.target.closest('.dropdown-menu')) {
+                setActiveMenuId(null);
+                setMenuMatricula(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [activeMenuId]);
+
+    // Close menu on scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            if (activeMenuId) {
+                setActiveMenuId(null);
+                setMenuMatricula(null);
+            }
+        };
+        window.addEventListener('scroll', handleScroll, true);
+        return () => window.removeEventListener('scroll', handleScroll, true);
+    }, [activeMenuId]);
 
 
     // Mock filter states
@@ -101,6 +133,7 @@ const Matriculas = () => {
             turma: item.turma_codigo || 'Sem Turma',
             status: item.status || 'Ativa',
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
+            alunoId: item.aluno_id || item.aluno, // Ensure we have the student ID
             detalhes: {
                 bi: item.bi || 'N/A', 
                 genero: item.genero || 'N/A',
@@ -168,7 +201,7 @@ const Matriculas = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             refresh(true); // silent = true
-        }, 15000); // 15s polling
+        }, 60000); // 60s polling
         return () => clearInterval(interval);
     }, [refresh]);
 
@@ -277,7 +310,9 @@ const Matriculas = () => {
 
     const clearFilters = () => {
         setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
-        setCurrentPage(1); // Reset to page 1 on clear
+        setSearchTerm('');
+        setCurrentPage(1);
+        setShowFilters(false);
     };
 
     const getStatusBadge = (status) => {
@@ -299,37 +334,16 @@ const Matriculas = () => {
     return (
         <div className="page-container matriculas-page">
             <header className="page-header">
-                <div className="matriculas-header-content">
+                <div className="page-header-content">
                     <div>
                         <h1>Gestão de Matrículas</h1>
                         <p>Controle centralizado de matrículas e registros acadêmicos.</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div className="page-header-actions">
                         {hasPermission(PERMISSIONS.EDIT_MATRICULA) && (
                             <button
                                 onClick={() => setShowPermutaModal(true)}
-                                className="btn-secondary-action"
-                                style={{ 
-                                    background: 'white', 
-                                    color: '#4f46e5', 
-                                    border: '1px solid #e0e7ff',
-                                    padding: '10px 16px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    borderRadius: '10px',
-                                    fontWeight: 600,
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                                    transition: 'all 0.2s ease'
-                                }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.background = '#eef2ff';
-                                    e.currentTarget.style.borderColor = '#c7d2fe';
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.background = 'white';
-                                    e.currentTarget.style.borderColor = '#e0e7ff';
-                                }}
+                                className="btn-permuta"
                                 title="Trocar turmas entre alunos"
                             >
                                 <ArrowRightLeft size={18} /> Permuta
@@ -338,7 +352,7 @@ const Matriculas = () => {
                         {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                             <button
                                 onClick={() => navigate('/matriculas/nova')}
-                                className="btn-primary-action"
+                                className="btn-new-matricula"
                             >
                                 <Calendar size={18} /> Nova Matrícula
                             </button>
@@ -361,73 +375,76 @@ const Matriculas = () => {
                             aria-label="Pesquisar matrículas por aluno ou número"
                         />
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="btn-filtros-avancados"
-                        aria-expanded={showFilters}
-                        aria-label={showFilters ? "Esconder filtros avançados" : "Mostrar filtros avançados"}
-                        style={{ background: showFilters ? 'var(--primary-color)' : 'white', color: showFilters ? 'white' : '#374151' }}
-                    >
-                        <Filter size={18} aria-hidden="true" />
-                        Filtros Avançados
-                    </button>
-                </div>
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+                            aria-expanded={showFilters}
+                            aria-label={showFilters ? "Esconder filtros avançados" : "Mostrar filtros avançados"}
+                        >
+                            <Filter size={18} aria-hidden="true" />
+                            Filtros
+                        </button>
 
-                {/* Filters Panel */}
-                {showFilters && (
-                    <div className="painel-filtros">
-                        <div className="grade-filtros">
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-ano-mat">Ano Lectivo</label>
-                                <select id="filtro-ano-mat" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todos</option>
-                                    {anosDisponiveis.map(ano => (
-                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-classe-mat">Classe</label>
-                                <select id="filtro-classe-mat" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todas</option>
-                                    {classesDisponiveis.map(classe => (
-                                        <option key={classe.id_classe || classe.id} value={classe.nome_classe}>{classe.nome_classe}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-curso-mat">Curso</label>
-                                <select id="filtro-curso-mat" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todos</option>
-                                    {cursosDisponiveis.map(curso => (
-                                        <option key={curso.id_curso || curso.id} value={curso.nome_curso}>{curso.nome_curso}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-sala-mat">Sala</label>
-                                <select id="filtro-sala-mat" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todas</option>
-                                    {salasDisponiveis.map(sala => (
-                                        <option key={sala.id_sala || sala.id} value={sala.numero_sala || sala.nome}>{sala.numero_sala || sala.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-turma-mat">Turma</label>
-                                <select id="filtro-turma-mat" name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}>
-                                    <option value="">Todas</option>
-                                    {turmasDisponiveis.map(turma => (
-                                        <option key={turma.id_turma || turma.id} value={turma.codigo_turma || turma.nome}>{turma.codigo_turma || turma.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button onClick={clearFilters} className="btn-limpar-filtros">Limpar Filtros</button>
-                        </div>
+                        <FilterModal 
+                            isOpen={showFilters} 
+                            onClose={() => setShowFilters(false)}
+                            onClear={clearFilters}
+                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+                            title="Filtrar Matrículas"
+                        >
+                            <FilterSection 
+                                label="Ano Lectivo"
+                                value={filters.ano}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'ano', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Anos', value: '' },
+                                    ...anosDisponiveis.map(ano => ({ label: ano.nome, value: ano.nome }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Classe"
+                                value={filters.classe}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'classe', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Classes', value: '' },
+                                    ...classesDisponiveis.map(classe => ({ label: classe.nome_classe, value: classe.nome_classe }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Curso"
+                                value={filters.curso}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'curso', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Cursos', value: '' },
+                                    ...cursosDisponiveis.map(curso => ({ label: curso.nome_curso, value: curso.nome_curso }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Sala"
+                                value={filters.sala}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'sala', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Salas', value: '' },
+                                    ...salasDisponiveis.map(sala => ({ label: `Sala ${sala.numero_sala || sala.nome}`, value: sala.numero_sala || sala.nome }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Turma"
+                                value={filters.turma}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'turma', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Turmas', value: '' },
+                                    ...turmasDisponiveis.map(turma => ({ label: turma.codigo_turma || turma.nome, value: turma.codigo_turma || turma.nome }))
+                                ]}
+                            />
+                        </FilterModal>
                     </div>
-                )}
+                </div>
 
                 {/* Detailed Table */}
                 <div className="table-wrapper">
@@ -548,8 +565,12 @@ const Matriculas = () => {
                                     <td className="col-turno">{m.turno}</td>
                                     <td className="col-ano" style={{color: '#64748b'}}>{m.anoLectivo}</td>
                                     <td>{getStatusBadge(m.status)}</td>
-                                    <td style={{textAlign: 'center'}}>
-                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                    <td style={{ 
+                                        textAlign: 'center', 
+                                        position: 'relative',
+                                        zIndex: activeMenuId === m.real_id ? 100 : 1 
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                                             <button 
                                                 className="btn-icon-action" 
                                                 onClick={() => setSelectedMatricula(m)}
@@ -568,26 +589,44 @@ const Matriculas = () => {
                                             >
                                                 <Eye size={18} />
                                             </button>
-                                             {hasPermission(PERMISSIONS.EDIT_MATRICULA) && (
+
+                                            <div className="actions-dropdown-container">
                                                 <button 
                                                     className="btn-icon-action" 
-                                                    onClick={(e) => { e.stopPropagation(); handleEdit(m); }}
-                                                    title="Editar Matrícula"
-                                                    style={{
-                                                        background: '#f1f5f9',
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        
+                                                        if (activeMenuId === m.real_id) {
+                                                            setActiveMenuId(null);
+                                                            setMenuMatricula(null);
+                                                        } else {
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            setMenuPosition({
+                                                                top: rect.bottom + 5,
+                                                                left: Math.max(10, Math.min(window.innerWidth - 220, rect.right - 210))
+                                                            });
+                                                            setMenuMatricula(m);
+                                                            setActiveMenuId(m.real_id);
+                                                        }
+                                                    }}
+                                                    title="Mais Opções"
+                                                    style={{ 
+                                                        background: activeMenuId === m.real_id ? '#f1f5f9' : 'transparent',
+                                                        color: activeMenuId === m.real_id ? 'var(--primary-color)' : '#64748b',
                                                         border: 'none',
                                                         borderRadius: '8px',
                                                         padding: '8px',
                                                         cursor: 'pointer',
-                                                        color: '#475569',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
                                                         transition: 'all 0.2s'
                                                     }}
-                                                    onMouseOver={(e) => {e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#1e293b'}}
-                                                    onMouseOut={(e) => {e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#475569'}}
                                                 >
-                                                    <Edit size={18} />
+                                                    <MoreVertical size={18} />
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -870,6 +909,84 @@ const Matriculas = () => {
                 </div>
             )}
 
+            {/* Portal-like Actions Dropdown */}
+            {activeMenuId && menuMatricula && (
+                <div 
+                    className="dropdown-menu"
+                    style={{
+                        position: 'fixed',
+                        top: `${menuPosition.top}px`,
+                        left: `${menuPosition.left}px`,
+                        zIndex: 10000,
+                        margin: 0,
+                        display: 'block',
+                        minWidth: '220px',
+                        background: 'white',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        border: '1px solid #e2e8f0',
+                        padding: '6px'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {hasPermission(PERMISSIONS.EDIT_MATRICULA) && (
+                        <button 
+                            className="dropdown-item" 
+                            onClick={() => { handleEdit(menuMatricula); setActiveMenuId(null); setMenuMatricula(null); }}
+                            style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '10px 12px',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                color: '#1e293b',
+                                fontSize: '14px',
+                                fontWeight: 500
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            <Edit size={16} color="#64748b" /> Editar Matrícula
+                        </button>
+                    )}
+
+                    {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
+                        <div style={{ padding: '4px 0', borderTop: '1px solid #f1f5f9', marginTop: '4px' }}>
+                            <div className="dropdown-section-title" style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                                Próximo Ano Lectivo
+                            </div>
+                            <button 
+                                className="dropdown-item success" 
+                                onClick={() => navigate(`/matriculas/nova?aluno_id=${menuMatricula.alunoId}&tipo=Confirmacao`)}
+                                style={{
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    padding: '10px 12px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    color: '#059669',
+                                    fontSize: '14px',
+                                    fontWeight: 600
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#ecfdf5'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <CheckCircle size={16} color="#059669" /> Confirmar Matrícula
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

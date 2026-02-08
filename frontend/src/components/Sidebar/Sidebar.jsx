@@ -5,7 +5,6 @@ import {
   Users,
   FileText,
   BookOpen,
-  Users as TurmasIcon,
   Home,
   GraduationCap,
   Settings,
@@ -13,6 +12,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  LayoutDashboard,
+  UserPlus,
+  Clock,
+  ClipboardCheck,
+  Layers,
+  DoorOpen,
+  PieChart,
   X
 } from 'lucide-react';
 import logo from '../../assets/img/logo_ipm2.png';
@@ -38,15 +44,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   };
 
   const menuItems = [
-    { name: 'Dashboard', icon: <BarChart2 size={20} />, path: '/dashboard', permission: PERMISSIONS.VIEW_DASHBOARD },
-    { name: 'Inscritos', icon: <Users size={20} />, path: '/inscrito', permission: PERMISSIONS.VIEW_INSCRITOS },
-    { name: 'Lista de Espera', icon: <ClipboardList size={20} />, path: '/lista-espera', permission: PERMISSIONS.VIEW_INSCRITOS },
-    { name: 'Matrículas', icon: <FileText size={20} />, path: '/matriculas', permission: PERMISSIONS.VIEW_MATRICULAS },
-    { name: 'Alunos', icon: <GraduationCap size={20} />, path: '/alunos', permission: PERMISSIONS.VIEW_ALUNOS },
-    { name: 'Turmas', icon: <TurmasIcon size={20} />, path: '/turma', permission: PERMISSIONS.VIEW_TURMAS },
-    { name: 'Salas', icon: <Home size={20} />, path: '/salas', permission: PERMISSIONS.VIEW_SALAS },
-    { name: 'Cursos', icon: <BookOpen size={20} />, path: '/cursos', permission: PERMISSIONS.VIEW_CURSOS },
-    { name: 'Relatórios', icon: <FileText size={20} />, path: '/relatorios', permission: PERMISSIONS.VIEW_RELATORIOS },
+    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard', permission: PERMISSIONS.VIEW_DASHBOARD },
+    { name: 'Inscritos', icon: <UserPlus size={20} />, path: '/inscrito', permission: PERMISSIONS.VIEW_INSCRITOS },
+    { name: 'Lista de Espera', icon: <Clock size={20} />, path: '/lista-espera', permission: PERMISSIONS.VIEW_INSCRITOS },
+    { name: 'Matrículas', icon: <ClipboardCheck size={20} />, path: '/matriculas', permission: PERMISSIONS.VIEW_MATRICULAS },
+    { name: 'Alunos', icon: <Users size={20} />, path: '/alunos', permission: PERMISSIONS.VIEW_ALUNOS },
+    { name: 'Turmas', icon: <Layers size={20} />, path: '/turma', permission: PERMISSIONS.VIEW_TURMAS },
+    { name: 'Salas', icon: <DoorOpen size={20} />, path: '/salas', permission: PERMISSIONS.VIEW_SALAS },
+    { name: 'Cursos', icon: <GraduationCap size={20} />, path: '/cursos', permission: PERMISSIONS.VIEW_CURSOS },
+    { name: 'Relatórios', icon: <PieChart size={20} />, path: '/relatorios', permission: PERMISSIONS.VIEW_RELATORIOS },
     { name: 'Configurações', icon: <Settings size={20} />, path: '/configuracoes', permission: PERMISSIONS.VIEW_CONFIGURACOES },
   ];
 

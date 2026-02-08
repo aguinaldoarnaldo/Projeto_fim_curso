@@ -33,6 +33,7 @@ class AlunoListSerializer(serializers.ModelSerializer):
     sugerido_tipo_matricula = serializers.SerializerMethodField()
     from .historico_serializers import HistoricoEscolarSerializer
     historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
+    ano_lectivo = serializers.SerializerMethodField()
     
     class Meta:
         model = Aluno
@@ -43,8 +44,11 @@ class AlunoListSerializer(serializers.ModelSerializer):
             'numero_bi', 'telefone', 'img_path', 
             'municipio_residencia', 'provincia_residencia',
             'data_nascimento', 'criado_em', 'encarregado_principal',
-            'sugerido_tipo_matricula', 'historico_escolar'
+            'sugerido_tipo_matricula', 'historico_escolar', 'ano_lectivo'
         ]
+
+    def get_ano_lectivo(self, obj):
+        return obj.id_turma.ano_lectivo.nome if obj.id_turma and obj.id_turma.ano_lectivo else (obj.id_turma.ano if obj.id_turma else "N/A")
 
     def get_img_path(self, obj):
         if obj.img_path:

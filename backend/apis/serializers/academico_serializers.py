@@ -25,7 +25,7 @@ class SalaSerializer(serializers.ModelSerializer):
     def get_total_alunos(self, obj):
         # Counts students linked to turmas in this room (Total Headcount)
         from apis.models import Aluno
-        return Aluno.objects.filter(id_turma__id_sala=obj, status_aluno='Activo').count()
+        return Aluno.objects.filter(id_turma__id_sala=obj, status_aluno__in=['Ativo', 'Activo']).count()
 
     def get_ocupacao_detalhada(self, obj):
         from apis.models import Aluno
@@ -34,7 +34,7 @@ class SalaSerializer(serializers.ModelSerializer):
         # Group active students by Periodo (Morning, Afternoon, etc.)
         stats = Aluno.objects.filter(
             id_turma__id_sala=obj, 
-            status_aluno='Activo'
+            status_aluno__in=['Ativo', 'Activo']
         ).values('id_turma__id_periodo__periodo').annotate(total=Count('id_aluno'))
         
         # Convert to dictionary { 'Manhã': 30, 'Tarde': 20 }
@@ -152,7 +152,7 @@ class TurmaSerializer(serializers.ModelSerializer):
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno
-        return Aluno.objects.filter(id_turma=obj, status_aluno='Activo').count()
+        return Aluno.objects.filter(id_turma=obj, status_aluno__in=['Ativo', 'Activo']).count()
 
 
 class TurmaListSerializer(serializers.ModelSerializer):
@@ -178,4 +178,4 @@ class TurmaListSerializer(serializers.ModelSerializer):
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno
-        return Aluno.objects.filter(id_turma=obj, status_aluno='Activo').count()
+        return Aluno.objects.filter(id_turma=obj, status_aluno__in=['Ativo', 'Activo']).count()

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { useDataCache } from '../../hooks/useDataCache';
@@ -396,20 +397,22 @@ const Alunos = () => {
     return (
         <div className="page-container alunos-page">
             <header className="page-header">
-                <div className="alunos-header-content">
+                <div className="page-header-content">
                     <div>
                         <h1>Gestão de Estudantes</h1>
                         <p>Visualização e administração de todos os alunos registrados.</p>
                     </div>
-                    {hasPermission(PERMISSIONS.CREATE_ALUNO) && (
-                        <button
-                            onClick={handleAdd}
-                            className="btn-primary-action"
-                        >
-                            <Plus size={20} />
-                            Novo Aluno
-                        </button>
-                    )}
+                    <div className="page-header-actions">
+                        {hasPermission(PERMISSIONS.CREATE_ALUNO) && (
+                            <button
+                                onClick={handleAdd}
+                                className="btn-primary-action btn-new-student"
+                            >
+                                <Plus size={20} />
+                                Novo Aluno
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -427,87 +430,74 @@ const Alunos = () => {
                             aria-label="Pesquisar alunos por nome ou ID"
                         />
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="btn-alternar-filtros"
-                        aria-expanded={showFilters}
-                        aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
-                        style={{
-                            background: showFilters ? 'var(--primary-color)' : 'var(--card-bg)',
-                            color: showFilters ? 'white' : 'var(--text-color)'
-                        }}
-                    >
-                        <Filter size={18} aria-hidden="true" />
-                        Filtros
-                    </button>
-                </div>
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+                        >
+                            <Filter size={18} aria-hidden="true" />
+                            Filtros
+                        </button>
 
+                        <FilterModal 
+                            isOpen={showFilters} 
+                            onClose={() => setShowFilters(false)}
+                            onClear={() => { setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' }); setCurrentPage(1); }}
+                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+                            title="Filtrar Alunos"
+                        >
+                            <FilterSection 
+                                label="Ano Lectivo"
+                                value={filters.ano}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'ano', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Anos', value: '' },
+                                    ...anosDisponiveis.map(ano => ({ label: ano.nome, value: ano.nome }))
+                                ]}
+                            />
 
-                {/* Dynamic Filters */}
-                {showFilters && (
-                    <div className="painel-filtros">
-                        <div className="grade-filtros">
-                            <div className="grupo-filtro">
-                                <label htmlFor="filtro-ano">Ano Lectivo</label>
-                                <select
-                                    id="filtro-ano"
-                                    name="ano"
-                                    value={filters.ano}
-                                    onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }}
-                                    className="selecao-filtro"
-                                >
-                                    <option value="">Todos</option>
-                                    {anosDisponiveis.map(ano => (
-                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label>Classe</label>
-                                <select name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
-                                    <option value="">Todas</option>
-                                    {classesDisponiveis.map(classe => (
-                                        <option key={classe.id_classe || classe.id} value={classe.nome_classe}>{classe.nome_classe}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label>Curso</label>
-                                <select name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
-                                    <option value="">Todos</option>
-                                    {cursosDisponiveis.map(curso => (
-                                        <option key={curso.id_curso || curso.id} value={curso.nome_curso}>{curso.nome_curso}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label>Sala</label>
-                                <select name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
-                                    <option value="">Todas</option>
-                                    {salasDisponiveis.map(sala => (
-                                        <option key={sala.id_sala || sala.id} value={`Sala ${sala.numero_sala}`}>{`Sala ${sala.numero_sala}`}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grupo-filtro">
-                                <label>Turma</label>
-                                <select name="turma" value={filters.turma} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="selecao-filtro">
-                                    <option value="">Todas</option>
-                                    {turmasDisponiveis.map(turma => (
-                                        <option key={turma.id_turma || turma.id} value={turma.codigo_turma}>{turma.codigo_turma}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button
-                                onClick={() => { setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' }); setCurrentPage(1); }}
-                                className="btn-limpar-filtros">
-                                <X size={16} /> Limpar Filtros
-                            </button>
-                        </div>
+                            <FilterSection 
+                                label="Classe"
+                                value={filters.classe}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'classe', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Classes', value: '' },
+                                    ...classesDisponiveis.map(classe => ({ label: classe.nome_classe, value: classe.nome_classe }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Curso"
+                                value={filters.curso}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'curso', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Cursos', value: '' },
+                                    ...cursosDisponiveis.map(curso => ({ label: curso.nome_curso, value: curso.nome_curso }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Sala"
+                                value={filters.sala}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'sala', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Salas', value: '' },
+                                    ...salasDisponiveis.map(sala => ({ label: `Sala ${sala.numero_sala}`, value: `Sala ${sala.numero_sala}` }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Turma"
+                                value={filters.turma}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'turma', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Turmas', value: '' },
+                                    ...turmasDisponiveis.map(turma => ({ label: turma.codigo_turma, value: turma.codigo_turma }))
+                                ]}
+                            />
+                        </FilterModal>
                     </div>
-                )}
+                </div>
 
 
                 {/* Students Table */}
@@ -1030,28 +1020,6 @@ const Alunos = () => {
                         </div>
                     </div>
 
-                    {(menuStudent.sugeridoTipo || hasPermission(PERMISSIONS.CREATE_MATRICULA)) && (
-                        <>
-                            <div className="dropdown-divider"></div>
-                            <div className="dropdown-section-title">Matrícula</div>
-                            
-                            {menuStudent.sugeridoTipo === 'Confirmacao' && (
-                                <button className="dropdown-item success" onClick={() => navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Confirmacao`)}>
-                                    <ShieldCheck size={16} /> Confirmar Matrícula
-                                </button>
-                            )}
-                            {menuStudent.sugeridoTipo === 'Reenquadramento' && (
-                                <button className="dropdown-item warning" onClick={() => navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Reenquadramento`)}>
-                                    <BookOpen size={16} /> Reenquadrar Aluno
-                                </button>
-                            )}
-                            {menuStudent.sugeridoTipo === 'Repetente' && (
-                                <button className="dropdown-item danger" onClick={() => navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Repetente`)}>
-                                    <Clock size={16} /> Marcar como Repetente
-                                </button>
-                            )}
-                        </>
-                    )}
                 </div>
             )}
             {/* Portal-like Actions Dropdown */}
@@ -1095,28 +1063,6 @@ const Alunos = () => {
                         </div>
                     </div>
 
-                    {(menuStudent.sugeridoTipo || hasPermission(PERMISSIONS.CREATE_MATRICULA)) && (
-                        <>
-                            <div className="dropdown-divider"></div>
-                            <div className="dropdown-section-title">Matrícula</div>
-                            
-                            {menuStudent.sugeridoTipo === 'Confirmacao' && (
-                                <button className="dropdown-item success" onClick={() => navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Confirmacao`)}>
-                                    <ShieldCheck size={16} /> Confirmar Matrícula
-                                </button>
-                            )}
-                            {menuStudent.sugeridoTipo === 'Reenquadramento' && (
-                                <button className="dropdown-item warning" onClick={() => navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Reenquadramento`)}>
-                                    <BookOpen size={16} /> Reenquadrar Aluno
-                                </button>
-                            )}
-                            {menuStudent.sugeridoTipo === 'Repetente' && (
-                                <button className="dropdown-item danger" onClick={() => navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Repetente`)}>
-                                    <Clock size={16} /> Marcar como Repetente
-                                </button>
-                            )}
-                        </>
-                    )}
                 </div>
             )}
         </div>

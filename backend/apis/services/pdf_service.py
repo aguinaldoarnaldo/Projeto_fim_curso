@@ -54,18 +54,19 @@ class PDFService:
                  path = os.path.join(sRoot, relative)
                  
                  # Fallback for dev: if file not found in STATIC_ROOT, look in STATICFILES_DIRS
-                 # This is crucial for local development link_callback
                  if not os.path.isfile(path) and settings.DEBUG:
                      for static_dir in settings.STATICFILES_DIRS:
-                         possible_path = os.path.join(static_dir, relative)
+                         possible_path = os.path.join(str(static_dir), relative) # Ensure str
                          if os.path.isfile(possible_path):
                              path = possible_path
                              break
 
+            # Normalize path for OS (Windows backslashes)
+            path = os.path.normpath(path)
+            
             # Verifica se o arquivo existe e é acessível
             if not os.path.isfile(path):
-                # Se não for arquivo local, xhtml2pdf tentará buscar via rede se for http/https
-                # Se for caminho relativo que falhou a resolução, retorna uri original
+                # Se não for arquivo local, xhtml2pdf tentará buscar via rede
                 return uri 
                 
             return path

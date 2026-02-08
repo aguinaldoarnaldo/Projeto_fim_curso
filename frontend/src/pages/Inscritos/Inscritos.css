@@ -8,6 +8,15 @@
     height: 100%; /* Ocupa a altura disp do content-wrapper */
 }
 
+/* Page Header Action Styles (Local Overrides) */
+.btn-agendar {
+    background-color: #4b5563 !important; /* Specific color for Agendar button */
+}
+
+.btn-agendar:hover {
+    background-color: #374151 !important;
+}
+
 .page-header {
     margin-bottom: 24px;
     padding: 10px 0;
@@ -20,7 +29,7 @@
     border: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible; /* Dynamic filters pop out */
     position: relative;
     width: 100%;
 }
@@ -359,19 +368,10 @@ tbody .clickable-row:hover {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Modal Overlay agora é controlado globalmente em Global.css */
+/* modal-overlay agora em Global.css */
 
 .inscritos-page .detail-modal-card {
-    background: white;
-    width: 100%;
-    max-width: 900px;
-    max-height: 90vh;
-    border-radius: 16px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    overflow: hidden; /* Hide outer overflow, scroll happens in body */
+    /* Dimensões e background agora herdados de .detail-modal-card global */
 }
 
 .btn-close-modal {
@@ -1233,4 +1233,101 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .collapse-content .evaluation-label {
     font-size: 11px;
     margin-bottom: 0;
+}
+/* PRINT STYLES FOR CALL LIST */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  .detail-modal-card,
+  .detail-modal-card * {
+    visibility: visible;
+  }
+  
+  .detail-modal-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    background: white;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .modal-overlay {
+    background: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: block;
+  }
+
+  /* Hide buttons and headers in print mode */
+  .evaluation-header,
+  .btn-close-modal,
+  .page-header,
+  .sidebar, 
+  .metric-card,
+  .search-filter-header,
+  .pagination-container,
+  .btn-print,
+  .btn-confirm {
+    display: none !important;
+  }
+
+  /* Ensure page breaks work */
+  .print-section {
+    page-break-after: always;
+    display: block;
+    width: 100%;
+  }
+
+  /* Last section shouldn't break page */
+  .print-section:last-child {
+    page-break-after: auto;
+  }
+  
+  .page-break {
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+  }
+
+  /* Reset table styles for print */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11pt;
+  }
+  
+  .data-table th,
+  .data-table td {
+    border: 1px solid black;
+    color: black;
+    padding: 8px;
+  }
+  
+  .data-table th {
+    background: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    color: black !important;
+  }
+
+  /* Hide scrollbars during print */
+  ::-webkit-scrollbar {
+    display: none;
+  }
 }

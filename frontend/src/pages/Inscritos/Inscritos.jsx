@@ -23,6 +23,7 @@ import ExamSchedulingModal from './components/ExamSchedulingModal';
 import CallListModal from './components/CallListModal';
 import CandidateDetailModal from './components/CandidateDetailModal';
 import EditCandidateModal from './components/EditCandidateModal';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
 
 const Inscritos = () => {
   const { hasPermission } = usePermission();
@@ -184,7 +185,7 @@ const Inscritos = () => {
   useEffect(() => {
     const interval = setInterval(() => {
         refresh(true); 
-    }, 5000); 
+    }, 60000); 
     return () => clearInterval(interval);
   }, [refresh]);
 
@@ -405,6 +406,7 @@ const Inscritos = () => {
     setFilters({ ano: '', status: '', curso: '' });
     setSearchTerm('');
     setCurrentPage(1);
+    setShowFilters(false);
   };
 
   // Sorting State
@@ -457,15 +459,15 @@ const Inscritos = () => {
   return (
     <div className="page-container inscritos-page">
       <header className="page-header">
-        <div className="search-filter-header" style={{ border: 'none', padding: 0, background: 'transparent', marginBottom: 0 }}>
+        <div className="page-header-content">
             <div>
                 <h1>Gestão de Inscrições</h1>
                 <p>Acompanhe, avalie e matricule os candidatos inscritos no sistema.</p>
             </div>
-            <div style={{display: 'flex', gap: '12px'}}>
+            <div className="page-header-actions">
                 {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
                     <>
-                        <button onClick={() => setShowExamModal(true)} className="btn-primary" style={{ background: '#4b5563' }}>
+                        <button onClick={() => setShowExamModal(true)} className="btn-primary btn-agendar">
                             <Calendar size={18} /> Agendar Exames
                         </button>
                         <button onClick={handleFetchCallList} className="btn-primary">
@@ -491,62 +493,60 @@ const Inscritos = () => {
               aria-label="Pesquisar inscritos por nome ou ID"
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="btn-alternar-filtros"
-            aria-expanded={showFilters}
-            aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
-            style={{
-              background: showFilters ? '#1e3a8a' : 'white',
-              color: showFilters ? 'white' : '#374151'
-            }}
-          >
-            <Filter size={18} aria-hidden="true" />
-            Filtros
-          </button>
-        </div>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+              aria-expanded={showFilters}
+              aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
+            >
+              <Filter size={18} aria-hidden="true" />
+              Filtros
+            </button>
 
-        {/* Dynamic Filters Panel */}
-        {showFilters && (
-          <div className="painel-filtros">
-            <div className="grade-filtros">
-              <div className="grupo-filtro">
-                <label htmlFor="filtro-ano-ins">Ano de Inscrição</label>
-                <select id="filtro-ano-ins" name="ano" value={filters.ano} onChange={handleFilterChange} className="selecao-filtro">
-                  <option value="">Todos os Anos</option>
-                  {anosDisponiveis.map(ano => (
-                    <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grupo-filtro">
-                <label htmlFor="filtro-status-ins">Estado/Status</label>
-                <select id="filtro-status-ins" name="status" value={filters.status} onChange={handleFilterChange} className="selecao-filtro">
-                  <option value="">Todos os Estados</option>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Em Análise">Em Análise</option>
-                  <option value="Aprovado">Aprovado</option>
-                  <option value="Não Admitido">Não Admitido</option>
-                  <option value="Matriculado">Matriculado</option>
-                </select>
-              </div>
-              <div className="grupo-filtro">
-                <label htmlFor="filtro-curso-ins">Curso</label>
-                <select id="filtro-curso-ins" name="curso" value={filters.curso} onChange={handleFilterChange} className="selecao-filtro">
-                  <option value="">Todos os Cursos</option>
-                  {cursosDisponiveis.map(c => (
-                     <option key={c.id_curso || c.id} value={c.nome_curso}>{c.nome_curso}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <button onClick={resetFilters} className="btn-limpar-filtros">
-                <RotateCcw size={16} /> Limpar Filtros
-              </button>
-            </div>
+            <FilterModal 
+              isOpen={showFilters} 
+              onClose={() => setShowFilters(false)}
+              onClear={resetFilters}
+              activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+              title="Filtrar Inscritos"
+            >
+              <FilterSection 
+                label="Ano de Inscrição"
+                value={filters.ano}
+                onChange={(val) => handleFilterChange({ target: { name: 'ano', value: val } })}
+                options={[
+                  { label: 'Todos os Anos', value: '' },
+                  ...anosDisponiveis.map(ano => ({ label: ano.nome, value: ano.nome }))
+                ]}
+              />
+
+              <FilterSection 
+                label="Estado / Status"
+                value={filters.status}
+                onChange={(val) => handleFilterChange({ target: { name: 'status', value: val } })}
+                options={[
+                  { label: 'Todos os Estados', value: '' },
+                  { label: 'Pendente', value: 'Pendente' },
+                  { label: 'Em Análise', value: 'Em Análise' },
+                  { label: 'Aprovado', value: 'Aprovado' },
+                  { label: 'Não Admitido', value: 'Não Admitido' },
+                  { label: 'Matriculado', value: 'Matriculado' }
+                ]}
+              />
+
+              <FilterSection 
+                label="Curso"
+                value={filters.curso}
+                onChange={(val) => handleFilterChange({ target: { name: 'curso', value: val } })}
+                options={[
+                  { label: 'Todos os Cursos', value: '' },
+                  ...cursosDisponiveis.map(c => ({ label: c.nome_curso, value: c.nome_curso }))
+                ]}
+              />
+            </FilterModal>
           </div>
-        )}
+        </div>
 
         {/* TABLE COMPONENT */}
         <InscritosTable 

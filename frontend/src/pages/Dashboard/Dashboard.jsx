@@ -195,7 +195,7 @@ const Dashboard = () => {
       const interval = setInterval(() => {
           refreshStats(true); // silent = true (não ativa loading spinner)
           refreshChart(true);
-      }, 5000); // Atualiza a cada 5 segundos para sensação de Tempo Real
+      }, 60000); // Atualiza a cada 60 segundos para evitar sobrecarga
       return () => clearInterval(interval);
   }, [refreshStats, refreshChart]);
 

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
@@ -78,20 +79,49 @@ const Turmas = () => {
     // Cache
     const { getCache, setCache } = useCache();
 
-    // Fetch Turmas, Salas, Cursos, Periodos
-    useEffect(() => {
-        fetchData();
-    }, []);
+    // Optimized: Fetch only dynamic data (Turmas, Salas) for polling
+    const fetchDynamicData = async () => {
+        try {
+            const [turmasRes, salasRes] = await Promise.all([
+                api.get('turmas/'),
+                api.get('salas/')
+            ]);
+            
+            const turmasData = turmasRes.data.results || turmasRes.data;
+            const salasData = salasRes.data.results || salasRes.data;
 
-    // Polling for real-time updates
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchData(true);
-        }, 30000);
-        return () => clearInterval(interval);
-    }, []);
+            const formattedTurmas = turmasData.map(t => ({
+                id: t.id_turma,
+                turma: t.codigo_turma,
+                id_curso: t.id_curso,
+                curso: t.curso_nome,
+                id_sala: t.id_sala,
+                sala: `Sala ${t.sala_numero || 'N/A'}`,
+                id_classe: t.id_classe,
+                classe: t.classe_nome || 'N/A',
+                id_periodo: t.id_periodo,
+                coordenador: t.responsavel_nome || 'Sem Coordenador',
+                ano: t.ano_lectivo_nome || t.ano || '---',
+                ano_lectivo_id: t.ano_lectivo,
+                turno: t.periodo_nome,
+                qtdAlunos: t.total_alunos || 0,
+                status: t.status || 'Ativa'
+            }));
+
+            setTurmas(formattedTurmas);
+            setSalas(salasData);
+            
+            // Update Cache
+            setCache('turmas', formattedTurmas);
+            setCache('salas', salasData);
+            
+        } catch (err) {
+            console.error('Erro ao atualizar turmas em background:', err);
+        }
+    };
 
     const fetchData = async (force = false) => {
+        // Step 1: Try Cache
         if (!force) {
             const cTurmas = getCache('turmas');
             const cSalas = getCache('salas');
@@ -108,12 +138,11 @@ const Turmas = () => {
                  setPeriodosDisponiveis(cPeriodos);
                  setAnosDisponiveis(cAnos);
                  setLoading(false);
-                 // Continue to fetch fresh data in background
-                 // return; // REMOVED to force background refresh
             }
         }
 
         try {
+            // Step 2: Fetch Everything (Initial Load)
             // Do not force set loading=true on updates to avoid flash
             const [turmasRes, salasRes, cursosRes, periodosRes, anosRes, classesRes] = await Promise.all([
                 api.get('turmas/'),
@@ -136,7 +165,8 @@ const Turmas = () => {
                 classe: t.classe_nome || 'N/A',
                 id_periodo: t.id_periodo,
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
-                ano: t.ano || '2024/2025',
+                ano: t.ano_lectivo_nome || t.ano || '---',
+                ano_lectivo_id: t.ano_lectivo,
                 turno: t.periodo_nome,
                 qtdAlunos: t.total_alunos || 0,
                 status: t.status || 'Ativa'
@@ -173,6 +203,19 @@ const Turmas = () => {
         }
     };
 
+    // Initial Load
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    // Polling for real-time updates (Dynamic Data Only)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchDynamicData();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleSave = async () => {
         try {
             // Basic validation
@@ -203,7 +246,8 @@ const Turmas = () => {
                 codigo_turma: formData.codigo_turma,
                 id_curso: formData.id_curso,
                 id_sala: formData.id_sala,
-                ano: formData.ano,
+                ano_lectivo: formData.ano_lectivo_id,
+                ano: formData.ano, // Keep for legacy if needed
                 status: formData.status,
                 id_classe: formData.id_classe,
                 id_periodo: formData.id_periodo
@@ -240,6 +284,7 @@ const Turmas = () => {
             id_sala: turma.id_sala || '',
             id_classe: turma.id_classe || '',
             ano: turma.ano,
+            ano_lectivo_id: turma.ano_lectivo_id || '',
             responsavel_nome: turma.coordenador,
             status: turma.status
         });
@@ -250,13 +295,8 @@ const Turmas = () => {
     const handleAdd = () => {
         setSelectedTurma(null);
         
-        // Auto-select current academic year based on today's date
-        const today = new Date();
-        const currentYearObj = anosDisponiveis.find(a => {
-            const start = new Date(a.data_inicio);
-            const end = new Date(a.data_fim);
-            return today >= start && today <= end;
-        }) || anosDisponiveis[0]; // Fallback to first available if none matches
+        // Auto-select active year from the list
+        const activeYearObj = anosDisponiveis.find(a => a.activo === true) || anosDisponiveis[0];
 
         setFormData({
             codigo_turma: '',
@@ -264,7 +304,8 @@ const Turmas = () => {
             id_periodo: '',
             id_sala: '',
             id_classe: '',
-            ano: currentYearObj ? currentYearObj.nome : new Date().getFullYear().toString(), // Use dynamic year
+            ano: activeYearObj ? activeYearObj.nome : '',
+            ano_lectivo_id: activeYearObj ? (activeYearObj.id || activeYearObj.id_ano) : '',
             responsavel_nome: '',
             status: 'Ativa'
         });
@@ -294,20 +335,22 @@ const Turmas = () => {
     return (
         <div className="page-container turmas-page">
             <header className="page-header">
-                <div className="turmas-header-content">
+                <div className="page-header-content">
                     <div>
                         <h1>Gestão de Turmas</h1>
                         <p>Configuração e monitoramento das turmas do ano lectivo corrente.</p>
                     </div>
-                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
-                        <button
-                            onClick={handleAdd}
-                            className="btn-primary-action"
-                        >
-                            <Plus size={20} />
-                            Nova Turma
-                        </button>
-                    )}
+                    <div className="page-header-actions">
+                        {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                            <button
+                                onClick={handleAdd}
+                                className="btn-primary-action btn-new-turma"
+                            >
+                                <Plus size={20} />
+                                Nova Turma
+                            </button>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -325,86 +368,88 @@ const Turmas = () => {
                             aria-label="Pesquisar turmas por ID, nome ou coordenador"
                         />
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className={`btn-toggle-filters ${showFilters ? 'btn-active' : ''}`}
-                        aria-expanded={showFilters}
-                        aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
-                    >
-                        <Filter size={18} aria-hidden="true" />
-                        Filtros
-                    </button>
-                </div>
+                    
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+                            aria-expanded={showFilters}
+                            aria-label={showFilters ? "Esconder filtros" : "Mostrar filtros"}
+                        >
+                            <Filter size={18} aria-hidden="true" />
+                            Filtros
+                        </button>
 
+                        <FilterModal 
+                            isOpen={showFilters} 
+                            onClose={() => setShowFilters(false)}
+                            onClear={() => { setFilters({ ano: '', curso: '', classe: '', sala: '', turno: '', status: '' }); setCurrentPage(1); }}
+                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
+                            title="Filtrar Turmas"
+                        >
+                            <FilterSection 
+                                label="Ano Lectivo"
+                                value={filters.ano}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'ano', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Anos', value: '' },
+                                    ...anosDisponiveis.map(ano => ({ label: ano.nome, value: ano.nome }))
+                                ]}
+                            />
 
-                {/* Dynamic Filters */}
-                {showFilters && (
-                    <div className="filters-expanded-pane">
-                        <div className="filters-grid-turmas">
-                            <div>
-                                <label htmlFor="filtro-ano-tur" className="filter-label-turma">Ano Lectivo</label>
-                                <select id="filtro-ano-tur" name="ano" value={filters.ano} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    {anosDisponiveis.map(ano => (
-                                        <option key={ano.id_ano || ano.id} value={ano.nome}>{ano.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-classe-tur" className="filter-label-turma">Classe</label>
-                                <select id="filtro-classe-tur" name="classe" value={filters.classe} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todas</option>
-                                    {classesDisponiveis.map(c => (
-                                        <option key={c.id_classe} value={c.nome_classe}>{c.nome_classe}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-curso-tur" className="filter-label-turma">Curso</label>
-                                <select id="filtro-curso-tur" name="curso" value={filters.curso} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    {cursosDisponiveis.map(c => (
-                                        <option key={c.id_curso} value={c.nome_curso}>{c.nome_curso}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-sala-tur" className="filter-label-turma">Sala</label>
-                                <select id="filtro-sala-tur" name="sala" value={filters.sala} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todas</option>
-                                    {salas.map(s => (
-                                        <option key={s.id_sala} value={`${s.numero_sala}`}>Sala {s.numero_sala}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-turno-tur" className="filter-label-turma">Turno</label>
-                                <select id="filtro-turno-tur" name="turno" value={filters.turno} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    {periodosDisponiveis.map(p => (
-                                        <option key={p.id_periodo} value={p.periodo}>{p.periodo}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="filtro-status-tur" className="filter-label-turma">Estado</label>
-                                <select id="filtro-status-tur" name="status" value={filters.status} onChange={(e) => { handleFilterChange(e); setCurrentPage(1); }} className="filter-select-turma">
-                                    <option value="">Todos</option>
-                                    <option value="Ativa">Ativa</option>
-                                    <option value="Concluida">Concluída</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="clear-filters-box">
-                            <button
-                                onClick={() => { setFilters({ ano: '', curso: '', classe: '', sala: '', turno: '', status: '' }); setCurrentPage(1); }}
-                                className="btn-clear-filters"
-                            >
-                                Limpar Filtros
-                            </button>
-                        </div>
+                            <FilterSection 
+                                label="Classe"
+                                value={filters.classe}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'classe', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Classes', value: '' },
+                                    ...classesDisponiveis.map(c => ({ label: c.nome_classe, value: c.nome_classe }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Curso"
+                                value={filters.curso}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'curso', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Cursos', value: '' },
+                                    ...cursosDisponiveis.map(c => ({ label: c.nome_curso, value: c.nome_curso }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Sala"
+                                value={filters.sala}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'sala', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todas as Salas', value: '' },
+                                    ...salas.map(s => ({ label: `Sala ${s.numero_sala}`, value: `${s.numero_sala}` }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Turno"
+                                value={filters.turno}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'turno', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos os Turnos', value: '' },
+                                    ...periodosDisponiveis.map(p => ({ label: p.periodo, value: p.periodo }))
+                                ]}
+                            />
+
+                            <FilterSection 
+                                label="Estado"
+                                value={filters.status}
+                                onChange={(val) => { handleFilterChange({ target: { name: 'status', value: val } }); setCurrentPage(1); }}
+                                options={[
+                                    { label: 'Todos', value: '' },
+                                    { label: 'Ativa', value: 'Ativa' },
+                                    { label: 'Concluída', value: 'Concluida' }
+                                ]}
+                            />
+                        </FilterModal>
                     </div>
-                )}
+                </div>
 
 
                 {/* Turmas Table */}
@@ -423,7 +468,7 @@ const Turmas = () => {
                                     <th>Classe</th>
                                     <th>Sala</th>
                                     <th>Coordenador</th>
-                                    <th>Ano</th>
+                                    <th>Ano Lectivo</th>
                                     <th>Turno</th>
                                     <th>Alunos (Capacidade)</th>
                                     <th>Estado</th>
@@ -433,13 +478,13 @@ const Turmas = () => {
                             <tbody>
                                 {error ? (
                                     <tr>
-                                        <td colSpan="8" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                        <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
                                             {error}
                                         </td>
                                     </tr>
                                 ) : currentTurmas.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                        <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
                                             Nenhuma turma encontrada.
                                         </td>
                                     </tr>
@@ -619,13 +664,21 @@ const Turmas = () => {
                                 <div>
                                     <label className="form-label-turmas">Ano Lectivo</label>
                                     <select 
-                                        value={formData.ano}
-                                        onChange={e => setFormData({...formData, ano: e.target.value})}
+                                        value={formData.ano_lectivo_id}
+                                        onChange={e => {
+                                            const selectedId = e.target.value;
+                                            const yearObj = anosDisponiveis.find(a => (a.id || a.id_ano) == selectedId);
+                                            setFormData({
+                                                ...formData, 
+                                                ano_lectivo_id: selectedId,
+                                                ano: yearObj ? yearObj.nome : ''
+                                            });
+                                        }}
                                         className="form-input-turmas"
                                     >
                                         <option value="">Seleccionar Ano</option>
                                         {anosDisponiveis.map(ano => (
-                                            <option key={ano.id || ano.id_ano} value={ano.nome}>{ano.nome}</option>
+                                            <option key={ano.id || ano.id_ano} value={ano.id || ano.id_ano}>{ano.nome} {ano.activo ? '(Activo)' : ''}</option>
                                         ))}
                                     </select>
                                 </div>

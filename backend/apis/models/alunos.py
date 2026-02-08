@@ -13,7 +13,8 @@ class Aluno(BaseModel):
     ]
      
     STATUS_CHOICES = [
-        ('Ativo', 'Ativo'),
+        ('Activo', 'Activo'),
+        ('Ativo', 'Ativo (Legacy)'),
         ('Inativo', 'Inativo'),
         ('Transferido', 'Transferido'),
         ('Concluido', 'Concluído'),
@@ -35,7 +36,7 @@ class Aluno(BaseModel):
     numero_casa = models.CharField(max_length=100, null=True, blank=True)
     senha_hash = models.CharField(max_length=255, verbose_name='Senha', null=True, blank=True)
     genero = models.CharField(max_length=1, choices=GENERO_CHOICES, null=True, blank=True)
-    status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativo', verbose_name='Estado')
+    status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Activo', verbose_name='Estado')
     modo_user = models.CharField(max_length=20, default='Inativo', verbose_name='Modo Usuário')
     id_turma = models.ForeignKey(Turma, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Turma')
     img_path = models.ImageField(upload_to="image/alunos/", verbose_name="Foto do Aluno", null=True, blank=True)

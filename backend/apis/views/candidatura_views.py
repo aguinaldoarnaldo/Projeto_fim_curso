@@ -42,7 +42,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """Permite criacao anonima de candidaturas para ações publicas"""
-        if self.action in ['create', 'gerar_rupe', 'consultar_status', 'simular_pagamento']:
+        if self.action in ['create', 'gerar_rupe', 'consultar_status', 'simular_pagamento', 'download_comprovativo']:
             return [AllowAny()]
         return [IsAuthenticated(), HasAdditionalPermission()]
 
@@ -71,7 +71,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             traceback.print_exc()
             return Response({'erro_interno': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
     def download_comprovativo(self, request, pk=None):
         """Disponibiliza download do comprovativo de Inscrição"""
         from django.http import HttpResponse
@@ -90,7 +90,14 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             'site_url': request.build_absolute_uri('/')[:-1]
         }
         
-        pdf = PDFService.render_to_pdf('pdf/comprovativo_inscricao.html', context)
+        if not candidato:
+             return Response({'erro': 'Candidato não encontrado'}, status=404)
+
+        try:
+            pdf = PDFService.render_to_pdf('pdf/comprovativo_inscricao.html', context)
+        except Exception as e:
+            print(f"Erro ao renderizar PDF: {e}")
+            return Response({'erro': f'Erro na geração do PDF: {str(e)}'}, status=500)
         
         if pdf:
             response = HttpResponse(pdf, content_type='application/pdf')

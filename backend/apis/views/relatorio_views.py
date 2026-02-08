@@ -130,6 +130,8 @@ class RelatorioViewSet(viewsets.ViewSet):
             else:
                 sala.percentagem = 0
         
+        
+        from django.utils import timezone
         context = {
             'salas': salas_data,
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),

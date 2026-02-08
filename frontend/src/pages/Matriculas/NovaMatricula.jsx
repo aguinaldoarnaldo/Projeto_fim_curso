@@ -8,10 +8,13 @@ import {
     ChevronRight,
     Upload,
     CheckCircle,
-    ShieldAlert
+    ShieldAlert,
+    Filter // Added Filter icon
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
+ // Added FilterModal import
 import { getClasses } from '../../services/classService';
 
 
@@ -27,6 +30,10 @@ const NovaMatricula = () => {
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
+    const [showFilters, setShowFilters] = useState(false);
+    const [turmaFilters, setTurmaFilters] = useState({
+        sala: ''
+    });
     const [classesDisponiveis, setClassesDisponiveis] = useState([]);
     const [anosDisponiveis, setAnosDisponiveis] = useState([]); 
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
@@ -803,7 +810,44 @@ const NovaMatricula = () => {
 
                         {/* Seleção de Turma (Destaque) */}
                         <div style={{ background: '#f0f9ff', padding: '20px', borderRadius: '8px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
-                            <label className="field-label" style={{ color: '#0369a1', fontWeight: 700, marginBottom: '8px', display: 'block' }}>TURMA (Obrigatório)</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label className="field-label" style={{ color: '#0369a1', fontWeight: 700, marginBottom: 0 }}>TURMA (Obrigatório)</label>
+                                <div style={{ position: 'relative' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowFilters(!showFilters)}
+                                        className="btn-filter-turma"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '6px',
+                                            background: 'white', border: '1px solid #bae6fd',
+                                            padding: '4px 12px', borderRadius: '6px', fontSize: '13px',
+                                            color: '#0369a1', cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Filter size={14} />
+                                        {turmaFilters.sala ? `Filtrando por Sala ${turmaFilters.sala}` : 'Filtrar por Sala'}
+                                    </button>
+
+                                    <FilterModal
+                                        isOpen={showFilters}
+                                        onClose={() => setShowFilters(false)}
+                                        onClear={() => setTurmaFilters({ sala: '' })}
+                                        activeFiltersCount={turmaFilters.sala ? 1 : 0}
+                                        title="Filtrar Turmas"
+                                    >
+                                        <FilterSection 
+                                            label="Sala"
+                                            value={turmaFilters.sala}
+                                            onChange={(val) => setTurmaFilters({ ...turmaFilters, sala: val })}
+                                            options={[
+                                                { label: 'Todas as Salas', value: '' },
+                                                ...[...new Set(turmasDisponiveis.map(t => t.sala_numero))].filter(Boolean).map(sala => ({ label: `Sala ${sala}`, value: sala }))
+                                            ]}
+                                        />
+                                    </FilterModal>
+                                </div>
+                            </div>
+
                             <select 
                                 name="turma_id" 
                                 value={formData.turma_id} 
@@ -812,11 +856,13 @@ const NovaMatricula = () => {
                                 style={{ borderColor: '#0ea5e9', borderWidth: '2px', fontSize: '15px', padding: '10px' }}
                             >
                                 <option value="">-- Selecione uma Turma --</option>
-                                {turmasDisponiveis.map(t => (
-                                    <option key={t.id_turma} value={t.id_turma}>
-                                        {t.codigo_turma} - {t.curso_nome} ({t.sala_numero ? `Sala ${t.sala_numero}` : 'Sem Sala'}) - {t.periodo_nome}
-                                    </option>
-                                ))}
+                                {turmasDisponiveis
+                                    .filter(t => !turmaFilters.sala || String(t.sala_numero) === String(turmaFilters.sala))
+                                    .map(t => (
+                                        <option key={t.id_turma} value={t.id_turma}>
+                                            {t.codigo_turma} - {t.curso_nome} ({t.sala_numero ? `Sala ${t.sala_numero}` : 'Sem Sala'}) - {t.periodo_nome}
+                                        </option>
+                                    ))}
                             </select>
                             {turmaSelect && (() => {
                                 const cap = turmaSelect.sala_capacidade || 40;
