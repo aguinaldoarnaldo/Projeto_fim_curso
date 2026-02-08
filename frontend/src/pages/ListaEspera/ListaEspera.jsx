@@ -1,30 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './ListaEspera.css';
 import { 
-    Search, Plus, Bell, RefreshCw, X, ArrowUpRight, Filter 
+    Search, Plus, Bell, RefreshCw, X, ArrowUpRight, Filter, BookOpen, Activity, Calendar
 } from 'lucide-react';
-import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
-import { useDataCache } from '../../hooks/useDataCache'; // Import hook
+import { useDataCache } from '../../hooks/useDataCache'; 
 import api from '../../services/api';
 
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
+import FilterModal from '../../components/Common/FilterModal';
 
 const ListaEspera = () => {
     const { hasPermission } = usePermission();
-    // UI Local State (NOT cached)
+    // UI Local State
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [filters, setFilters] = useState({
-        curso: '',
-        status: ''
-    });
     const [showModal, setShowModal] = useState(false);
     const [newEntry, setNewEntry] = useState({ id_candidato: '', prioridade: 0, observacao: '' });
+    const filterButtonRef = useRef(null);
 
-    // State for list data moved to Cache Hook
-    // const [lista, setLista] = useState([]); // REMOVED
-    // const [loading, setLoading] = useState(false); // REMOVED
+    const [filters, setFilters] = useState({
+        curso: '',
+        status: '',
+        ano: '' // If supported by backend or derived
+    });
+
+    const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
+
+    // Get courses for filter
+    useEffect(() => {
+        api.get('cursos/').then(res => {
+            const data = res.data.results || res.data || [];
+            setCursosDisponiveis(data);
+        }).catch(err => console.error(err));
+    }, []);
+
 
     // Data Fetcher
     const fetchListaData = async () => {
@@ -46,7 +56,7 @@ const ListaEspera = () => {
         try {
             await api.post(`lista-espera/${id}/chamar_candidato/`);
             alert("Candidato chamado com sucesso!");
-            refresh(); // Refresh list immediately
+            refresh(); 
         } catch (error) {
             console.error(error);
             alert("Erro ao chamar candidato.");
@@ -59,7 +69,6 @@ const ListaEspera = () => {
             alert("Candidato adicionado!");
             setShowModal(false);
             setNewEntry({ id_candidato: '', prioridade: 0, observacao: '' });
-            setNewEntry({ id_candidato: '', prioridade: 0, observacao: '' });
             refresh();
         } catch(error) {
             const msg = error.response?.data?.erro || "Erro ao adicionar.";
@@ -67,17 +76,48 @@ const ListaEspera = () => {
         }
     };
 
-    const filtered = lista.filter(item => {
-        const matchesSearch = 
-            (item.candidato_nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.candidato_numero?.includes(searchTerm));
-        
-        const matchesFilters = 
-            (filters.curso === '' || item.curso1 === filters.curso) &&
-            (filters.status === '' || item.status === filters.status);
+    const handleFilterChange = (key, value) => {
+        setFilters({ ...filters, [key]: value });
+    };
 
-        return matchesSearch && matchesFilters;
-    });
+    const resetFilters = () => {
+        setFilters({ curso: '', status: '', ano: '' });
+        setSearchTerm('');
+    };
+
+    const filtered = useMemo(() => {
+        return lista.filter(item => {
+            const matchesSearch = 
+                (item.candidato_nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (item.candidato_numero?.includes(searchTerm));
+            
+            const matchesCurso = filters.curso === '' || (item.curso1 === filters.curso);
+            const matchesStatus = filters.status === '' || (item.status === filters.status);
+            // item.ano_candidatura or similar if available
+            
+            return matchesSearch && matchesCurso && matchesStatus;
+        });
+    }, [lista, searchTerm, filters]);
+
+
+    const filterConfigs = useMemo(() => [
+        {
+            key: 'status',
+            label: 'Estado',
+            icon: Activity,
+            options: [
+                { value: 'Aguardando', label: 'Aguardando' },
+                { value: 'Chamado', label: 'Chamado' },
+                // Add others if known
+            ]
+        },
+        {
+            key: 'curso',
+            label: 'Curso',
+            icon: BookOpen,
+            options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso }))
+        }
+    ], [cursosDisponiveis]);
 
     return (
         <div className="page-container lista-espera-page">
@@ -112,44 +152,25 @@ const ListaEspera = () => {
                             onChange={e => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div style={{ position: 'relative' }}>
-                        <button 
-                            onClick={() => setShowFilters(!showFilters)} 
-                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
-                        >
-                            <Filter size={18} />
-                            Filtros
-                        </button>
-
-                        <FilterModal
-                            isOpen={showFilters}
-                            onClose={() => setShowFilters(false)}
-                            onClear={() => setFilters({ curso: '', status: '' })}
-                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
-                            title="Filtrar Lista de Espera"
-                        >
-                            <FilterSection 
-                                label="Curso"
-                                value={filters.curso}
-                                onChange={(val) => setFilters({...filters, curso: val})}
-                                options={[
-                                    { label: 'Todos os Cursos', value: '' },
-                                    ...[...new Set(lista.map(item => item.curso1))].filter(Boolean).map(curso => ({ label: curso, value: curso }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Status"
-                                value={filters.status}
-                                onChange={(val) => setFilters({...filters, status: val})}
-                                options={[
-                                    { label: 'Todos os Estados', value: '' },
-                                    ...[...new Set(lista.map(item => item.status))].filter(Boolean).map(status => ({ label: status, value: status }))
-                                ]}
-                            />
-                        </FilterModal>
-                    </div>
+                    <button
+                        ref={filterButtonRef}
+                        onClick={() => setShowFilters(true)}
+                        className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
+                    >
+                        <Filter size={18} />
+                        Filtros
+                    </button>
                 </div>
+
+                <FilterModal 
+                    triggerRef={filterButtonRef}
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    filterConfigs={filterConfigs}
+                    activeFilters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={resetFilters}
+                />
 
                 <div className="table-wrapper">
                     <table className="data-table">
@@ -168,7 +189,7 @@ const ListaEspera = () => {
                             {loading ? (
                                 <tr><td colSpan="7" style={{textAlign:'center', padding:'30px'}}>Carregando...</td></tr>
                             ) : filtered.length === 0 ? (
-                                <tr><td colSpan="7" style={{textAlign:'center', padding:'30px', color:'#94a3b8'}}>Nenhum candidato na lista de espera.</td></tr>
+                                <tr><td colSpan="7" style={{textAlign:'center', padding:'30px', color:'#94a3b8'}}>Nenhum candidato encontrado.</td></tr>
                             ) : filtered.map(item => (
                                 <tr key={item.id}>
                                     <td>

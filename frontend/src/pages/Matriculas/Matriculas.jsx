@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './Matriculas.css';
 import './MatriculasTableResponsive.css';
 
@@ -23,6 +23,8 @@ import {
     ArrowUp,
     ArrowDown,
     ChevronRight,
+    MapPin, // Added for Sala
+    Users // Added for Turma
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -43,6 +45,7 @@ const Matriculas = () => {
     const [showPermutaModal, setShowPermutaModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingMatriculaId, setEditingMatriculaId] = useState(null);
+    const filterButtonRef = useRef(null);
     const [modalFormData, setModalFormData] = useState({
         status: '',
         id_sala: '',
@@ -97,7 +100,7 @@ const Matriculas = () => {
     }, [activeMenuId]);
 
 
-    // Mock filter states
+    // Filter states
     const [filters, setFilters] = useState({
         ano: '',
         sala: '',
@@ -152,7 +155,6 @@ const Matriculas = () => {
     };
 
     // 2. Use Data Cache Hook
-    // 2. Use Data Cache Hook
     const { 
         data: cachedMatriculas, 
         loading: isLoading, 
@@ -205,8 +207,14 @@ const Matriculas = () => {
         return () => clearInterval(interval);
     }, [refresh]);
 
-    const handleFilterChange = (e) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
+    const handleFilterChange = (key, value) => {
+        setFilters({ ...filters, [key]: value });
+        setCurrentPage(1);
+    };
+
+    const resetFilters = () => {
+        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
+        setCurrentPage(1);
     };
 
     const handleEdit = (m) => {
@@ -308,13 +316,6 @@ const Matriculas = () => {
         return sortableItems;
     }, [matriculas, searchTerm, filters, sortConfig]);
 
-    const clearFilters = () => {
-        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
-        setSearchTerm('');
-        setCurrentPage(1);
-        setShowFilters(false);
-    };
-
     const getStatusBadge = (status) => {
         switch (status) {
             case 'Ativa': return <span className="status-badge status-confirmed">Ativa</span>;
@@ -330,6 +331,40 @@ const Matriculas = () => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredMatriculas.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Filter Configurations
+    const filterConfigs = useMemo(() => [
+        { 
+            key: 'ano', 
+            label: 'Ano Lectivo', 
+            icon: Calendar,
+            options: anosDisponiveis.map(a => ({ value: a.nome, label: a.nome }))
+        },
+        { 
+            key: 'classe', 
+            label: 'Classe', 
+            icon: BookOpen,
+            options: classesDisponiveis.map(c => ({ value: c.nome_classe, label: c.nome_classe }))
+        },
+        { 
+            key: 'curso', 
+            label: 'Curso', 
+            icon: BookOpen,
+            options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso }))
+        },
+        { 
+            key: 'sala', 
+            label: 'Sala', 
+            icon: MapPin,
+            options: salasDisponiveis.map(s => ({ value: s.numero_sala || s.nome, label: s.numero_sala || s.nome }))
+        },
+        { 
+            key: 'turma', 
+            label: 'Turma', 
+            icon: Users,
+            options: turmasDisponiveis.map(t => ({ value: t.codigo_turma || t.nome, label: t.codigo_turma || t.nome }))
+        }
+    ], [anosDisponiveis, classesDisponiveis, cursosDisponiveis, salasDisponiveis, turmasDisponiveis]);
 
     return (
         <div className="page-container matriculas-page">
@@ -375,76 +410,28 @@ const Matriculas = () => {
                             aria-label="Pesquisar matrículas por aluno ou número"
                         />
                     </div>
-                    <div style={{ position: 'relative' }}>
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
-                            aria-expanded={showFilters}
-                            aria-label={showFilters ? "Esconder filtros avançados" : "Mostrar filtros avançados"}
-                        >
-                            <Filter size={18} aria-hidden="true" />
-                            Filtros
-                        </button>
-
-                        <FilterModal 
-                            isOpen={showFilters} 
-                            onClose={() => setShowFilters(false)}
-                            onClear={clearFilters}
-                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
-                            title="Filtrar Matrículas"
-                        >
-                            <FilterSection 
-                                label="Ano Lectivo"
-                                value={filters.ano}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'ano', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todos os Anos', value: '' },
-                                    ...anosDisponiveis.map(ano => ({ label: ano.nome, value: ano.nome }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Classe"
-                                value={filters.classe}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'classe', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todas as Classes', value: '' },
-                                    ...classesDisponiveis.map(classe => ({ label: classe.nome_classe, value: classe.nome_classe }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Curso"
-                                value={filters.curso}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'curso', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todos os Cursos', value: '' },
-                                    ...cursosDisponiveis.map(curso => ({ label: curso.nome_curso, value: curso.nome_curso }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Sala"
-                                value={filters.sala}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'sala', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todas as Salas', value: '' },
-                                    ...salasDisponiveis.map(sala => ({ label: `Sala ${sala.numero_sala || sala.nome}`, value: sala.numero_sala || sala.nome }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Turma"
-                                value={filters.turma}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'turma', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todas as Turmas', value: '' },
-                                    ...turmasDisponiveis.map(turma => ({ label: turma.codigo_turma || turma.nome, value: turma.codigo_turma || turma.nome }))
-                                ]}
-                            />
-                        </FilterModal>
-                    </div>
+                    <button
+                        ref={filterButtonRef}
+                        onClick={() => setShowFilters(true)}
+                        className="btn-filtros-avancados"
+                        aria-label="Abrir filtros avançados"
+                        style={{ background: showFilters ? 'var(--primary-color)' : 'white', color: showFilters ? 'white' : '#374151' }}
+                    >
+                        <Filter size={18} aria-hidden="true" />
+                        Filtros Avançados
+                    </button>
                 </div>
+
+                {/* Filter Modal */}
+                <FilterModal 
+                    triggerRef={filterButtonRef}
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    filterConfigs={filterConfigs}
+                    activeFilters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={resetFilters}
+                />
 
                 {/* Detailed Table */}
                 <div className="table-wrapper">
@@ -836,6 +823,7 @@ const Matriculas = () => {
                     </div>
                 </div>
             )}
+<<<<<<< HEAD
 
             {/* PERMUTA MODAL */}
             <PermutaModal 

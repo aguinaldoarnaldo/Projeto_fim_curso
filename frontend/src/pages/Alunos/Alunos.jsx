@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Alunos.css';
 import './AlunosTableResponsive.css';
@@ -29,7 +29,9 @@ import {
     AlertCircle,
     UserX,
     UserCheck,
-    RefreshCw
+    RefreshCw,
+    Users,
+    Activity
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
@@ -52,6 +54,7 @@ const Alunos = () => {
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [menuStudent, setMenuStudent] = useState(null);
+    const filterButtonRef = useRef(null);
     const [formData, setFormData] = useState({
         nome: '',
         bi: '',
@@ -154,12 +157,6 @@ const Alunos = () => {
         fetchFilterOptions();
     }, []);
 
-    // State for students data moved to Cache Hook
-    // const [students, setStudents] = useState([]); // Removed
-    // const [loading, setLoading] = useState(true); // Removed
-    // const [error, setError] = useState(null);     // Removed
-
-    // Data Fetcher (Encapsulated Pagination Logic)
     // Data Fetcher (Encapsulated Pagination Logic)
     const fetchStudentsData = async () => {
         let allStudents = [];
@@ -236,8 +233,14 @@ const Alunos = () => {
     }, [refresh]);
 
 
-    const handleFilterChange = (e) => {
-        setFilters({ ...filters, [e.target.name]: e.target.value });
+    const handleFilterChange = (key, value) => {
+        setFilters({ ...filters, [key]: value });
+        setCurrentPage(1);
+    };
+
+    const resetFilters = () => {
+        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
+        setCurrentPage(1);
     };
 
     const handleUpdateStatus = async (studentId, newStatus) => {
@@ -394,6 +397,40 @@ const Alunos = () => {
         }
     };
 
+    // Filter Configurations
+    const filterConfigs = useMemo(() => [
+        { 
+            key: 'ano', 
+            label: 'Ano Lectivo', 
+            icon: Calendar,
+            options: anosDisponiveis.map(a => ({ value: a.nome, label: a.nome }))
+        },
+        { 
+            key: 'classe', 
+            label: 'Classe', 
+            icon: BookOpen,
+            options: classesDisponiveis.map(c => ({ value: c.nome_classe, label: c.nome_classe }))
+        },
+        { 
+            key: 'curso', 
+            label: 'Curso', 
+            icon: BookOpen,
+            options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso }))
+        },
+        { 
+            key: 'sala', 
+            label: 'Sala', 
+            icon: MapPin,
+            options: salasDisponiveis.map(s => ({ value: `Sala ${s.numero_sala}`, label: `Sala ${s.numero_sala}` }))
+        },
+        { 
+            key: 'turma', 
+            label: 'Turma', 
+            icon: Users,
+            options: turmasDisponiveis.map(t => ({ value: t.codigo_turma, label: t.codigo_turma }))
+        }
+    ], [anosDisponiveis, classesDisponiveis, cursosDisponiveis, salasDisponiveis, turmasDisponiveis]);
+
     return (
         <div className="page-container alunos-page">
             <header className="page-header">
@@ -430,75 +467,28 @@ const Alunos = () => {
                             aria-label="Pesquisar alunos por nome ou ID"
                         />
                     </div>
-                    <div style={{ position: 'relative' }}>
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
-                        >
-                            <Filter size={18} aria-hidden="true" />
-                            Filtros
-                        </button>
-
-                        <FilterModal 
-                            isOpen={showFilters} 
-                            onClose={() => setShowFilters(false)}
-                            onClear={() => { setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' }); setCurrentPage(1); }}
-                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
-                            title="Filtrar Alunos"
-                        >
-                            <FilterSection 
-                                label="Ano Lectivo"
-                                value={filters.ano}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'ano', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todos os Anos', value: '' },
-                                    ...anosDisponiveis.map(ano => ({ label: ano.nome, value: ano.nome }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Classe"
-                                value={filters.classe}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'classe', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todas as Classes', value: '' },
-                                    ...classesDisponiveis.map(classe => ({ label: classe.nome_classe, value: classe.nome_classe }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Curso"
-                                value={filters.curso}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'curso', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todos os Cursos', value: '' },
-                                    ...cursosDisponiveis.map(curso => ({ label: curso.nome_curso, value: curso.nome_curso }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Sala"
-                                value={filters.sala}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'sala', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todas as Salas', value: '' },
-                                    ...salasDisponiveis.map(sala => ({ label: `Sala ${sala.numero_sala}`, value: `Sala ${sala.numero_sala}` }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Turma"
-                                value={filters.turma}
-                                onChange={(val) => { handleFilterChange({ target: { name: 'turma', value: val } }); setCurrentPage(1); }}
-                                options={[
-                                    { label: 'Todas as Turmas', value: '' },
-                                    ...turmasDisponiveis.map(turma => ({ label: turma.codigo_turma, value: turma.codigo_turma }))
-                                ]}
-                            />
-                        </FilterModal>
-                    </div>
+                    <button
+                        ref={filterButtonRef}
+                        onClick={() => setShowFilters(true)}
+                        className="btn-alternar-filtros"
+                        aria-expanded={showFilters}
+                        aria-label="Mostrar filtros"
+                    >
+                        <Filter size={18} aria-hidden="true" />
+                        Filtros
+                    </button>
                 </div>
 
+                {/* Filter Modal */}
+                <FilterModal 
+                    triggerRef={filterButtonRef}
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    filterConfigs={filterConfigs}
+                    activeFilters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={resetFilters}
+                />
 
                 {/* Students Table */}
                 {loading ? (
@@ -789,281 +779,141 @@ const Alunos = () => {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* 2.5 Histórico Escolar (Se Transferido) */}
-                                {selectedStudent.detalhes.historico && selectedStudent.detalhes.historico.length > 0 && (
-                                    <div className="info-section">
-                                        <h3 className="section-title" style={{ color: '#b45309' }}>
-                                            <ClipboardList size={20} color="#b45309" /> Histórico Escolar (Anterior)
-                                        </h3>
-                                        <div className="table-wrapper" style={{ marginTop: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: 'none' }}>
-                                            <table className="data-table" style={{ fontSize: '13px' }}>
-                                                <thead>
-                                                    <tr>
-                                                        <th style={{ background: '#f8fafc', padding: '8px 12px' }}>Escola</th>
-                                                        <th style={{ background: '#f8fafc', padding: '8px 12px' }}>Ano</th>
-                                                        <th style={{ background: '#f8fafc', padding: '8px 12px' }}>Classe</th>
-                                                        <th style={{ background: '#f8fafc', padding: '8px 12px' }}>Média</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {selectedStudent.detalhes.historico.map((h, idx) => (
-                                                        <tr key={idx}>
-                                                            <td style={{ padding: '8px 12px' }}>{h.escola_origem || h.escola}</td>
-                                                            <td style={{ padding: '8px 12px' }}>{h.ano_lectivo || h.ano}</td>
-                                                            <td style={{ padding: '8px 12px' }}>{h.classe}</td>
-                                                            <td style={{ padding: '8px 12px', fontWeight: 'bold' }}>{h.media_final || h.media}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* 3. Encarregado & Contactos */}
-                                <div className="info-section">
-                                    <h3 className="section-title" style={{ color: '#b45309' }}>
-                                        <User size={20} color="#b45309" /> Encarregado & Contactos
-                                    </h3>
-                                    <div className="info-grid-2">
-                                        <div style={{ gridColumn: 'span 2' }}>
-                                             <p className="info-label">Encarregado Principal</p>
-                                             <p className="info-value" style={{fontSize: '16px'}}>{selectedStudent.detalhes.encarregado}</p>
-                                        </div>
-                                        
-                                        <div style={{display:'flex', alignItems:'center', gap: '8px'}}>
-                                            <Phone size={18} color="#64748b"/>
-                                            <div>
-                                                <p className="info-label">Telefone</p>
-                                                <p className="info-value">{selectedStudent.detalhes.telefone}</p>
-                                            </div>
-                                        </div>
-
-                                        <div style={{display:'flex', alignItems:'center', gap: '8px'}}>
-                                            <Mail size={18} color="#64748b"/>
-                                            <div>
-                                                <p className="info-label">Email</p>
-                                                <p className="info-value">{selectedStudent.detalhes.email || '-'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 4. Observações */}
-                                {selectedStudent.detalhes.obs && (
-                                    <div className="info-section">
-                                        <h3 className="section-title" style={{ color: '#b45309' }}>
-                                            <ClipboardList size={20} color="#b45309" /> Observações
-                                        </h3>
-                                        <div className="observations-box">
-                                            {selectedStudent.detalhes.obs}
-                                        </div>
-                                    </div>
-                                )}
+                                <div style={{ height: '50px' }}></div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-
-            {/* Aluno Form Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="form-modal-card" onClick={(e) => e.stopPropagation()}>
-                        <div className="form-modal-header">
-                            <div>
-                                <h2>{modalMode === 'add' ? 'Novo Registro de Aluno' : 'Editar Dados do Aluno'}</h2>
-                                <p>{modalMode === 'add' ? 'Preencha os dados básicos para iniciar a matrícula.' : 'Atualize as informações do registro do aluno.'}</p>
-                            </div>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="btn-close-form">
-                                <X size={24} color="#64748b" />
+            {/* Context Menu Dropdown */}
+            {activeMenuId && menuStudent && (
+                <>
+                    <div 
+                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} 
+                        onClick={() => { setActiveMenuId(null); setMenuStudent(null); }}
+                    />
+                    <div 
+                        className="dropdown-menu-actions animate-fade-in"
+                        style={{ 
+                            position: 'fixed', 
+                            top: menuPosition.top, 
+                            left: menuPosition.left, 
+                            zIndex: 100,
+                            background: 'white',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                            border: '1px solid #e2e8f0',
+                            minWidth: '180px',
+                            overflow: 'visible', /* Allow submenu to pop out */
+                            padding: '4px'
+                        }}
+                    >
+                        {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
+                            <button 
+                                onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); }}
+                                style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '8px', 
+                                    padding: '10px 12px', width: '100%', border: 'none', 
+                                    background: 'transparent', textAlign: 'left', cursor: 'pointer', 
+                                    color: '#334155', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <Edit size={16} /> Editar Aluno
                             </button>
-                        </div>
-
-                        <form className="form-container" onSubmit={handleSave}>
-                            <div className="form-grid">
-                                <div className="form-group form-group-full">
-                                    <label>Nome Completo</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Ex: João Manuel dos Santos" 
-                                        className="form-input" 
-                                        value={formData.nome}
-                                        onChange={e => setFormData({...formData, nome: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Nº Bilhete de Identidade</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="000XXXXXXXLA0XX" 
-                                        className="form-input" 
-                                        value={formData.bi}
-                                        onChange={e => setFormData({...formData, bi: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>NIF</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="XXXXXXX" 
-                                        className="form-input" 
-                                        value={formData.nif}
-                                        onChange={e => setFormData({...formData, nif: e.target.value})}
-                                    />
-                                </div>
-                                
-                                {modalMode === 'add' ? (
-                                    <>
-                                        <div className="form-group">
-                                            <label>Curso</label>
-                                            <select 
-                                                className="form-select"
-                                                value={formData.id_curso}
-                                                onChange={e => setFormData({...formData, id_curso: e.target.value})}
-                                            >
-                                                <option value="">Seleccionar Curso</option>
-                                                {cursosDisponiveis.map(c => <option key={c.id_curso} value={c.id_curso}>{c.nome_curso}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Classe</label>
-                                            <select 
-                                                className="form-select"
-                                                value={formData.id_classe}
-                                                onChange={e => setFormData({...formData, id_classe: e.target.value})}
-                                            >
-                                                <option value="">Seleccionar Classe</option>
-                                                {classesDisponiveis.map(c => <option key={c.id_classe} value={c.id_classe}>{c.nome_classe}</option>)}
-                                            </select>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="form-group">
-                                        <label>Estado</label>
-                                        <select 
-                                            className="form-select"
-                                            value={formData.status}
-                                            onChange={e => setFormData({...formData, status: e.target.value})}
-                                        >
-                                            <option value="Activo">Activo</option>
-                                            <option value="Suspenso">Suspenso</option>
-                                            <option value="Concluído">Concluído</option>
-                                            <option value="Inativo">Inativo</option>
-                                        </select>
+                        )}
+                        
+                        {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
+                            <div 
+                                className="submenu-trigger"
+                                style={{ position: 'relative' }}
+                                onMouseEnter={(e) => {
+                                    const submenu = e.currentTarget.querySelector('.status-submenu');
+                                    if(submenu) submenu.style.display = 'block';
+                                    e.currentTarget.style.background = '#f8fafc';
+                                }}
+                                onMouseLeave={(e) => {
+                                    const submenu = e.currentTarget.querySelector('.status-submenu');
+                                    if(submenu) submenu.style.display = 'none';
+                                    e.currentTarget.style.background = 'transparent';
+                                }}
+                            >
+                                <button 
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between',
+                                        padding: '10px 12px', width: '100%', border: 'none', 
+                                        background: 'transparent', textAlign: 'left', cursor: 'pointer', 
+                                        color: '#334155', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500
+                                    }}
+                                >
+                                    <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                        <Activity size={16} /> Alterar Estado
                                     </div>
-                                )}
-                            </div>
-
-                            <div className="form-actions">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="btn-cancel">Cancelar</button>
-                                <button
-                                    type="submit"
-                                    className="btn-confirm">
-                                    {modalMode === 'add' ? 'Confirmar Registro' : 'Salvar Alterações'} <ChevronRight size={20} />
+                                    <ChevronRight size={14} />
                                 </button>
+
+                                {/* Submenu */}
+                                <div 
+                                    className="status-submenu"
+                                    style={{
+                                        display: 'none',
+                                        position: 'absolute',
+                                        top: 0,
+                                        right: '100%',
+                                        marginRight: '4px',
+                                        background: 'white',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                        border: '1px solid #e2e8f0',
+                                        minWidth: '150px',
+                                        padding: '4px',
+                                        zIndex: 101
+                                    }}
+                                >
+                                    {['Ativo', 'Inativo', 'Suspenso', 'Transferido', 'Concluido'].map((status) => {
+                                        const style = getStatusStyle(status);
+                                        return (
+                                            <button
+                                                key={status}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation();
+                                                    handleUpdateStatus(menuStudent.id, status); 
+                                                }}
+                                                style={{ 
+                                                    display: 'flex', alignItems: 'center', gap: '8px', 
+                                                    padding: '8px 12px', width: '100%', border: 'none', 
+                                                    background: 'transparent', textAlign: 'left', cursor: 'pointer', 
+                                                    color: style.color,
+                                                    borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600
+                                                }}
+                                                onMouseOver={(e) => { e.currentTarget.style.background = style.bg; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                            >
+                                                 {/* Status Indicator Dot */}
+                                                <div style={{
+                                                    width: '8px', 
+                                                    height: '8px', 
+                                                    borderRadius: '50%', 
+                                                    background: style.color,
+                                                    boxShadow: `0 0 0 2px ${style.border}`
+                                                }}></div>
+                                                
+                                                {status}
+                                                
+                                                {/* Checkmark for active status */}
+                                                {status === menuStudent.status && (
+                                                    <CheckCircle size={14} style={{ marginLeft: 'auto', color: style.color }} />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </form>
+                        )}
                     </div>
-                </div>
-            )}
-
-            {/* Actions Dropdown Portal-like */}
-            {activeMenuId && menuStudent && (
-                <div 
-                    className="dropdown-menu"
-                    style={{
-                        position: 'fixed',
-                        top: `${menuPosition.top}px`,
-                        left: `${menuPosition.left}px`,
-                        margin: 0,
-                        zIndex: 10000,
-                        display: 'block',
-                        visibility: 'visible',
-                        opacity: 1
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
-                        <button className="dropdown-item" onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); setMenuStudent(null); }}>
-                            <Edit size={16} /> Editar Aluno
-                        </button>
-                    )}
-
-                    <div className="submenu-parent">
-                        <button className="dropdown-item">
-                            <RefreshCw size={16} /> Alterar Estado
-                            <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-                        </button>
-                        <div className="submenu">
-                            <button className="dropdown-item success" onClick={() => handleUpdateStatus(menuStudent.id, 'Ativo')}>
-                                <CheckCircle size={14} /> Ativo
-                            </button>
-                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Inativo')}>
-                                <Clock size={14} /> Inativo
-                            </button>
-                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Transferido')}>
-                                <RefreshCw size={14} /> Transferido
-                            </button>
-                            <button className="dropdown-item feature" onClick={() => handleUpdateStatus(menuStudent.id, 'Concluido')}>
-                                <CheckCircle size={14} /> Concluído
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            )}
-            {/* Portal-like Actions Dropdown */}
-            {activeMenuId && menuStudent && (
-                <div 
-                    className="dropdown-menu"
-                    style={{
-                        position: 'fixed',
-                        top: `${menuPosition.top}px`,
-                        left: `${menuPosition.left}px`,
-                        zIndex: 10000,
-                        margin: 0,
-                        display: 'block'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
-                        <button className="dropdown-item" onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); setMenuStudent(null); }}>
-                            <Edit size={16} /> Editar Aluno
-                        </button>
-                    )}
-
-                    <div className="submenu-parent">
-                        <button className="dropdown-item">
-                            <RefreshCw size={16} /> Alterar Estado
-                            <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-                        </button>
-                        <div className="submenu">
-                            <button className="dropdown-item success" onClick={() => handleUpdateStatus(menuStudent.id, 'Ativo')}>
-                                <CheckCircle size={14} /> Ativo
-                            </button>
-                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Inativo')}>
-                                <Clock size={14} /> Inativo
-                            </button>
-                            <button className="dropdown-item warning" onClick={() => handleUpdateStatus(menuStudent.id, 'Transferido')}>
-                                <RefreshCw size={14} /> Transferido
-                            </button>
-                            <button className="dropdown-item feature" onClick={() => handleUpdateStatus(menuStudent.id, 'Concluido')}>
-                                <CheckCircle size={14} /> Concluído
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
+                </>
             )}
         </div>
     );
