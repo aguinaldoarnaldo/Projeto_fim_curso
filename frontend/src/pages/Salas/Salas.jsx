@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
     Search, 
     Plus, 
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
-import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
+import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
@@ -81,8 +81,8 @@ const Salas = () => {
             // Do not set loading=true on polling to avoid flash
             const response = await api.get('salas/');
             const data = response.data.results || response.data;
-            setSalas(data);
-            setCache('salas', data);
+            setSalas(Array.isArray(data) ? data : []);
+            setCache('salas', Array.isArray(data) ? data : []);
             setLoading(false);
         } catch (err) {
             console.error('Erro ao buscar salas:', err);
@@ -181,6 +181,41 @@ const Salas = () => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentSalas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
+    const filterButtonRef = useRef(null);
+
+    // Filter Configs
+    const filterConfigs = useMemo(() => [
+        {
+            key: 'bloco',
+            label: 'Bloco',
+            icon: Grid,
+            options: [
+                ...[...new Set(salas.map(s => s.bloco))].filter(Boolean).map(bloco => ({ label: bloco, value: bloco }))
+            ]
+        },
+        {
+            key: 'tipo',
+            label: 'Tipo de Sala',
+            icon: Layers,
+            options: [
+                { label: 'Sala de Aula', value: 'Sala de Aula' },
+                { label: 'Laboratório', value: 'Laboratório' },
+                { label: 'Auditório', value: 'Auditório' }
+            ]
+        }
+    ], [salas]);
+
+    const handleFilterChange = (key, value) => {
+        setFilters({ ...filters, [key]: value });
+        setCurrentPage(1);
+    };
+
+    const resetFilters = () => {
+        setFilters({ bloco: '', tipo: '' });
+        setSearchTerm('');
+        setCurrentPage(1);
+    };
+
     return (
         <div className="page-container salas-page">
             <header className="page-header">
@@ -198,8 +233,6 @@ const Salas = () => {
                         )}
                     </div>
                 </div>
-
-
             </header>
 
             <div className="table-card" style={{ padding: '0' }} ref={tableRef}>
@@ -216,6 +249,7 @@ const Salas = () => {
                     </div>
                     <div style={{ position: 'relative' }}>
                         <button 
+                            ref={filterButtonRef}
                             onClick={() => setShowFilters(!showFilters)} 
                             className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
                         >
@@ -226,37 +260,12 @@ const Salas = () => {
                         <FilterModal
                             isOpen={showFilters}
                             onClose={() => setShowFilters(false)}
-                            onClear={() => { 
-                                setFilters({ bloco: '', tipo: '' }); 
-                                setSearchTerm('');
-                                setCurrentPage(1);
-                                setShowFilters(false);
-                            }}
-                            activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
-                            title="Filtrar Salas"
-                        >
-                            <FilterSection 
-                                label="Bloco"
-                                value={filters.bloco}
-                                onChange={(val) => setFilters({...filters, bloco: val})}
-                                options={[
-                                    { label: 'Todos os Blocos', value: '' },
-                                    ...[...new Set(salas.map(s => s.bloco))].filter(Boolean).map(bloco => ({ label: bloco, value: bloco }))
-                                ]}
-                            />
-
-                            <FilterSection 
-                                label="Tipo de Sala"
-                                value={filters.tipo}
-                                onChange={(val) => setFilters({...filters, tipo: val})}
-                                options={[
-                                    { label: 'Todos os Tipos', value: '' },
-                                    { label: 'Sala de Aula', value: 'Sala de Aula' },
-                                    { label: 'Laboratório', value: 'Laboratório' },
-                                    { label: 'Auditório', value: 'Auditório' }
-                                ]}
-                            />
-                        </FilterModal>
+                            filterConfigs={filterConfigs}
+                            activeFilters={filters}
+                            onFilterChange={handleFilterChange}
+                            onClearFilters={resetFilters}
+                            triggerRef={filterButtonRef}
+                        />
                     </div>
                 </div>
 

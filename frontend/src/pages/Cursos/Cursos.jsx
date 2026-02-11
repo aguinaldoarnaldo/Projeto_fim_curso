@@ -185,6 +185,31 @@ const Cursos = () => {
         return () => clearInterval(intervalId);
     }, []);
 
+    const filterButtonRef = React.useRef(null);
+
+    const handleFilterChange = (key, value) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const filterConfigs = React.useMemo(() => [
+        {
+            key: 'area',
+            label: 'Área de Formação',
+            options: [...new Set(courses.map(c => c.area))].filter(Boolean).map(area => ({
+                value: area,
+                label: area
+            }))
+        },
+        {
+            key: 'duracao',
+            label: 'Duração',
+            options: [...new Set(courses.map(c => c.duracao))].filter(Boolean).map(dur => ({
+                value: dur,
+                label: dur
+            }))
+        }
+    ], [courses]);
+
     const filteredCourses = (Array.isArray(courses) ? courses : []).filter(course => {
         if (!course) return false;
         const search = searchTerm.toLowerCase();
@@ -234,6 +259,7 @@ const Cursos = () => {
                         />
                     </div>
                     <button 
+                        ref={filterButtonRef}
                         onClick={() => setShowFilters(!showFilters)} 
                         className="btn-alternar-filtros"
                         style={{
@@ -258,36 +284,12 @@ const Cursos = () => {
                 <FilterModal
                     isOpen={showFilters}
                     onClose={() => setShowFilters(false)}
-                    onClear={() => setFilters({ area: '', duracao: '' })}
-                    activeFiltersCount={Object.values(filters).filter(v => v !== '').length}
-                >
-                    <div className="grupo-filtro">
-                        <label>Área de Formação</label>
-                        <select 
-                            value={filters.area} 
-                            onChange={(e) => setFilters({...filters, area: e.target.value})}
-                            className="selecao-filtro"
-                        >
-                            <option value="">Todas as Áreas</option>
-                            {[...new Set(courses.map(c => c.area))].filter(Boolean).map(area => (
-                                <option key={area} value={area}>{area}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="grupo-filtro">
-                        <label>Duração</label>
-                        <select 
-                            value={filters.duracao} 
-                            onChange={(e) => setFilters({...filters, duracao: e.target.value})}
-                            className="selecao-filtro"
-                        >
-                            <option value="">Todas as Durações</option>
-                            {[...new Set(courses.map(c => c.duracao))].filter(Boolean).map(dur => (
-                                <option key={dur} value={dur}>{dur}</option>
-                            ))}
-                        </select>
-                    </div>
-                </FilterModal>
+                    filterConfigs={filterConfigs}
+                    activeFilters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={() => setFilters({ area: '', duracao: '' })}
+                    triggerRef={filterButtonRef}
+                />
 
 
                 {loading ? (

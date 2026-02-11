@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
-import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
+import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';

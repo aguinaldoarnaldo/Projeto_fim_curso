@@ -662,3 +662,147 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .submenu-parent:hover .submenu {
     display: block;
 }
+
+.dropdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99;
+}
+
+/* Dropdown and Submenu Modern Refactoring */
+.dropdown-menu-actions {
+    position: fixed;
+    z-index: 1000; /* High z-index to stay on top */
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border: 1px solid #e2e8f0;
+    min-width: 200px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.dropdown-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: #475569;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-item-btn:hover {
+    background: #f8fafc;
+    color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.submenu-trigger {
+    position: relative;
+    width: 100%;
+}
+
+.trigger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: #475569;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.trigger-btn svg {
+    opacity: 0.7;
+}
+
+.trigger-btn:hover svg, .trigger-btn.active svg {
+    opacity: 1;
+}
+
+.trigger-btn.active,
+.trigger-btn:hover {
+    background: #f0f9ff;
+    color: var(--primary-color);
+}
+
+.status-submenu {
+    position: absolute;
+    top: -8px;
+    right: 100%;
+    margin-right: -2px; /* Slight overlap to ensure mouse doesn't leave */
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    min-width: 190px;
+    padding: 6px;
+    z-index: 1001;
+    animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: right center;
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(10px) scale(0.95); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.status-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    transition: all 0.15s ease;
+    color: #64748b;
+}
+
+.status-option-btn:hover {
+    transform: translateX(2px);
+}
+
+.status-option-btn svg {
+    opacity: 0.8;
+}
+
+.status-active:hover { background: #ecfdf5; color: #059669; }
+.status-active svg { color: #10b981; }
+
+.status-inativo:hover { background: #fef2f2; color: #dc2626; }
+.status-inativo svg { color: #ef4444; }
+
+.status-transferido:hover { background: #fff7ed; color: #ea580c; }
+.status-transferido svg { color: #f97316; }
+
+.status-concluido:hover { background: #eff6ff; color: #2563eb; }
+.status-concluido svg { color: #3b82f6; }

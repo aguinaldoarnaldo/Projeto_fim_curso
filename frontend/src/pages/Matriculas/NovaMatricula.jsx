@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     ArrowLeft,
     Save,
@@ -9,11 +9,12 @@ import {
     Upload,
     CheckCircle,
     ShieldAlert,
-    Filter // Added Filter icon
+    Filter, // Added Filter icon
+    MapPin
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
-import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
+import FilterModal from '../../components/Common/FilterModal';
  // Added FilterModal import
 import { getClasses } from '../../services/classService';
 
@@ -76,6 +77,23 @@ const NovaMatricula = () => {
         doc_certificado: null,
         tipo: 'Novo'
     });
+
+    const filterButtonRef = useRef(null);
+
+    const filterConfigs = useMemo(() => [
+        {
+            key: 'sala',
+            label: 'Sala',
+            icon: MapPin,
+            options: [
+                ...[...new Set(turmasDisponiveis.map(t => t.sala_numero))].filter(Boolean).map(sala => ({ label: `Sala ${sala}`, value: String(sala) }))
+            ]
+        }
+    ], [turmasDisponiveis]);
+
+    const handleFilterChange = (key, value) => {
+        setTurmaFilters({ ...turmaFilters, [key]: value });
+    };
 
     useEffect(() => {
         const loadClassesAndYears = async () => {
@@ -378,7 +396,15 @@ const NovaMatricula = () => {
     };
 
     const renderStep = () => {
-        const isReadOnly = !!((location.state && location.state.candidato) || aluno_id_param);
+        // We allow editing logic:
+        // If type is 'Confirmacao', we generally allow editing personal/academic info, 
+        // but documents might be locked if they already exist.
+        // The original isReadOnly blocked EVERYTHING. We want to unblock everything except specific logic.
+        // So we won't use a global isReadOnly for the inputs.
+        const isConfirming = tipo_param === 'Confirmacao' || (location.state && location.state.tipo === 'Confirmacao');
+        const isStrictlyReadOnly = false; // logic changed: allow editing always
+        const isReadOnly = isStrictlyReadOnly; // Compatibility with existing code
+
 
         switch (step) {
             case 1:
@@ -432,8 +458,8 @@ const NovaMatricula = () => {
                                         name="nome_completo"
                                         value={formData.nome_completo}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="Nome do Aluno"
                                     />
                                 </div>
@@ -445,8 +471,8 @@ const NovaMatricula = () => {
                                         name="data_nascimento"
                                         value={formData.data_nascimento}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                     />
                                 </div>
                                 <div>
@@ -455,8 +481,8 @@ const NovaMatricula = () => {
                                         <input 
                                             type="text" 
                                             value={formData.genero === 'M' ? 'Masculino' : (formData.genero === 'F' ? 'Feminino' : formData.genero)} 
-                                            readOnly 
-                                            className="field-input read-only" 
+                                            readOnly={isStrictlyReadOnly} 
+                                            className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         />
                                     ) : (
                                         <select name="genero" value={formData.genero} onChange={handleInputChange} className="field-select">
@@ -473,8 +499,8 @@ const NovaMatricula = () => {
                                         name="naturalidade"
                                         value={formData.naturalidade || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="Ex: Luanda"
                                     />
                                 </div>
@@ -485,14 +511,14 @@ const NovaMatricula = () => {
                                         name="nacionalidade"
                                         value={formData.nacionalidade || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                     />
                                 </div>
                                 <div>
                                     <label className="field-label">Deficiência?</label>
                                     {isReadOnly ? (
-                                        <input type="text" value={formData.deficiencia} readOnly className="field-input read-only" />
+                                        <input type="text" value={formData.deficiencia} readOnly={isStrictlyReadOnly} className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`} />
                                     ) : (
                                         <select name="deficiencia" value={formData.deficiencia} onChange={handleInputChange} className="field-select">
                                             <option value="Não">Não</option>
@@ -508,8 +534,8 @@ const NovaMatricula = () => {
                                         name="email"
                                         value={formData.email || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="exemplo@email.com"
                                     />
                                 </div>
@@ -520,8 +546,8 @@ const NovaMatricula = () => {
                                         name="telefone"
                                         value={formData.telefone || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="923000000"
                                     />
                                 </div>
@@ -532,8 +558,8 @@ const NovaMatricula = () => {
                                         name="numero_bi"
                                         value={formData.numero_bi}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="000000000LA000"
                                     />
                                 </div>
@@ -548,8 +574,8 @@ const NovaMatricula = () => {
                                         name="provincia"
                                         value={formData.provincia || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="Huíla"
                                     />
                                 </div>
@@ -560,8 +586,8 @@ const NovaMatricula = () => {
                                         name="municipio"
                                         value={formData.municipio || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="Lubango"
                                     />
                                 </div>
@@ -572,8 +598,8 @@ const NovaMatricula = () => {
                                         name="bairro"
                                         value={formData.bairro || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="Bairro..."
                                     />
                                 </div>
@@ -584,8 +610,8 @@ const NovaMatricula = () => {
                                         name="numero_casa"
                                         value={formData.numero_casa || ''}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
-                                        className={`field-input ${isReadOnly ? 'read-only' : ''}`}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="Casa nº..."
                                     />
                                 </div>
@@ -606,7 +632,7 @@ const NovaMatricula = () => {
                                         name="nome_encarregado"
                                         value={formData.nome_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
+                                        readOnly={isStrictlyReadOnly}
                                         className="field-input small-input" 
                                         style={{ height: '38px' }}
                                     />
@@ -618,7 +644,7 @@ const NovaMatricula = () => {
                                         name="numero_bi_encarregado"
                                         value={formData.numero_bi_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
+                                        readOnly={isStrictlyReadOnly}
                                         className="field-input small-input"
                                         style={{ height: '38px' }}
                                     />
@@ -630,7 +656,7 @@ const NovaMatricula = () => {
                                         name="telefone_encarregado"
                                         value={formData.telefone_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
+                                        readOnly={isStrictlyReadOnly}
                                         className="field-input small-input"
                                         style={{ height: '38px' }}
                                     />
@@ -642,7 +668,7 @@ const NovaMatricula = () => {
                                         name="parentesco_encarregado"
                                         value={formData.parentesco_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
+                                        readOnly={isStrictlyReadOnly}
                                         className="field-input small-input"
                                         style={{ height: '38px' }}
                                     />
@@ -654,7 +680,7 @@ const NovaMatricula = () => {
                                         name="profissao_encarregado"
                                         value={formData.profissao_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isReadOnly}
+                                        readOnly={isStrictlyReadOnly}
                                         className="field-input small-input"
                                         style={{ height: '38px' }}
                                     />
@@ -671,7 +697,7 @@ const NovaMatricula = () => {
                     <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
                         <h3 className="form-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span><BookOpen size={22} /> Dados Académicos & Turma</span>
-                            {!isReadOnly && (
+                            {!isStrictlyReadOnly && (
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: 'normal', background: '#f1f5f9', padding: '5px 15px', borderRadius: '20px' }}>
                                     <input 
                                         type="checkbox" 
@@ -746,9 +772,9 @@ const NovaMatricula = () => {
                                     name="tipo" 
                                     value={formData.tipo} 
                                     onChange={handleInputChange} 
-                                    className={`field-select ${isReadOnly ? 'read-only' : ''}`}
+                                    className={`field-select ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                     style={{ fontWeight: '600', color: 'var(--primary-color)' }}
-                                    disabled={isReadOnly}
+                                    disabled={isStrictlyReadOnly}
                                 >
                                     <option value="Novo">Novo Ingresso</option>
                                     <option value="Confirmacao">Confirmação</option>
@@ -815,6 +841,7 @@ const NovaMatricula = () => {
                                 <div style={{ position: 'relative' }}>
                                     <button 
                                         type="button"
+                                        ref={filterButtonRef}
                                         onClick={() => setShowFilters(!showFilters)}
                                         className="btn-filter-turma"
                                         style={{
@@ -831,22 +858,15 @@ const NovaMatricula = () => {
                                     <FilterModal
                                         isOpen={showFilters}
                                         onClose={() => setShowFilters(false)}
-                                        onClear={() => setTurmaFilters({ sala: '' })}
-                                        activeFiltersCount={turmaFilters.sala ? 1 : 0}
-                                        title="Filtrar Turmas"
-                                    >
-                                        <FilterSection 
-                                            label="Sala"
-                                            value={turmaFilters.sala}
-                                            onChange={(val) => setTurmaFilters({ ...turmaFilters, sala: val })}
-                                            options={[
-                                                { label: 'Todas as Salas', value: '' },
-                                                ...[...new Set(turmasDisponiveis.map(t => t.sala_numero))].filter(Boolean).map(sala => ({ label: `Sala ${sala}`, value: sala }))
-                                            ]}
-                                        />
-                                    </FilterModal>
+                                        filterConfigs={filterConfigs}
+                                        activeFilters={turmaFilters}
+                                        onFilterChange={handleFilterChange}
+                                        onClearFilters={() => setTurmaFilters({ sala: '' })}
+                                        triggerRef={filterButtonRef}
+                                    />
                                 </div>
                             </div>
+
 
                             <select 
                                 name="turma_id" 
@@ -1007,16 +1027,27 @@ const NovaMatricula = () => {
                             {/* Documentos */}
                             <div style={{gridColumn:'1 / -1'}}>
                                 <h4 style={{fontSize:'16px', color:'#334155', marginBottom:'5px', borderBottom:'1px solid #e2e8f0', paddingBottom:'8px'}}>Anexo de Documentos</h4>
-                                {formData.aluno_id && (
-                                    <p style={{fontSize:'12px', color:'#64748b', marginBottom:'15px'}}>
-                                        💡 Este aluno já possui registo. Se não anexar novos documentos, o sistema utilizará os arquivos das matrículas anteriores.
-                                    </p>
+                                {isConfirming ? (
+                                    <div style={{padding:'10px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:'8px', color:'#0369a1', fontSize:'13px'}}>
+                                        ℹ️ Modo de Confirmação: Os documentos não podem ser alterados nesta etapa.
+                                    </div>
+                                ) : (
+                                    formData.aluno_id && (
+                                        <p style={{fontSize:'12px', color:'#64748b', marginBottom:'15px'}}>
+                                            💡 Este aluno já possui registo. Se não anexar novos documentos, o sistema utilizará os arquivos das matrículas anteriores.
+                                        </p>
+                                    )
                                 )}
                             </div>
 
                             <div>
                                 <label className="field-label">Cópia do BI {(!formData.doc_bi && !formData.doc_bi_url) && <span style={{color: '#ef4444', fontSize:'11px'}}>(Pendente)</span>}</label>
-                                {formData.doc_bi_url ? (
+                                {isConfirming ? (
+                                    <div className="file-upload-box disabled" style={{background: '#f1f5f9', padding: '15px', borderRadius: '8px', opacity: 0.7}}>
+                                        <span style={{fontSize:'13px', color:'#64748b'}}>Documento Bloqueado para Edição</span>
+                                        {formData.doc_bi_url && <span style={{display:'block', fontSize:'11px', color:'green'}}>Arquivo Existente ✅</span>}
+                                    </div>
+                                ) : formData.doc_bi_url ? (
                                     <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px'}}>
                                         <div style={{background:'#22c55e', borderRadius:'50%', padding:'5px', display:'flex'}}><CheckCircle size={16} color="white"/></div>
                                         <div style={{flex:1}}>
@@ -1035,7 +1066,12 @@ const NovaMatricula = () => {
                             
                             <div>
                                 <label className="field-label">Certificado / Declaração {(!formData.doc_certificado && !formData.doc_certificado_url) && <span style={{color: '#ef4444', fontSize:'11px'}}>(Pendente)</span>}</label>
-                                {formData.doc_certificado_url ? (
+                                {isConfirming ? (
+                                    <div className="file-upload-box disabled" style={{background: '#f1f5f9', padding: '15px', borderRadius: '8px', opacity: 0.7}}>
+                                        <span style={{fontSize:'13px', color:'#64748b'}}>Documento Bloqueado para Edição</span>
+                                        {formData.doc_certificado_url && <span style={{display:'block', fontSize:'11px', color:'green'}}>Arquivo Existente ✅</span>}
+                                    </div>
+                                ) : formData.doc_certificado_url ? (
                                     <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px'}}>
                                         <div style={{background:'#22c55e', borderRadius:'50%', padding:'5px', display:'flex'}}><CheckCircle size={16} color="white"/></div>
                                         <div style={{flex:1}}>

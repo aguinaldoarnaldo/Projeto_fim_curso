@@ -14,7 +14,6 @@ class Aluno(BaseModel):
      
     STATUS_CHOICES = [
         ('Activo', 'Activo'),
-        ('Ativo', 'Ativo (Legacy)'),
         ('Inativo', 'Inativo'),
         ('Transferido', 'Transferido'),
         ('Concluido', 'Concluído'),

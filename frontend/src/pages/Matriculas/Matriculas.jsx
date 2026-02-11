@@ -30,7 +30,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Pagination from '../../components/Common/Pagination';
-import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
+import FilterModal from '../../components/Common/FilterModal';
 import PermutaModal from './PermutaModal';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
@@ -823,7 +823,6 @@ const Matriculas = () => {
                     </div>
                 </div>
             )}
-<<<<<<< HEAD
 
             {/* PERMUTA MODAL */}
             <PermutaModal 
@@ -934,7 +933,8 @@ const Matriculas = () => {
                                 gap: '10px',
                                 color: '#1e293b',
                                 fontSize: '14px',
-                                fontWeight: 500
+                                fontWeight: 500,
+                                marginBottom: '2px'
                             }}
                             onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
@@ -942,6 +942,8 @@ const Matriculas = () => {
                             <Edit size={16} color="#64748b" /> Editar Matrícula
                         </button>
                     )}
+
+
 
                     {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                         <div style={{ padding: '4px 0', borderTop: '1px solid #f1f5f9', marginTop: '4px' }}>

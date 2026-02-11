@@ -31,11 +31,12 @@ import {
     UserCheck,
     RefreshCw,
     Users,
-    Activity
+    Activity,
+    ArrowRightLeft
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
-import FilterModal, { FilterSection } from '../../components/Common/FilterModal';
+import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { useCache } from '../../context/CacheContext';
 import { useDataCache } from '../../hooks/useDataCache';
@@ -52,6 +53,7 @@ const Alunos = () => {
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedStudentId, setSelectedStudentId] = useState(null);
     const [activeMenuId, setActiveMenuId] = useState(null);
+    const [showStatusSubmenu, setShowStatusSubmenu] = useState(false); // Valid state for submenu
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [menuStudent, setMenuStudent] = useState(null);
     const filterButtonRef = useRef(null);
@@ -64,20 +66,38 @@ const Alunos = () => {
         id_sala: '',
         id_periodo: '',
         id_turma: '',
-        status: 'Ativo'
+        status: 'Activo'
     });
     const tableRef = useRef(null);
+    const dropdownRef = useRef(null); // Ref for the dropdown menu
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(24);
 
+    const statusMenuTimeoutRef = useRef(null);
+
+    const handleStatusEnter = () => {
+        if (statusMenuTimeoutRef.current) {
+            clearTimeout(statusMenuTimeoutRef.current);
+        }
+        setShowStatusSubmenu(true);
+    };
+
+    const handleStatusLeave = () => {
+        statusMenuTimeoutRef.current = setTimeout(() => {
+            setShowStatusSubmenu(false);
+        }, 300); // 300ms grace period to allow mouse movement
+    };
+
     // Close dropdown on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
+            // If menu is open AND click is OUTSIDE the dropdown container
             if (activeMenuId && 
-                !event.target.closest('.actions-dropdown-container') && 
-                !event.target.closest('.dropdown-menu')) {
+                dropdownRef.current && 
+                !dropdownRef.current.contains(event.target)) {
+                
                 setActiveMenuId(null);
                 setMenuStudent(null);
             }
@@ -86,17 +106,16 @@ const Alunos = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [activeMenuId]);
 
-    // Close menu on scroll to prevent it from floating away from the dots
+    // Close menu on scroll - DISABLED to prevent accidental closing
+    /*
     useEffect(() => {
         const handleScroll = () => {
-            if (activeMenuId) {
-                setActiveMenuId(null);
-                setMenuStudent(null);
-            }
+             // ... logic removed ...
         };
         window.addEventListener('scroll', handleScroll, true);
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [activeMenuId]);
+    */
 
     // Scroll to top on page change
     useEffect(() => {
@@ -244,20 +263,38 @@ const Alunos = () => {
     };
 
     const handleUpdateStatus = async (studentId, newStatus) => {
-        // Instant local update (Real-time feeling)
+        if (!studentId) {
+            console.error("ID do aluno inválido");
+            return;
+        }
+
+        console.log(`Atualizando status do aluno ${studentId} para ${newStatus}`);
+        
+        // Optimistic update
         updateStudent(studentId, { status: newStatus });
         setActiveMenuId(null);
         setMenuStudent(null);
+        setShowStatusSubmenu(false);
 
         try {
-            // Background API call
-            await api.patch(`alunos/${studentId}/`, { status_aluno: newStatus });
-            // refresh() is NOT called to avoid the loading state/flicker
+            // Call API
+            const response = await api.patch(`alunos/${studentId}/`, { status_aluno: newStatus });
+            
+            if (response.status === 200 || response.status === 204) {
+                 console.log("Status atualizado com sucesso no backend:", response.data);
+                 // Force refresh to ensure frontend matches backend, compensating for any optimistic update issues
+                 await refresh(true); 
+                 // alert("Status atualizado com sucesso!"); // Optional confirmation
+            } else {
+                 throw new Error(`Resposta inesperada: ${response.status}`);
+            }
         } catch (err) {
             console.error("Erro ao atualizar estado do aluno:", err);
-            alert("Erro ao atualizar estado do aluno. Por favor, tente novamente.");
-            // Revert by refreshing from server if error occurs
-            refresh();
+            // Revert optimistic update
+            refresh(); 
+            
+            const errorMessage = err.response?.data?.detail || err.message || "Erro desconhecido";
+            alert(`Erro ao atualizar estado do aluno no servidor:\n${errorMessage}`);
         }
     };
 
@@ -294,7 +331,7 @@ const Alunos = () => {
             id_sala: '',
             id_periodo: '',
             id_turma: '',
-            status: 'Ativo'
+            status: 'Activo'
         });
         setShowModal(true);
     };
@@ -389,7 +426,8 @@ const Alunos = () => {
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Ativo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
+            case 'Ativo': 
+            case 'Activo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
             case 'Inativo': return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
             case 'Concluido': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
             case 'Transferido': return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
@@ -659,6 +697,7 @@ const Alunos = () => {
                                                                  if (activeMenuId === s.id) {
                                                                      setActiveMenuId(null);
                                                                      setMenuStudent(null);
+                                                                     setShowStatusSubmenu(false);
                                                                  } else {
                                                                      const rect = e.currentTarget.getBoundingClientRect();
                                                                      setMenuPosition({
@@ -667,6 +706,7 @@ const Alunos = () => {
                                                                      });
                                                                      setMenuStudent(s);
                                                                      setActiveMenuId(s.id);
+                                                                     setShowStatusSubmenu(false);
                                                                  }
                                                              }}
                                                              title="Mais Opções"
@@ -790,131 +830,77 @@ const Alunos = () => {
             {activeMenuId && menuStudent && (
                 <>
                     <div 
-                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} 
+                        className="dropdown-overlay"
                         onClick={() => { setActiveMenuId(null); setMenuStudent(null); }}
                     />
                     <div 
+                        ref={dropdownRef}
                         className="dropdown-menu-actions animate-fade-in"
                         style={{ 
-                            position: 'fixed', 
                             top: menuPosition.top, 
                             left: menuPosition.left, 
-                            zIndex: 100,
-                            background: 'white',
-                            borderRadius: '12px',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                            border: '1px solid #e2e8f0',
-                            minWidth: '180px',
-                            overflow: 'visible', /* Allow submenu to pop out */
-                            padding: '4px'
                         }}
                     >
                         {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
                             <button 
                                 onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); }}
-                                style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '8px', 
-                                    padding: '10px 12px', width: '100%', border: 'none', 
-                                    background: 'transparent', textAlign: 'left', cursor: 'pointer', 
-                                    color: '#334155', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                                className="dropdown-item-btn"
                             >
-                                <Edit size={16} /> Editar Aluno
+                                <div style={{ color: '#64748b' }}><Edit size={16} /></div>
+                                Editar Aluno
                             </button>
                         )}
                         
                         {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
                             <div 
                                 className="submenu-trigger"
-                                style={{ position: 'relative' }}
-                                onMouseEnter={(e) => {
-                                    const submenu = e.currentTarget.querySelector('.status-submenu');
-                                    if(submenu) submenu.style.display = 'block';
-                                    e.currentTarget.style.background = '#f8fafc';
-                                }}
-                                onMouseLeave={(e) => {
-                                    const submenu = e.currentTarget.querySelector('.status-submenu');
-                                    if(submenu) submenu.style.display = 'none';
-                                    e.currentTarget.style.background = 'transparent';
-                                }}
+                                onMouseEnter={handleStatusEnter}
+                                onMouseLeave={handleStatusLeave}
                             >
                                 <button 
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between',
-                                        padding: '10px 12px', width: '100%', border: 'none', 
-                                        background: 'transparent', textAlign: 'left', cursor: 'pointer', 
-                                        color: '#334155', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500
-                                    }}
+                                    className={`trigger-btn ${showStatusSubmenu ? 'active' : ''}`}
                                 >
-                                    <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                                        <Activity size={16} /> Alterar Estado
+                                    <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                                        <RefreshCw size={16} /> Alterar Estado
                                     </div>
-                                    <ChevronRight size={14} />
+                                    <ChevronRight size={16} />
                                 </button>
 
                                 {/* Submenu */}
-                                <div 
-                                    className="status-submenu"
-                                    style={{
-                                        display: 'none',
-                                        position: 'absolute',
-                                        top: 0,
-                                        right: '100%',
-                                        marginRight: '4px',
-                                        background: 'white',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                                        border: '1px solid #e2e8f0',
-                                        minWidth: '150px',
-                                        padding: '4px',
-                                        zIndex: 101
-                                    }}
-                                >
-                                    {['Ativo', 'Inativo', 'Suspenso', 'Transferido', 'Concluido'].map((status) => {
-                                        const style = getStatusStyle(status);
-                                        return (
+                                {showStatusSubmenu && (
+                                    <div 
+                                        className="status-submenu animate-fade-in"
+                                        onMouseEnter={handleStatusEnter}
+                                        onMouseLeave={handleStatusLeave}
+                                    >
+                                        {[
+                                            { value: 'Activo', label: 'Ativo', icon: CheckCircle, className: 'status-active' },
+                                            { value: 'Inativo', label: 'Inativo', icon: Clock, className: 'status-inativo' },
+                                            { value: 'Transferido', label: 'Transferido', icon: ArrowRightLeft, className: 'status-transferido' },
+                                            { value: 'Concluido', label: 'Concluído', icon: CheckCircle, className: 'status-concluido' }
+                                        ].map((item) => (
                                             <button
-                                                key={status}
+                                                key={item.value}
                                                 onClick={(e) => { 
+                                                    e.preventDefault();
                                                     e.stopPropagation();
-                                                    handleUpdateStatus(menuStudent.id, status); 
+                                                    handleUpdateStatus(menuStudent.id, item.value); 
                                                 }}
-                                                style={{ 
-                                                    display: 'flex', alignItems: 'center', gap: '8px', 
-                                                    padding: '8px 12px', width: '100%', border: 'none', 
-                                                    background: 'transparent', textAlign: 'left', cursor: 'pointer', 
-                                                    color: style.color,
-                                                    borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600
-                                                }}
-                                                onMouseOver={(e) => { e.currentTarget.style.background = style.bg; }}
-                                                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                                className={`status-option-btn ${item.className}`}
                                             >
-                                                 {/* Status Indicator Dot */}
-                                                <div style={{
-                                                    width: '8px', 
-                                                    height: '8px', 
-                                                    borderRadius: '50%', 
-                                                    background: style.color,
-                                                    boxShadow: `0 0 0 2px ${style.border}`
-                                                }}></div>
-                                                
-                                                {status}
-                                                
-                                                {/* Checkmark for active status */}
-                                                {status === menuStudent.status && (
-                                                    <CheckCircle size={14} style={{ marginLeft: 'auto', color: style.color }} />
-                                                )}
+                                                 <item.icon size={16} />
+                                                 {item.label}
                                             </button>
-                                        );
-                                    })}
-                                </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
                 </>
             )}
+
+
         </div>
     );
 };
