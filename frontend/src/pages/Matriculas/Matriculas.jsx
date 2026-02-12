@@ -136,9 +136,9 @@ const Matriculas = () => {
             turma: item.turma_codigo || 'Sem Turma',
             status: item.status || 'Ativa',
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
-            alunoId: item.aluno_id || item.aluno, // Ensure we have the student ID
+            alunoId: item.id_aluno, // Use correct ID field from serializer
             detalhes: {
-                bi: item.bi || 'N/A', 
+                bi: item.bi || item.numero_bi || 'N/A', 
                 genero: item.genero || 'N/A',
                 nif: item.nif || 'N/A',
                 dataNascimento: item.data_nascimento || 'N/A',
@@ -147,9 +147,18 @@ const Matriculas = () => {
                 telefoneEncarregado: item.encarregado_telefone || 'N/A',
                 email: item.email || 'N/A', 
                 endereco: item.endereco || 'N/A',
+                nacionalidade: item.nacionalidade || 'Angolana',
+                naturalidade: item.naturalidade || '',
+                deficiencia: item.deficiencia || 'Não',
+                provincia: item.provincia_residencia || '',
+                municipio: item.municipio_residencia || '',
+                bairro: item.bairro_residencia || '',
+                numero_casa: item.numero_casa || '',
+                bi_encarregado: item.encarregado_bi || '',
+                profissao_encarregado: item.encarregado_profissao || '',
                 pagamentoStatus: item.ativo ? 'Confirmado' : 'Pendente',
-                documentos: [], // Populate if available from API
-                historico: item.historico_escolar || [] // Map history from API response
+                documentos: item.documentos_entregues ? item.documentos_entregues.split(',') : [],
+                historico: item.historico_escolar || [] 
             }
         }));
     };
@@ -952,7 +961,7 @@ const Matriculas = () => {
                             </div>
                             <button 
                                 className="dropdown-item success" 
-                                onClick={() => navigate(`/matriculas/nova?aluno_id=${menuMatricula.alunoId}&tipo=Confirmacao`)}
+                                onClick={() => navigate('/matriculas/nova', { state: { matricula: menuMatricula, tipo: 'Confirmacao' } })}
                                 style={{
                                     width: '100%',
                                     textAlign: 'left',

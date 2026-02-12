@@ -22,6 +22,17 @@ class MatriculaSerializer(serializers.ModelSerializer):
     encarregado_nome = serializers.SerializerMethodField()
     encarregado_telefone = serializers.SerializerMethodField()
     encarregado_parentesco = serializers.SerializerMethodField()
+    encarregado_bi = serializers.SerializerMethodField()
+    encarregado_profissao = serializers.SerializerMethodField()
+
+    # Aluno address and personal fields
+    nacionalidade = serializers.CharField(source='id_aluno.nacionalidade', read_only=True, default='Angolana')
+    naturalidade = serializers.CharField(source='id_aluno.naturalidade', read_only=True, default='')
+    deficiencia = serializers.CharField(source='id_aluno.deficiencia', read_only=True, default='Não')
+    provincia_residencia = serializers.CharField(source='id_aluno.provincia_residencia', read_only=True, default='')
+    municipio_residencia = serializers.CharField(source='id_aluno.municipio_residencia', read_only=True, default='')
+    bairro_residencia = serializers.CharField(source='id_aluno.bairro_residencia', read_only=True, default='')
+    numero_casa = serializers.CharField(source='id_aluno.numero_casa', read_only=True, default='')
 
     # Safe fields using methods to handle null Turma
     turma_codigo = serializers.SerializerMethodField()
@@ -39,6 +50,9 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'id_candidato', # Campo write-only
             'bi', 'genero', 'data_nascimento', 'telefone', 'email', 'endereco',
             'encarregado_nome', 'encarregado_telefone', 'encarregado_parentesco',
+            'encarregado_bi', 'encarregado_profissao',
+            'nacionalidade', 'naturalidade', 'deficiencia',
+            'provincia_residencia', 'municipio_residencia', 'bairro_residencia', 'numero_casa',
             'id_turma', 'turma_codigo', 
             'ano_lectivo', 'ano_lectivo_nome',
             'classe_nome',
@@ -109,11 +123,24 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
     def get_encarregado_telefone(self, obj):
         rel = self._get_encarregado_relation(obj)
-        return rel.id_encarregado.telefone if rel and rel.id_encarregado else 'N/A'
+        if rel and rel.id_encarregado and rel.id_encarregado.telefone:
+            tels = rel.id_encarregado.telefone
+            if isinstance(tels, list) and len(tels) > 0:
+                return tels[0]
+            return str(tels)
+        return 'N/A'
 
     def get_encarregado_parentesco(self, obj):
         rel = self._get_encarregado_relation(obj)
         return rel.grau_parentesco if rel else 'N/A'
+
+    def get_encarregado_bi(self, obj):
+        rel = self._get_encarregado_relation(obj)
+        return rel.id_encarregado.numero_bi if rel and rel.id_encarregado else ''
+
+    def get_encarregado_profissao(self, obj):
+        rel = self._get_encarregado_relation(obj)
+        return rel.id_encarregado.profissao if rel and rel.id_encarregado else ''
 
     def validate(self, attrs):
         """

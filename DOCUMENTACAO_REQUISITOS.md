@@ -1,5 +1,4 @@
-# Documento de Levantamento de Requisitos e Validação de Processos
-**Projeto:** Sistema de Gestão Escolar (Fim de Curso)  
+# Documentação de Requisitos - Sistema Gestão de Matricula (SGM)
 **Data:** 20 de Janeiro de 2026  
 **Status:** Rascunho para Validação com a Instituição
 

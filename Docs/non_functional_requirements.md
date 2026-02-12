@@ -1,6 +1,6 @@
 # Requisitos Não Funcionais do Sistema
 
-Este documento descreve os requisitos não funcionais do Sistema de Gestão Escolar, garantindo qualidade, segurança e uma excelente experiência de uso.
+Este documento descreve os requisitos não funcionais do Sistema Gestão de Matricula, garantindo qualidade, segurança e uma excelente experiência de uso.
 
 ## 1. Usabilidade e Responsividade
 - **R1.1: Interface Responsiva**: O sistema deve ser totalmente adaptável a diferentes tamanhos de tela (desktop, tablet e mobile), garantindo que todas as funcionalidades sejam acessíveis sem perda de informação.

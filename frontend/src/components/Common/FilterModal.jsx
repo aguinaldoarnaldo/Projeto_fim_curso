@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Filter, Trash2, ChevronLeft, Check } from 'lucide-react';
 import './FilterModal.css';
 
@@ -107,7 +108,7 @@ const FilterModal = ({
         return Object.values(safeActiveFilters).filter(v => v !== '' && v !== null && v !== undefined).length;
     };
 
-    return (
+    return ReactDOM.createPortal(
         <div className="filter-popover-overlay" onClick={onClose}>
             <div 
                 ref={modalRef}
@@ -205,7 +206,8 @@ const FilterModal = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

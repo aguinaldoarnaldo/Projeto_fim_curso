@@ -109,13 +109,7 @@ const TopNavbar = ({ onMenuClick }) => {
                                     <Settings size={16} />
                                     Configurações
                                 </button>
-                                <button 
-                                    className="user-dropdown-item"
-                                    onClick={() => { navigate('/ajuda'); setShowUserMenu(false); }}
-                                >
-                                    <AlertTriangle size={16} /> 
-                                    Ajuda e Suporte
-                                </button>
+
                                 
                                 <div className="user-dropdown-divider"></div>
                                 
@@ -136,4 +130,4 @@ const TopNavbar = ({ onMenuClick }) => {
     );
 };
 
-export default TopNavbar;
+export default React.memo(TopNavbar);

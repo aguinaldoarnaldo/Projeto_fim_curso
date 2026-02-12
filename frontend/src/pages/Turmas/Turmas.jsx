@@ -76,7 +76,8 @@ const Turmas = () => {
         id_sala: '',
         ano: '2024/2025',
         responsavel_nome: '',
-        status: 'Ativa'
+        status: 'Ativa',
+        capacidade: 55
     });
 
     // Cache
@@ -106,8 +107,11 @@ const Turmas = () => {
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano_lectivo_nome || t.ano || '---',
                 ano_lectivo_id: t.ano_lectivo,
+                id_turma: t.id_turma, // Ensure ID is mapped if missing
                 turno: t.periodo_nome,
                 qtdAlunos: t.total_alunos || 0,
+                sala_capacidade: Number(t.sala_capacidade) || 0,
+                capacidade: (t.capacidade !== null && t.capacidade !== undefined && t.capacidade > 0) ? Number(t.capacidade) : (Number(t.sala_capacidade) || 55),
                 status: t.status || 'Ativa'
             }));
 
@@ -170,8 +174,11 @@ const Turmas = () => {
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano_lectivo_nome || t.ano || '---',
                 ano_lectivo_id: t.ano_lectivo,
+                id_turma: t.id_turma,
                 turno: t.periodo_nome,
                 qtdAlunos: t.total_alunos || 0,
+                sala_capacidade: Number(t.sala_capacidade) || 0,
+                capacidade: (t.capacidade !== null && t.capacidade !== undefined && t.capacidade > 0) ? Number(t.capacidade) : (Number(t.sala_capacidade) || 55),
                 status: t.status || 'Ativa'
             }));
             
@@ -215,7 +222,7 @@ const Turmas = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             fetchDynamicData();
-        }, 30000);
+        }, 2000); // 2 seconds for real-time feel
         return () => clearInterval(interval);
     }, []);
 
@@ -253,19 +260,33 @@ const Turmas = () => {
                 ano: formData.ano, // Keep for legacy if needed
                 status: formData.status,
                 id_classe: formData.id_classe,
-                id_periodo: formData.id_periodo
+                id_periodo: formData.id_periodo,
+                capacidade: parseInt(formData.capacidade)
             };
             
             if (modalMode === 'add') {
                  await api.post('turmas/', payload);
-                 alert('Turma criada com sucesso!');
             } else {
                  await api.put(`turmas/${selectedTurma.id}/`, payload);
-                 alert('Turma atualizada com sucesso!');
+                 
+                 // OPTIMISTIC UPDATE: Update local state immediately for instant feedback
+                 setTurmas(prev => prev.map(t => {
+                    if (t.id === selectedTurma.id) {
+                        return {
+                            ...t,
+                            turma: payload.codigo_turma,
+                            capacidade: payload.capacidade,
+                            status: payload.status,
+                            // Update other fields as needed if they don't require external lookups
+                            // For complex lookups (like updating Sala Name based on ID), existing fetchData will handle it in a moment
+                        };
+                    }
+                    return t;
+                 }));
             }
             
             setShowModal(false);
-            fetchData(true); // Refresh list
+            fetchData(true); // Refresh list to ensure consistency
         } catch (err) {
             console.error("Erro ao salvar turma:", err);
             alert("Erro ao salvar turma. Verifique os dados.");
@@ -293,7 +314,9 @@ const Turmas = () => {
             ano: turma.ano,
             ano_lectivo_id: turma.ano_lectivo_id || '',
             responsavel_nome: turma.coordenador,
-            status: turma.status
+            status: turma.status,
+            status: turma.status,
+            capacidade: (turma.capacidade !== null && turma.capacidade > 0) ? turma.capacidade : (turma.sala_capacidade || 55)
         });
         setModalMode('edit');
         setShowModal(true);
@@ -314,7 +337,8 @@ const Turmas = () => {
             ano: activeYearObj ? activeYearObj.nome : '',
             ano_lectivo_id: activeYearObj ? (activeYearObj.id || activeYearObj.id_ano) : '',
             responsavel_nome: '',
-            status: 'Ativa'
+            status: 'Ativa',
+            capacidade: 55
         });
         setModalMode('add');
         setShowModal(true);
@@ -493,9 +517,9 @@ const Turmas = () => {
                                             <td>{t.turno}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <div className="capacity-cell">
-                                                    <span style={{ fontWeight: 700, fontSize: '12px', color: t.qtdAlunos >= 50 ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / 50</span>
+                                                    <span style={{ fontWeight: 700, fontSize: '12px', color: t.qtdAlunos >= t.capacidade ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / {t.capacidade}</span>
                                                     <div className="capacity-progress-container">
-                                                        <div className="capacity-progress-bar" style={{ width: `${(t.qtdAlunos / 50) * 100}%`, background: t.qtdAlunos >= 50 ? '#ef4444' : 'var(--primary-color)' }} />
+                                                        <div className="capacity-progress-bar" style={{ width: `${Math.min((t.qtdAlunos / t.capacidade) * 100, 100)}%`, background: t.qtdAlunos >= t.capacidade ? '#ef4444' : 'var(--primary-color)' }} />
                                                     </div>
                                                 </div>
                                             </td>
@@ -625,7 +649,15 @@ const Turmas = () => {
                                     <label className="form-label-turmas">Sala</label>
                                     <select 
                                         value={formData.id_sala}
-                                        onChange={e => setFormData({...formData, id_sala: e.target.value})}
+                                        onChange={e => {
+                                            const selectedId = e.target.value;
+                                            const salaObj = salas.find(s => s.id_sala == selectedId);
+                                            setFormData({
+                                                ...formData, 
+                                                id_sala: selectedId,
+                                                capacidade: salaObj ? salaObj.capacidade_alunos : formData.capacidade
+                                            });
+                                        }}
                                         className="form-input-turmas"
                                     >
                                         <option value="">Seleccionar Sala</option>
@@ -646,6 +678,17 @@ const Turmas = () => {
                                         <option value="Ativa">Ativa</option>
                                         <option value="Concluida">Concluída</option>
                                     </select>
+                                </div>
+                                <div>
+                                    <label className="form-label-turmas">Capacidade Máxima</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-input-turmas"
+                                        value={formData.capacidade}
+                                        onChange={e => setFormData({...formData, capacidade: parseInt(e.target.value) || 0})}
+                                        min="1"
+                                        max="100"
+                                    />
                                 </div>
                                 <div>
                                     <label className="form-label-turmas">Ano Lectivo</label>
@@ -671,12 +714,12 @@ const Turmas = () => {
                             </div>
 
                             {/* Capacity Alert */}
-                            <div className="capacity-alert-box">
-                                <AlertTriangle size={20} color="#d97706" />
-                                <p className="capacity-alert-text">
-                                    <strong>Aviso de Capacidade:</strong> O limite recomendado é entre 45 e 50 alunos por turma para garantir a qualidade do ensino e as normas da instituição.
-                                </p>
-                            </div>
+                             <div className="capacity-alert-box" style={{ padding: '10px', marginTop: '16px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fef3c7', display: 'flex', gap: '10px' }}>
+                                 <AlertTriangle size={18} color="#d97706" />
+                                 <p className="capacity-alert-text" style={{ margin: 0, fontSize: '12px', color: '#b45309' }}>
+                                     <strong>Aviso:</strong> O limite de alunos definido deve garantir a qualidade do ensino e as normas da instituição.
+                                 </p>
+                             </div>
 
                             <div className="modal-actions-turmas">
                                 <button

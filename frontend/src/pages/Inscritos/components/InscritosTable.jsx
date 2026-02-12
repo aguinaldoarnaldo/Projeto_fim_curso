@@ -145,10 +145,6 @@ const InscritosTable = ({
                         }}
                         disabled={i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== ''}
                         title={ (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? "Candidato já avaliado" : "Avaliar Candidato"}
-                        style={{
-                            opacity: (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? 0.3 : 1,
-                            cursor: (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? 'not-allowed' : 'pointer'
-                        }}
                     >
                         <ClipboardCheck size={16} />
                     </button>

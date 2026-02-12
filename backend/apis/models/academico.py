@@ -213,6 +213,7 @@ class Turma(BaseModel):
     ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Ano Lectivo')
     ano = models.CharField(null=True, blank=True, verbose_name='Ano (Legacy)', default=current_year)
     codigo_turma = models.CharField(max_length=50, unique=True, verbose_name='Código da Turma')
+    capacidade = models.IntegerField(default=55, verbose_name='Capacidade de Alunos')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativa', verbose_name='Estado da Turma')
     id_responsavel = models.ForeignKey(
         Funcionario,

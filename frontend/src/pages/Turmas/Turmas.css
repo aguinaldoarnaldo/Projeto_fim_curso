@@ -291,18 +291,25 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 }
 
 .modal-content-turmas {
-    width: 90%;
-    max-width: 600px;
+    width: 95%;
+    max-width: 850px;
+    max-height: 90vh;
     background: white;
-    border-radius: 24px;
+    border-radius: 8.5px;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     animation: fadeIn 0.2s ease-out;
     border: 1px solid #e5e7eb;
 }
 
+.modal-content-turmas form {
+    overflow-y: auto;
+    flex: 1;
+}
+
 .modal-header-turmas {
-    padding: 24px 32px;
+    padding: 16px 24px;
     border-bottom: 1px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
@@ -334,13 +341,13 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 }
 
 .modal-form-turmas {
-    padding: 32px;
+    padding: 24px;
 }
 
 .form-grid-turmas-modal {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
 }
 
 @media (max-width: 640px) {
@@ -364,7 +371,7 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .form-input-turmas {
     width: 100%;
     padding: 14px;
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid #e2e8f0;
     outline: none;
     font-size: 15px;
@@ -379,11 +386,15 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
     box-shadow: 0 0 0 3px var(--primary-light-bg);
 }
 
+.form-grid-turmas-modal > div:first-child {
+    grid-column: span 3 !important;
+}
+
 .capacity-alert-box {
-    margin-top: 24px;
-    padding: 16px;
+    margin-top: 16px;
+    padding: 12px;
     background: #fffbeb;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid #fef3c7;
     display: flex;
     gap: 12px;
@@ -396,7 +407,7 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 }
 
 .modal-actions-turmas {
-    margin-top: 32px;
+    margin-top: 24px;
     display: flex;
     gap: 12px;
 }
@@ -404,7 +415,7 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .btn-modal-cancel {
     flex: 1;
     padding: 14px;
-    border-radius: 14px;
+    border-radius: 18px;
     border: 1px solid #e2e8f0;
     background: white;
     color: #64748b;
@@ -420,7 +431,7 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .btn-modal-submit-turma {
     flex: 2;
     padding: 14px;
-    border-radius: 14px;
+    border-radius: 18px;
     border: none;
     background: var(--primary-color);
     color: white;

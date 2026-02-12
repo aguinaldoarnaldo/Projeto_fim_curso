@@ -1,99 +1,90 @@
-# 🏫 Sistema de Gestão de Matrícula e Académica
+# Sistema Gestão de Matricula (SGM)
 
-Este é um sistema moderno e robusto para a gestão completa de instituições de ensino, focado na automação de matrículas, controlo de alunos, turmas e acompanhamento pedagógico. O projeto utiliza uma arquitetura desacoplada com **React** no frontend e **Django** no backend.
+Um sistema completo e moderno para gestão de escolas, desenvolvido com Django (Backend) e React (Frontend).
+O projeto visa facilitar a administração escolar, desde a inscrição de alunos até a gestão de turmas, notas e pagamentos.
 
----
+## 🚀 Funcionalidades Principais
 
-## 🚀 Como Colocar o Projeto a Rodar
+### 🎓 Acadêmico
+- **Gestão de Alunos:** Matrículas, histórico, documentos e perfis detalhados.
+- **Turmas e Salat:** Criação e gestão de turmas com controle de capacidade em tempo real.
+- **Cursos e Classes:** Estrutura curricular flexível.
+- **Inscrições Online:** Portal público para novos candidatos.
 
-Siga os passos abaixo para configurar o ambiente de desenvolvimento.
+### 📊 Dashboard Interativo
+- Visão geral com gráficos e KPIs em tempo real.
+- Monitoramento de matrículas vs. inscrições.
+- Distribuição por gênero e cursos mais populares.
+- Atalhos rápidos para as principais funções.
 
-### 1. Pré-requisitos
-Antes de começar, certifique-se de ter instalado:
-* **Node.js** (v18 ou superior)
-* **Python** (v3.10 ou superior)
-* **Git**
-* **PostgreSQL** (ou outro banco de dados de sua preferência configurado no Django)
+### 🔐 Segurança e Acesso
+- **Autenticação Segura:** Login com JWT (JSON Web Tokens).
+- **Controle de Permissões Granular:**
+  - Sistema de permissões baseado em funções (Admin, Secretaria, Professor, Aluno).
+  - Rotas protegidas no frontend que verificam permissões antes de carregar a página.
+  - Proteção contra redirecionamentos indevidos durante o carregamento da sessão.
 
----
+## 🛠 Tecnologia
 
-### 2. Configuração do Backend (Django)
+### Backend (API)
+- **Framework:** Django & Django REST Framework (DRF)
+- **Banco de Dados:** PostgreSQL
+- **Autenticação:** SimpleJWT
+- **Destaques:** 
+  - Serializers otimizados.
+  - ViewSets para CRUD padrão.
+  - Lógica de negócios encapsulada nos Models.
 
-1. **Aceda à pasta do backend:**
-   ```bash
-   cd backend
-   ```
+### Frontend (SPA)
+- **Framework:** React.js (Vite)
+- **Estilização:** CSS Modules e Variáveis CSS (Design System Premium).
+- **Bibliotecas:** 
+  - `recharts` (Gráficos)
+  - `lucide-react` (Ícones Modernos)
+  - `axios` (Comunicação API)
+  - `react-router-dom` (Navegação)
 
-2. **Crie um ambiente virtual:**
-   ```bash
-   python -m venv venv
-   ```
+## 📂 Estrutura do Projeto
 
-3. **Ative o ambiente virtual:**
-   * **Windows:** `venv\Scripts\activate`
-   * **Linux/Mac:** `source venv/bin/activate`
+```bash
+/
+├── backend/            # Aplicação Django (API)
+│   ├── apis/          # Apps e endpoints da API
+│   ├── core/          # Configurações do projeto Django
+│   └── manage.py
+│
+├── frontend/           # Aplicação React (Interface)
+│   ├── src/
+│   │   ├── components/ # Componentes reutilizáveis (Sidebar, Modal, etc)
+│   │   ├── pages/      # Telas do sistema
+│   │   ├── services/   # Configuração do Axios
+│   │   └── context/    # Gestão de Estado Global (Auth, Config)
+│   └── vite.config.js
+│
+└── docs/               # Documentação adicional (Requisitos, Permissões, Roadmap)
+```
 
-4. **Instale as dependências:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🚀 Como Rodar o Projeto
 
-5. **Configure as Migrações e a Base de Dados:**
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
+### Pré-requisitos
+- Python 3.10+
+- Node.js 18+
 
-6. **Inicie o servidor de desenvolvimento:**
-   ```bash
-   python manage.py runserver
-   ```
-   *O servidor estará disponível em: `http://127.0.0.1:8000`*
+### 1. Configurar o Backend
+```bash
+cd backend
+python -m venv .venv
+# Ativar venv (Windows: .venv\Scripts\activate | Linux: source .venv/bin/activate)
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
 
----
+### 2. Configurar o Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### 3. Configuração do Frontend (React + Vite)
-
-1. **Abra um novo terminal e aceda à pasta do frontend:**
-   ```bash
-   cd frontend
-   ```
-
-2. **Instale as dependências do Node:**
-   ```bash
-   npm install
-   ```
-
-3. **Inicie o servidor de desenvolvimento do Vite:**
-   ```bash
-   npm run dev
-   ```
-   *O sistema estará disponível em: `http://localhost:5173`*
-
----
-
-## 🛠️ Stack Tecnológica
-
-### **Frontend**
-* **React 19** + **Vite**: Interface rápida e reativa.
-* **Lucide React**: Biblioteca de ícones moderna.
-* **Recharts**: Visualização de dados dinâmica.
-* **CSS Vanilla**: Design premium personalizado e totalmente responsivo.
-
-### **Backend**
-* **Django 5**: Framework robusto para lógica de negócio.
-* **Django Rest Framework (DRF)**: APIs REST eficientes.
-* **PostgreSQL**: Base de dados relacional estável.
-* **SimpleJWT**: Autenticação segura por tokens.
-
----
-
-## 📊 Funcionalidades Principais
-
-* **Dashboard Inteligente:** Monitorização em tempo real e estatísticas.
-* **Gestão de Matrículas:** Fluxo completo de inscrição com anexos.
-* **Avaliação Automática:** Sistema de aprovação de candidatos baseado em critérios.
-* **Controlo de Turmas e Salas:** Gestão física e lógica da instituição.
-* **Segurança:** Controlo de permissões por utilizador.
-
----
+O sistema estará acessível em `http://localhost:5173`.

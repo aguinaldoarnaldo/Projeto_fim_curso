@@ -5,7 +5,7 @@ const ConfigContext = createContext({});
 
 export const ConfigProvider = ({ children }) => {
     const [config, setConfig] = useState({
-        nome_escola: 'Sistema de Gestão Escolar',
+        nome_escola: "Sistema Gestão de Matricula",
         logo: null,
         candidaturas_abertas: true,
         mensagem_candidaturas_fechadas: 'As candidaturas estão encerradas no momento.'

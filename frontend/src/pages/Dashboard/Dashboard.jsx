@@ -5,7 +5,7 @@ import { useDataCache } from '../../hooks/useDataCache';
 import CalendarWidget from '../../components/Dashboard/CalendarWidget';
 import './Dashboard.css';
 import { 
-    Search, Bell, GraduationCap, Users, Home, Layers, BookOpen, Megaphone 
+    Search, Bell, GraduationCap, Users, Layers, BookOpen, Megaphone, DoorOpen 
 } from 'lucide-react';
 import {
   AreaChart,
@@ -215,7 +215,7 @@ const Dashboard = () => {
       <div className="kpi-grid">
         {/* 1. ALUNOS */}
         <div className="kpi-card card-premium-blue">
-          <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
+          <div className="kpi-icon-floating"><Users size={24} /></div>
           <div className="kpi-content">
             <h3>{kpiData.alunos.total}</h3>
             <span className="kpi-label">Total Alunos</span>
@@ -228,7 +228,7 @@ const Dashboard = () => {
 
         {/* 2. TURMAS */}
         <div className="kpi-card card-premium-purple">
-          <div className="kpi-icon-floating"><Users size={24} /></div>
+          <div className="kpi-icon-floating"><Layers size={24} /></div>
           <div className="kpi-content">
             <h3>{kpiData.turmas.total}</h3>
             <span className="kpi-label">Total Turmas</span>
@@ -241,7 +241,7 @@ const Dashboard = () => {
 
         {/* 3. SALAS */}
         <div className="kpi-card card-premium-orange">
-          <div className="kpi-icon-floating"><Home size={24} /></div>
+          <div className="kpi-icon-floating"><DoorOpen size={24} /></div>
           <div className="kpi-content">
             <h3>{countSalas}</h3>
             <span className="kpi-label">Salas</span>
@@ -250,7 +250,7 @@ const Dashboard = () => {
 
         {/* 4. CLASSES */}
         <div className="kpi-card card-premium-teal">
-          <div className="kpi-icon-floating"><Layers size={24} /></div>
+          <div className="kpi-icon-floating"><BookOpen size={24} /></div>
           <div className="kpi-content">
             <h3>{countClasses}</h3>
             <span className="kpi-label">Classes</span>
@@ -259,7 +259,7 @@ const Dashboard = () => {
 
         {/* 5. CURSOS */}
         <div className="kpi-card card-premium-indigo">
-          <div className="kpi-icon-floating"><BookOpen size={24} /></div>
+          <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
           <div className="kpi-content">
             <h3>{countCursos}</h3>
             <span className="kpi-label">Cursos</span>

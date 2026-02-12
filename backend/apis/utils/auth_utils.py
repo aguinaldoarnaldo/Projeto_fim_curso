@@ -31,11 +31,11 @@ def send_password_definition_email(user, token, request=None):
     base_url = "http://localhost:5173" 
     link = f"{base_url}/definir-senha?token={token}"
     
-    subject = "Definição de Senha - Sistema de Gestão Escolar"
+    subject = "Definição de Senha - Sistema Gestão de Matricula"
     message = f"""
     Olá {user.nome_completo},
     
-    Você foi cadastrado no Sistema de Gestão Escolar.
+    Você foi cadastrado no Sistema Gestão de Matricula.
     Para acessar sua conta, clique no link abaixo e defina sua senha:
     
     {link}

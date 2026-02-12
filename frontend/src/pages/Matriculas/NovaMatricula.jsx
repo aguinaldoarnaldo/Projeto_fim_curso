@@ -176,6 +176,43 @@ const NovaMatricula = () => {
             
             // Fetch turmas relevant to this course/turn
             fetchTurmas(c.curso1, c.turno);
+        } else if (location.state && location.state.matricula) {
+            const m = location.state.matricula;
+            const d = m.detalhes;
+
+            setFormData(prev => ({
+                ...prev,
+                aluno_id: m.alunoId,
+                nome_completo: m.aluno,
+                data_nascimento: d.dataNascimento,
+                genero: d.genero === 'Masculino' || d.genero === 'M' ? 'M' : 'F',
+                numero_bi: d.bi,
+                nacionalidade: d.nacionalidade || 'Angolana',
+                email: d.email !== 'N/A' ? d.email : '',
+                telefone: d.telefoneEncarregado !== 'N/A' ? d.telefoneEncarregado : '', // Use guardian phone as fallback
+                provincia: d.provincia || '',
+                municipio: d.municipio || '',
+                bairro: d.bairro || '',
+                numero_casa: d.numero_casa || '',
+                naturalidade: d.naturalidade || '',
+                deficiencia: d.deficiencia || 'Não',
+                curso: m.curso || '',
+                tipo: location.state.tipo || 'Confirmacao',
+                novo_aluno_foto: m.foto || null,
+                
+                // Encarregado
+                nome_encarregado: d.encarregado !== 'N/A' ? (d.encarregado || '') : '',
+                telefone_encarregado: d.telefoneEncarregado !== 'N/A' ? (d.telefoneEncarregado || '') : '',
+                parentesco_encarregado: d.parentesco !== 'N/A' ? (d.parentesco || '') : '',
+                numero_bi_encarregado: d.bi_encarregado || '',
+                profissao_encarregado: d.profissao_encarregado || '',
+
+                // Documentos existentes
+                doc_bi_url: d.documentos?.find(doc => doc.toLowerCase().includes('bi')) || null,
+                doc_certificado_url: d.documentos?.find(doc => doc.toLowerCase().includes('certificado')) || null
+            }));
+
+            fetchTurmas(m.curso, m.turno);
         } else {
              fetchTurmas();
         }
@@ -1013,7 +1050,7 @@ const NovaMatricula = () => {
                         </div>
 
                         {/* Aviso de Bloqueio se Documentos Faltantes */}
-                        {(!formData.doc_bi_url && !formData.doc_certificado_url && !formData.doc_bi && !formData.doc_certificado) && (
+                        {(!isConfirming && !formData.aluno_id && !formData.doc_bi_url && !formData.doc_certificado_url && !formData.doc_bi && !formData.doc_certificado) && (
                             <div style={{ marginBottom: '20px', padding: '15px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', display: 'flex', gap: '10px' }}>
                                 <ShieldAlert size={20} color="#dc2626" />
                                 <div>
@@ -1029,7 +1066,7 @@ const NovaMatricula = () => {
                                 <h4 style={{fontSize:'16px', color:'#334155', marginBottom:'5px', borderBottom:'1px solid #e2e8f0', paddingBottom:'8px'}}>Anexo de Documentos</h4>
                                 {isConfirming ? (
                                     <div style={{padding:'10px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:'8px', color:'#0369a1', fontSize:'13px'}}>
-                                        ℹ️ Modo de Confirmação: Os documentos não podem ser alterados nesta etapa.
+                                        ℹ️ Modo de Confirmação: Os documentos existentes serão mantidos. Se desejar, pode anexar novos arquivos para atualização (Opcional).
                                     </div>
                                 ) : (
                                     formData.aluno_id && (
@@ -1041,51 +1078,42 @@ const NovaMatricula = () => {
                             </div>
 
                             <div>
-                                <label className="field-label">Cópia do BI {(!formData.doc_bi && !formData.doc_bi_url) && <span style={{color: '#ef4444', fontSize:'11px'}}>(Pendente)</span>}</label>
-                                {isConfirming ? (
-                                    <div className="file-upload-box disabled" style={{background: '#f1f5f9', padding: '15px', borderRadius: '8px', opacity: 0.7}}>
-                                        <span style={{fontSize:'13px', color:'#64748b'}}>Documento Bloqueado para Edição</span>
-                                        {formData.doc_bi_url && <span style={{display:'block', fontSize:'11px', color:'green'}}>Arquivo Existente ✅</span>}
-                                    </div>
-                                ) : formData.doc_bi_url ? (
-                                    <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px'}}>
+                                {formData.doc_bi_url ? (
+                                    <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px', marginBottom: '10px'}}>
                                         <div style={{background:'#22c55e', borderRadius:'50%', padding:'5px', display:'flex'}}><CheckCircle size={16} color="white"/></div>
                                         <div style={{flex:1}}>
-                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Documento Importado</span>
-                                            <span style={{fontSize:'11px', color:'#166534'}}>Proveniente da Inscrição</span>
+                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Arquivo já cadastrado</span>
+                                            <span style={{fontSize:'11px', color:'#166534'}}>Disponível no sistema</span>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="file-upload-box" style={{border: (!formData.doc_bi) ? '2px dashed #fcd34d' : '2px dashed #cbd5e1', padding: '15px', borderRadius: '8px', textAlign: 'center', background: '#f8fafc'}}>
-                                        <Upload size={20} color={(!formData.doc_bi) ? "#d97706" : "#64748b"} style={{marginBottom:'5px'}}/>
-                                        <input type="file" name="doc_bi" onChange={handleFileChange} accept=".pdf, image/*" style={{width:'100%', fontSize:'12px'}} />
-                                        {formData.doc_bi && <span style={{color: 'green', fontSize:'12px', display:'block', marginTop:'5px'}}><CheckCircle size={12} style={{display:'inline'}}/> Selecionado: {formData.doc_bi.name}</span>}
-                                    </div>
-                                )}
+                                ) : null}
+                                
+                                <div className="file-upload-box" style={{border: (!formData.doc_bi) ? '2px dashed #cbd5e1' : '2px dashed #3b82f6', padding: '15px', borderRadius: '8px', textAlign: 'center', background: '#f8fafc'}}>
+                                    <Upload size={20} color={formData.doc_bi ? "#3b82f6" : "#64748b"} style={{marginBottom:'5px'}}/>
+                                    <input type="file" name="doc_bi" onChange={handleFileChange} accept=".pdf, image/*" style={{width:'100%', fontSize:'12px'}} />
+                                    {isConfirming && <p style={{fontSize: '10px', color: '#94a3b8', marginTop: '5px'}}>Anexe apenas se desejar substituir o original</p>}
+                                    {formData.doc_bi && <span style={{color: 'green', fontSize:'12px', display:'block', marginTop:'5px'}}><CheckCircle size={12} style={{display:'inline'}}/> Selecionado: {formData.doc_bi.name}</span>}
+                                </div>
                             </div>
                             
                             <div>
                                 <label className="field-label">Certificado / Declaração {(!formData.doc_certificado && !formData.doc_certificado_url) && <span style={{color: '#ef4444', fontSize:'11px'}}>(Pendente)</span>}</label>
-                                {isConfirming ? (
-                                    <div className="file-upload-box disabled" style={{background: '#f1f5f9', padding: '15px', borderRadius: '8px', opacity: 0.7}}>
-                                        <span style={{fontSize:'13px', color:'#64748b'}}>Documento Bloqueado para Edição</span>
-                                        {formData.doc_certificado_url && <span style={{display:'block', fontSize:'11px', color:'green'}}>Arquivo Existente ✅</span>}
-                                    </div>
-                                ) : formData.doc_certificado_url ? (
-                                    <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px'}}>
+                                {formData.doc_certificado_url ? (
+                                    <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px', marginBottom: '10px'}}>
                                         <div style={{background:'#22c55e', borderRadius:'50%', padding:'5px', display:'flex'}}><CheckCircle size={16} color="white"/></div>
                                         <div style={{flex:1}}>
-                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Documento Importado</span>
-                                            <span style={{fontSize:'11px', color:'#166534'}}>Proveniente da Inscrição</span>
+                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Arquivo já cadastrado</span>
+                                            <span style={{fontSize:'11px', color:'#166534'}}>Disponível no sistema</span>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="file-upload-box" style={{border: (!formData.doc_certificado) ? '2px dashed #fcd34d' : '2px dashed #cbd5e1', padding: '15px', borderRadius: '8px', textAlign: 'center', background: '#f8fafc'}}>
-                                        <Upload size={20} color={(!formData.doc_certificado) ? "#d97706" : "#64748b"} style={{marginBottom:'5px'}}/>
-                                        <input type="file" name="doc_certificado" onChange={handleFileChange} accept=".pdf, image/*" style={{width:'100%', fontSize:'12px'}} />
-                                        {formData.doc_certificado && <span style={{color: 'green', fontSize:'12px', display:'block', marginTop:'5px'}}><CheckCircle size={12} style={{display:'inline'}}/> Selecionado: {formData.doc_certificado.name}</span>}
-                                    </div>
-                                )}
+                                ) : null}
+
+                                <div className="file-upload-box" style={{border: (!formData.doc_certificado) ? '2px dashed #cbd5e1' : '2px dashed #3b82f6', padding: '15px', borderRadius: '8px', textAlign: 'center', background: '#f8fafc'}}>
+                                    <Upload size={20} color={formData.doc_certificado ? "#3b82f6" : "#64748b"} style={{marginBottom:'5px'}}/>
+                                    <input type="file" name="doc_certificado" onChange={handleFileChange} accept=".pdf, image/*" style={{width:'100%', fontSize:'12px'}} />
+                                    {isConfirming && <p style={{fontSize: '10px', color: '#94a3b8', marginTop: '5px'}}>Anexe apenas se desejar substituir o original</p>}
+                                    {formData.doc_certificado && <span style={{color: 'green', fontSize:'12px', display:'block', marginTop:'5px'}}><CheckCircle size={12} style={{display:'inline'}}/> Selecionado: {formData.doc_certificado.name}</span>}
+                                </div>
                             </div>
                         </div>
                         

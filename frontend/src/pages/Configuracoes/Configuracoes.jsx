@@ -1482,157 +1482,57 @@ const Configuracoes = () => {
                         </div>
                     </div>
                 );
-
-            case 'perfil':
+            case 'ajuda':
                 return (
                     <div style={{ animation: 'fadeIn 0.5s' }}>
                         <div className="section-title-v2">
                             <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
-                                <User size={24} />
+                                <HelpCircle size={24} />
                             </div>
                             <div>
-                                <h2>Perfil do Usuário</h2>
-                                <p>Gerencie suas informações pessoais e credenciais.</p>
+                                <h2>Centro de Ajuda e Suporte</h2>
+                                <p>Encontre respostas para suas dúvidas e suporte técnico.</p>
                             </div>
                         </div>
 
-                        <div className="info-card-v2" style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '32px' }}>
-                            <div style={{ 
-                                width: '100px', 
-                                height: '100px', 
-                                borderRadius: '50%', 
-                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-hover))', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                color: 'white', 
-                                fontSize: '36px', 
-                                fontWeight: '700',
-                                boxShadow: '0 10px 20px var(--primary-shadow)'
-                            }}>
-                                {user?.name ? user.name.charAt(0) : 'U'}
-                            </div>
-                            <div>
-                                <h3 style={{ fontSize: '24px', margin: 0, color: '#1e293b' }}>{user?.name || 'Utilizador'}</h3>
-                                <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>{user?.role || 'Acesso Padrão'}</p>
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                                    <span className="info-badge" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>Conta Ativa</span>
-                                    <span className="info-badge" style={{ background: 'var(--bg-light)', color: 'var(--text-muted)' }}>ID: #00{user?.id || '1'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+                        <div className="help-grid-v2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '30px' }}>
                             <div className="info-card-v2">
-                                <h4 style={{ marginBottom: '16px', fontSize: '16px' }}>Segurança da Conta</h4>
-                                <button className="btn-premium btn-secondary-premium" style={{ width: '100%' }}>Alterar Senha de Acesso</button>
-                            </div>
-                            <div className="info-card-v2">
-                                <h4 style={{ marginBottom: '16px', fontSize: '16px' }}>Sessão Atual</h4>
-                                <p style={{ fontSize: '14px', color: '#64748b' }}>Logado em: {new Date().toLocaleDateString()}</p>
-                                <button className="btn-premium btn-secondary-premium" style={{ width: '100%', marginTop: '8px', color: '#ef4444' }}>Encerrar Sessão</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 'notificacoes':
-                return (
-                    <div style={{ animation: 'fadeIn 0.5s' }}>
-                        <div className="section-title-v2">
-                            <div className="icon-circle" style={{ background: 'var(--danger-light)', color: 'var(--danger)' }}>
-                                <Bell size={24} />
-                            </div>
-                            <div>
-                                <h2>Notificações e Alertas</h2>
-                                <p>Personalize como e quando deseja ser notificado.</p>
-                            </div>
-                        </div>
-
-                        <div className="info-card-v2">
-                            <h4 style={{ marginBottom: '20px' }}>Preferências de Notificações</h4>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {[
-                                    { label: 'Novas Matrículas', desc: 'Receba avisos quando um aluno for matriculado.' },
-                                    { label: 'Pagamentos Pendentes', desc: 'Alertas sobre mensalidades em atraso.' },
-                                    { label: 'Relatórios de Manutenção', desc: 'Status diário da integridade do banco de dados.' },
-                                    { label: 'Logs de Segurança', desc: 'Avisos sobre tentativas de login suspeitas.' }
-                                ].map((item, index) => (
-                                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-light)', borderRadius: '12px' }}>
-                                        <div>
-                                            <p style={{ margin: 0, fontWeight: '600', color: '#1e293b' }}>{item.label}</p>
-                                            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{item.desc}</p>
-                                        </div>
-                                        <div style={{ width: '40px', height: '22px', background: index < 2 ? 'var(--success)' : 'var(--border-color)', borderRadius: '20px', position: 'relative' }}>
-                                            <div style={{ width: '16px', height: '16px', background: 'white', borderRadius: '50%', position: 'absolute', top: '3px', left: index < 2 ? '21px' : '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                                <button className="btn-premium btn-primary-premium">Salvar Preferências</button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            case 'ajuda':
-                return (
-                    <div className="animate-fade-in">
-                        <div className="section-title-v2">
-                            <Info size={24} className="text-primary-accent" />
-                            <div>
-                                <h2>Ajuda & Suporte</h2>
-                                <p>Recursos para auxiliar no uso da plataforma.</p>
-                            </div>
-                        </div>
-
-                        <div className="config-grid-v2">
-                            {/* Manuais Section */}
-                            <div className="info-card-v2" style={{ gridColumn: 'span 2' }}>
-                                <div className="card-header-v2">
-                                    <BookOpen size={20} className="text-secondary" />
-                                    <h3>Manuais do Utilizador</h3>
-                                </div>
-                                <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: 1, minWidth: '250px' }}>
-                                        <p style={{ color: '#475569', marginBottom: '16px', lineHeight: '1.6' }}>
-                                            Baixe o manual completo do utilizador para aprender a usar todas as funcionalidades do sistema, desde o cadastro de alunos até a emissão de relatórios financeiros.
-                                        </p>
-                                        <ul style={{ listStyle: 'none', padding: 0, marginBottom: '20px', color: '#64748b' }}>
-                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}><CheckCircle size={16} color="var(--success)" /> Guia passo-a-passo ilustrado</li>
-                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}><CheckCircle size={16} color="var(--success)" /> Dicas de segurança e boas práticas</li>
-                                            <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={16} color="var(--success)" /> Solução de problemas comuns</li>
-                                        </ul>
-                                    </div>
-                                    <div className="manual-download-card">
-                                        <div className="pdf-icon-placeholder">
-                                            <FileText size={32} color="white" />
-                                            <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'white', marginTop: '4px' }}>PDF</span>
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ margin: '0 0 4px 0', color: '#1e293b' }}>Manual do Administrador</h4>
-                                            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Versão 2.1 • Atualizado em Jan 2026</p>
-                                        </div>
-                                        <button className="btn-download-manual">
-                                            <Download size={18} />
-                                            Download (2MB)
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Contact/Support Section */}
-                            <div className="info-card-v2">
-                                <div className="card-header-v2">
-                                    <HelpCircle size={20} className="text-warning" />
-                                    <h3>Precisa de Ajuda Técnica?</h3>
-                                </div>
-                                <p style={{ color: '#64748b', fontSize: '14px', marginTop: '12px', lineHeight: '1.5' }}>
-                                    Se encontrar algum erro ou tiver dificuldades técnicas, entre em contato com a equipe de TI.
+                                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Documentação do Sistema</h3>
+                                <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6' }}>
+                                    Aceda ao manual completo do utilizador para aprender a gerir alunos, turmas, matrículas e relatórios financeiros.
                                 </p>
-                                <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-light)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#475569' }}><strong>Email:</strong> suporte@escola.ao</p>
-                                    <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}><strong>Ramal:</strong> 1234 (TI)</p>
+                                <button className="btn-premium btn-secondary-premium" style={{ marginTop: '12px', width: '100%' }}>
+                                    <FileText size={18} /> Ver Manual PDF
+                                </button>
+                            </div>
+
+                            <div className="info-card-v2">
+                                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Suporte Técnico</h3>
+                                <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6' }}>
+                                    Enfrentando problemas técnicos ou erros inesperados? Nossa equipa está pronta para ajudar.
+                                </p>
+                                <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--primary-color)' }}>
+                                        <Bell size={16} /> suporte@escola.ao
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--primary-color)' }}>
+                                        <Info size={16} /> +244 9XX XXX XXX
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="info-card-v2" style={{ marginTop: '20px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Perguntas Frequentes (FAQ)</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como redefinir a senha de um usuário?</summary>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Vá em Segurança, edite o usuário e preencha o campo "Definir Senha".</p>
+                                </details>
+                                <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como encerrar o ano lectivo?</summary>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Na aba Académico, clique no botão "Encerrar" ao lado do ano lectivo activo.</p>
+                                </details>
                             </div>
                         </div>
                     </div>
@@ -1655,7 +1555,7 @@ const Configuracoes = () => {
                     {canViewConfig && (
                         <button
                             className={`config-nav-item ${activeTab === 'manutencao' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('manutencao')}
+                            onClick={() => setActiveTab("manutencao")}
                         >
                             <Database size={20} /> Manutenção
                         </button>
@@ -1670,8 +1570,8 @@ const Configuracoes = () => {
                     )}
                     {canManageUsers && (
                         <button
-                            className={`config-nav-item ${activeTab === 'seguranca' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('seguranca')}
+                            className={activeTab === "seguranca" ? "config-nav-item active" : "config-nav-item"}
+                            onClick={() => setActiveTab("seguranca")}
                         >
                             <Shield size={20} /> Segurança
                         </button>
@@ -1684,18 +1584,6 @@ const Configuracoes = () => {
                             <Calendar size={20} /> Académico
                         </button>
                     )}
-                    <button
-                        className={`config-nav-item ${activeTab === 'perfil' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('perfil')}
-                    >
-                        <User size={20} /> Perfil
-                    </button>
-                    <button
-                        className={`config-nav-item ${activeTab === 'notificacoes' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('notificacoes')}
-                    >
-                        <Bell size={20} /> Notificações
-                    </button>
                     <button
                         className={`config-nav-item ${activeTab === 'ajuda' ? 'active' : ''}`}
                         onClick={() => setActiveTab('ajuda')}

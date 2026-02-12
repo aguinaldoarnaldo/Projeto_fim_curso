@@ -273,58 +273,70 @@ tbody .clickable-row:hover {
 }
 
 .inscritos-page .btn-icon:disabled {
-    opacity: 0.4;
+    opacity: 0.7;
     cursor: not-allowed;
     transform: none !important;
     box-shadow: none !important;
-    background: #f1f5f9 !important;
-    color: #cbd5e1 !important;
+    background-color: #f8fafc !important;
+    color: #94a3b8 !important;
+    border: 1px dashed #e2e8f0 !important;
+}
+
+/* Especialização para Avaliar Desabilitado (Suave) */
+.inscritos-page .btn-evaluate:disabled {
+    background-color: transparent !important;
+    color: #d8b4fe !important; /* violet-300 */
+    border: 1px dashed #e9d5ff !important; /* violet-200 */
+}
+
+/* Especialização para Matricular Desabilitado (Suave) */
+.inscritos-page .btn-enroll:not(.can-enroll),
+.inscritos-page .btn-enroll:disabled {
+    background-color: transparent !important;
+    color: #a7f3d0 !important; /* emerald-200 (ajustado para subir um tom) */
+    border: 1px dashed #d1fae5 !important; /* emerald-100 (ajustado para subir um tom) */
+    opacity: 0.9;
 }
 
 /* 1. VIEW DETALHES (Azul) */
 .inscritos-page .btn-view {
-    background-color: #eff6ff; /* blue-50 */
-    color: #3b82f6; /* blue-500 */
+    background-color: #bfdbfe; /* blue-200 */
+    color: #1d4ed8; /* blue-700 */
 }
 .inscritos-page .btn-view:hover {
-    background-color: #dbeafe; /* blue-100 */
-    color: #2563eb; /* blue-600 */
+    background-color: #93c5fd; /* blue-300 */
+    color: #1e40af; /* blue-800 */
 }
 
-/* 2. EDITAR (Cinza/Neutro ou Amarelo subtil) */
+/* 2. EDITAR (Cinza/Neutro) */
 .inscritos-page .btn-edit {
-    background-color: #f8fafc; /* slate-50 */
-    color: #64748b; /* slate-500 */
+    background-color: #e2e8f0; /* slate-200 */
+    color: #334155; /* slate-700 */
 }
 .inscritos-page .btn-edit:hover {
-    background-color: #f1f5f9; /* slate-100 */
-    color: #475569; /* slate-600 */
+    background-color: #cbd5e1; /* slate-300 */
+    color: #1e293b; /* slate-800 */
 }
 
 /* 3. AVALIAR (Roxo) */
 .inscritos-page .btn-evaluate {
-    background-color: #f5f3ff; /* violet-50 */
-    color: #8b5cf6; /* violet-500 */
+    background-color: #ddd6fe; /* violet-200 */
+    color: #6d28d9; /* violet-700 */
 }
 .inscritos-page .btn-evaluate:hover {
-    background-color: #ede9fe; /* violet-100 */
-    color: #7c3aed; /* violet-600 */
+    background-color: #c4b5fd; /* violet-300 */
+    color: #5b21b6; /* violet-800 */
 }
 
-/* 4. MATRICULAR (Verde/Teal) - Default Disabled State handled generally */
-.inscritos-page .btn-enroll {
-    background-color: #f0fdf4; /* green-50 - placeholder logic */
-    color: #cbd5e1; /* slate-300 disabled logic override */
-}
-
+/* 4. MATRICULAR (Verde/Teal) */
 /* MATRICULAR - ACTIVE (Aprovado) */
 .inscritos-page .btn-enroll.can-enroll {
-    background-color: #ecfdf5; /* emerald-50 */
-    color: #10b981; /* emerald-500 */
+    background-color: #a7f3d0; /* emerald-200 */
+    color: #047857; /* emerald-700 */
 }
 .inscritos-page .btn-enroll.can-enroll:hover {
-    background-color: #d1fae5; /* emerald-100 */
-    color: #059669; /* emerald-600 */
+    background-color: #6ee7b7; /* emerald-300 */
+    color: #065f46; /* emerald-800 */
 }
 
 /* Botão Atualizar (Header) */
@@ -369,10 +381,6 @@ tbody .clickable-row:hover {
 }
 
 /* modal-overlay agora em Global.css */
-
-.inscritos-page .detail-modal-card {
-    /* Dimensões e background agora herdados de .detail-modal-card global */
-}
 
 .btn-close-modal {
     position: absolute;
@@ -1323,6 +1331,7 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
   .data-table th {
     background: #f0f0f0 !important;
     -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     color: black !important;
   }
 

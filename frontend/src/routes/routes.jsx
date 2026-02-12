@@ -29,24 +29,37 @@ import Perfil from "../pages/Perfil/Perfil";
 
 // PrivateRoute now keeps the layout mounted even during loading
 const PrivateRoute = ({ children }) => {
-    const { signed, loading } = useAuth();
+    const { signed, loading, user } = useAuth();
     
-    // If still loading auth, show the Loader
-    if (loading) {
+    // SEO optimization: if we have a user in session, don't block the initial render
+    const hasSession = !!sessionStorage.getItem('@App:token');
+
+    // If still loading auth and NO session, show the Loader
+    if (loading && !hasSession) {
         return <Loader />;
     }
     
-    return signed ? (children || <Outlet />) : <Navigate to="/login" replace />;
+    return (signed || hasSession) ? (children || <Outlet />) : <Navigate to="/login" replace />;
 };
 
 // Permission Guard
 const PermissionRoute = ({ children, permission }) => {
     const { hasPermission } = usePermission();
-    const { loading } = useAuth();
+    const { signed, loading } = useAuth();
     
-    // Show Loader while checking auth/permissions
-    if (loading) return <Loader />;
+    // Check if we have a token but user state isn't ready
+    const hasToken = !!sessionStorage.getItem('@App:token');
+
+    // 1. If not logged in and no token, go to login
+    if (!signed && !hasToken) return <Navigate to="/login" replace />;
+
+    // 2. If loading (restoring session), wait. 
+    // Do not redirect to dashboard yet if we are just waiting for user data.
+    if (loading || (hasToken && !signed)) {
+        return <Loader />; // Or null to avoid flickering if mostly fast
+    }
     
+    // 3. User is ready. Check permission.
     return hasPermission(permission) ? children : <Navigate to="/dashboard" replace />;
 };
 
@@ -55,9 +68,7 @@ const ProtectedLayout = () => {
     return (
         <PrivateRoute>
             <Layout>
-                <Suspense fallback={<Loader />}> 
-                    <Outlet />
-                </Suspense>
+                <Outlet />
             </Layout>
         </PrivateRoute>
     );
