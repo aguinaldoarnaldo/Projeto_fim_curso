@@ -16,8 +16,6 @@ from apis.views import (
     TipoDisciplinaViewSet, DisciplinaViewSet, DisciplinaCursoViewSet,
 
     ProfessorDisciplinaViewSet, NotaViewSet, FaltaAlunoViewSet,
-    DocumentoViewSet, SolicitacaoDocumentoViewSet,
-    CategoriaViewSet, LivroViewSet,
     FaturaViewSet, PagamentoViewSet,
     CandidaturaViewSet,
     ListaEsperaViewSet,
@@ -56,14 +54,6 @@ router.register(r'disciplina-curso', DisciplinaCursoViewSet, basename='disciplin
 router.register(r'professor-disciplina', ProfessorDisciplinaViewSet, basename='professor-disciplina')
 router.register(r'notas', NotaViewSet, basename='nota')
 router.register(r'faltas', FaltaAlunoViewSet, basename='falta')
-
-# Documentos
-router.register(r'documentos', DocumentoViewSet, basename='documento')
-router.register(r'solicitacoes', SolicitacaoDocumentoViewSet, basename='solicitacao')
-
-# Biblioteca
-router.register(r'categorias', CategoriaViewSet, basename='categoria')
-router.register(r'livros', LivroViewSet, basename='livro')
 
 # Financeiro
 router.register(r'faturas', FaturaViewSet, basename='fatura')

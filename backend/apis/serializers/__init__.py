@@ -19,14 +19,6 @@ from .avaliacao_serializers import (
     NotaSerializer, NotaListSerializer, NotaLancamentoLoteSerializer,
     FaltaAlunoSerializer, FaltaAlunoListSerializer
 )
-from .documento_serializers import (
-    DocumentoSerializer, DocumentoListSerializer,
-    SolicitacaoDocumentoSerializer, SolicitacaoDocumentoListSerializer,
-    SolicitacaoDocumentoAprovarSerializer, SolicitacaoDocumentoRejeitarSerializer
-)
-from .biblioteca_serializers import (
-    CategoriaSerializer, LivroSerializer, LivroListSerializer
-)
 from .financeiro_serializers import (
     FaturaSerializer, FaturaListSerializer,
     PagamentoSerializer, PagamentoListSerializer
@@ -57,12 +49,6 @@ __all__ = [
     'DisciplinaCursoSerializer', 'ProfessorDisciplinaSerializer',
     'NotaSerializer', 'NotaListSerializer', 'NotaLancamentoLoteSerializer',
     'FaltaAlunoSerializer', 'FaltaAlunoListSerializer',
-    # Documentos
-    'DocumentoSerializer', 'DocumentoListSerializer',
-    'SolicitacaoDocumentoSerializer', 'SolicitacaoDocumentoListSerializer',
-    'SolicitacaoDocumentoAprovarSerializer', 'SolicitacaoDocumentoRejeitarSerializer',
-    # Biblioteca
-    'CategoriaSerializer', 'LivroSerializer', 'LivroListSerializer',
     # Financeiro
     'FaturaSerializer', 'FaturaListSerializer',
     'PagamentoSerializer', 'PagamentoListSerializer',

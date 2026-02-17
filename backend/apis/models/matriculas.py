@@ -93,23 +93,86 @@ class Matricula(models.Model):
         return f"Matrícula {self.id_matricula} - {self.id_aluno.nome_completo}"
 
     def clean(self):
+        # Se o ano lectivo selecionado estiver encerrado, mas existir um ano ativo, mudar para o ativo
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+            active_year = AnoLectivo.get_active_year()
+            if active_year:
+                self.ano_lectivo = active_year
+
         if self.ano_lectivo and not self.ano_lectivo.activo:
              raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
         
         # Se veio de uma turma, garantir que o ano_lectivo seja o da turma
         if self.id_turma and self.id_turma.ano_lectivo:
             if self.ano_lectivo and self.ano_lectivo != self.id_turma.ano_lectivo:
-                raise ValidationError("O Ano Lectivo da matrícula deve ser o mesmo da Turma.")
-            self.ano_lectivo = self.id_turma.ano_lectivo
+                # Permitir se o ano da turma estiver encerrado e o da matrícula for o ativo (Reutilização de Turma)
+                is_turma_closed = self.id_turma.ano_lectivo and not self.id_turma.ano_lectivo.activo
+                is_matricula_active = self.ano_lectivo.activo
+                
+                if is_turma_closed and is_matricula_active:
+                    pass
+                else:
+                    raise ValidationError("O Ano Lectivo da matrícula deve ser o mesmo da Turma.")
+            
+            # Não forçar mais o ano da turma se estivermos numa transição de ano
+            if not (self.id_turma.ano_lectivo and not self.id_turma.ano_lectivo.activo):
+                self.ano_lectivo = self.id_turma.ano_lectivo
             
         if not self.ano_lectivo:
             raise ValidationError("O Ano Lectivo é obrigatório para realizar a matrícula.")
+
+        # Validação de Documentos Obrigatórios (Produção)
+        # Se for uma matrícula nova e não houver documentos, e não pudermos herdar de matrículas anteriores
+        has_bi = bool(self.doc_bi)
+        has_cert = bool(self.doc_certificado)
+
+        if not has_bi or not has_cert:
+            # Tentar herdar de matrículas anteriores
+            last_mat = Matricula.objects.filter(
+                id_aluno=self.id_aluno
+            ).exclude(pk=self.pk).order_by('-data_matricula', '-id_matricula').first()
+
+            if last_mat:
+                if not has_bi and last_mat.doc_bi:
+                    has_bi = True
+                if not has_cert and last_mat.doc_certificado:
+                    has_cert = True
+            
+            # Se ainda assim não tiver, lançar erro
+            errors = {}
+            if not has_bi:
+                errors['doc_bi'] = "O documento de identificação (BI) é obrigatório."
+            if not has_cert:
+                errors['doc_certificado'] = "O certificado de habilitações é obrigatório."
+            
+            if errors:
+                raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         # Auto-assign active year if not provided
         if not self.ano_lectivo:
             self.ano_lectivo = AnoLectivo.get_active_year()
             
+        # Se for string (ex: enviado via API como nome em vez de ID)
+        if isinstance(self.ano_lectivo, str):
+            if self.ano_lectivo.isdigit():
+                 self.ano_lectivo = AnoLectivo.objects.get(pk=int(self.ano_lectivo))
+            else:
+                 self.ano_lectivo = AnoLectivo.objects.filter(nome=self.ano_lectivo).first()
+
+        # Se o ano lectivo selecionado estiver encerrado, mas existir um ano ativo, mudar para o ativo
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+            active_year = AnoLectivo.get_active_year()
+            if active_year:
+                self.ano_lectivo = active_year
+
+        # Strict Check
+        if not self.ano_lectivo:
+             raise ValidationError("Não existe um Ano Lectivo Ativo no sistema. É necessário abrir um novo ano lectivo para realizar matrículas.")
+
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError(f"O Ano Lectivo '{self.ano_lectivo.nome}' está encerrado. Não são permitidas novas matrículas ou alterações.")
+             
         self.clean()
         
         # Check capacity and notify if full

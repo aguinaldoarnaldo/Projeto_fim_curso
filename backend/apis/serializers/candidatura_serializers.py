@@ -8,6 +8,7 @@ class CandidatoSerializer(serializers.ModelSerializer):
     nota_exame = serializers.SerializerMethodField()
     exame_data = serializers.SerializerMethodField()
     exame_sala = serializers.SerializerMethodField()
+    rupe_historico = serializers.SerializerMethodField()
     
     
     class Meta:
@@ -38,6 +39,14 @@ class CandidatoSerializer(serializers.ModelSerializer):
         return None
 
     def get_exame_data(self, obj):
+        # Ocultar data do exame se as candidaturas ainda estiverem abertas (prazo não atingido)
+        from apis.models import Configuracao
+        from django.utils import timezone
+        config = Configuracao.get_solo()
+        
+        if config.data_fim_candidatura and timezone.now() < config.data_fim_candidatura:
+            return None
+
         if hasattr(obj, 'exame'):
             return obj.exame.data_exame
         return None
@@ -59,9 +68,21 @@ class CandidatoSerializer(serializers.ModelSerializer):
         return None
 
     def get_exame_sala(self, obj):
+        # Ocultar sala do exame se as candidaturas ainda estiverem abertas
+        from apis.models import Configuracao
+        from django.utils import timezone
+        config = Configuracao.get_solo()
+        
+        if config.data_fim_candidatura and timezone.now() < config.data_fim_candidatura:
+            return "Disponível após o fim das inscrições"
+
         if hasattr(obj, 'exame') and obj.exame.sala:
             return f"Sala {obj.exame.sala.numero_sala} ({obj.exame.sala.bloco or 'Bloco A'})"
         return None
+
+    def get_rupe_historico(self, obj):
+        rupes = obj.rupes.all().order_by('-criado_em')
+        return RupeCandidatoSerializer(rupes, many=True).data
 
 class CandidatoCreateSerializer(serializers.ModelSerializer):
     """Serializer para inscricao publica"""
@@ -82,9 +103,11 @@ class CandidatoCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_candidato', 'numero_inscricao']
 
 class RupeCandidatoSerializer(serializers.ModelSerializer):
+    is_expired = serializers.BooleanField(read_only=True)
+    
     class Meta:
         model = RupeCandidato
-        fields = '__all__'
+        fields = ['id_rupe', 'referencia', 'valor', 'status', 'data_pagamento', 'criado_em', 'is_expired']
 
 class ListaEsperaSerializer(serializers.ModelSerializer):
     candidato_nome = serializers.CharField(source='candidato.nome_completo', read_only=True)

@@ -43,7 +43,7 @@
 .avatar-circle {
     width: 100%;
     height: 100%;
-    border-radius: 36px; /* Slightly squared for modern look */
+    border-radius: 50%; /* Perfectly circular */
     overflow: hidden;
     background: #eff6ff;
     border: 4px solid white;
@@ -410,4 +410,98 @@
     .content-island-v3 {
         padding: 24px;
     }
+}
+
+/* Flat Clean List Style (v6) */
+.view-mode-flat {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* Spacing handled by padding */
+}
+
+.flat-item {
+    padding: 24px 0;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.flat-item:first-child {
+    padding-top: 10px;
+}
+
+.flat-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.flat-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flat-value {
+    font-size: 17px;
+    font-weight: 500;
+    color: #1e293b;
+    line-height: 1.5;
+}
+
+.flat-value.empty {
+    color: #cbd5e1;
+    font-style: italic;
+}
+
+/* Edit Pill Button */
+.header-actions {
+    margin-left: auto;
+}
+
+.edit-pill-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: white;
+    color: #64748b;
+    border: 2px solid #e2e8f0;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-pill-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Cancel Button */
+.cancel-button-v3 {
+    padding: 18px 32px;
+    border-radius: 18px;
+    background: white;
+    color: #64748b;
+    border: 2px solid #f1f5f9;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-button-v3:hover {
+    background: #f8fafc;
+    color: #334155;
+    border-color: #cbd5e1;
 }

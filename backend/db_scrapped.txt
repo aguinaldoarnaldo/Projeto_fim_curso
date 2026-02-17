@@ -1,0 +1,24 @@
+Checking historico_escolar table columns:
+COL: aluno_id | TYPE: integer
+COL: ano_lectivo | TYPE: character varying
+COL: classe | TYPE: character varying
+COL: criado_em | TYPE: timestamp with time zone
+COL: documento | TYPE: character varying
+COL: escola_origem | TYPE: character varying
+COL: id_historico | TYPE: integer
+COL: media_final | TYPE: numeric
+COL: numero_processo_origem | TYPE: character varying
+COL: observacoes | TYPE: text
+COL: turma_origem | TYPE: character varying
+
+Checking matricula table columns:
+COL: ano_lectivo_id | TYPE: integer
+COL: ativo | TYPE: boolean
+COL: data_matricula | TYPE: date
+COL: doc_bi | TYPE: character varying
+COL: doc_certificado | TYPE: character varying
+COL: id_aluno_id | TYPE: integer
+COL: id_matricula | TYPE: integer
+COL: id_turma_id | TYPE: integer
+COL: status | TYPE: character varying
+COL: tipo | TYPE: character varying

@@ -412,7 +412,7 @@ const Inscritos = () => {
   };
 
   // Sorting State
-  const [sortConfig, setSortConfig] = useState({ key: 'nota9', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'real_id', direction: 'desc' });
 
   const requestSort = (key) => {
     let direction = 'asc';

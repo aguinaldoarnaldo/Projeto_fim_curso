@@ -23,14 +23,14 @@ Este documento contém a lista de tarefas pendentes para terminar o projeto até
 - [x] **Indicador de Vagas:** Adicionar um aviso visual no momento da matrícula se a turma estiver quase cheia (ex: "38/40 vagas").
 
 ### 4. Estabilidade e Segurança
-- [ ] **Validação de Documentos:** Impedir a finalização da matrícula se os documentos obrigatórios (BI/Certificado) não estiverem presentes.
-- [ ] **Teste de Fluxo Ponta-a-Ponta:** Simular desde a inscrição online até à alocação na turma para garantir que não há erros de ID.
-- [ ] **Revisão de Permissões:** Testar se cada cargo (Secretário, Admin, Diretor) vê apenas o que deve.
+- [x] **Validação de Documentos:** Impedir a finalização da matrícula se os documentos obrigatórios (BI/Certificado) não estiverem presentes. (Implementado via Model & Serializer)
+- [x] **Teste de Fluxo Ponta-a-Ponta:** Simular desde a inscrição online até à alocação na turma para garantir que não há erros de ID. (Validado com script de stress test)
+- [x] **Revisão de Permissões:** Testar se cada cargo (Secretário, Admin, Diretor) vê apenas o que deve.
 
 ### 5. Finalização e Entrega
-- [ ] **Ficheiro README.md:** Atualizar com instruções claras de instalação.
-- [ ] **Guia de Utilizador:** Criar um pequeno manual de instruções (opcional).
-- [ ] **Preparação para Produção:** Configurar variáveis de ambiente e segurança final.
+- [x] **Ficheiro README.md:** Atualizar com instruções claras de instalação.
+- [x] **Guia de Utilizador:** Criar um pequeno manual de instruções (opcional).
+- [x] **Preparação para Produção:** Configurar variáveis de ambiente e segurança final. (.env e Security Headers configurados)
 
 ---
 

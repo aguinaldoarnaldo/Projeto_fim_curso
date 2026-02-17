@@ -12,6 +12,7 @@ class FaturaSerializer(serializers.ModelSerializer):
         fields = [
             'id_fatura', 'id_aluno', 'aluno_nome', 'ano_lectivo', 'ano_lectivo_nome', 'descricao', 'total',
             'status', 'data_vencimento', 'data_pagamento',
+            'referencia_pagamento', 'data_emissao_referencia', 'referencia_expirada',
             'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['id_fatura', 'criado_em', 'atualizado_em']
@@ -24,7 +25,7 @@ class FaturaListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Fatura
-        fields = ['id_fatura', 'aluno_nome', 'ano_lectivo_nome', 'descricao', 'total', 'status', 'data_vencimento']
+        fields = ['id_fatura', 'aluno_nome', 'ano_lectivo_nome', 'descricao', 'total', 'status', 'data_vencimento', 'referencia_pagamento']
 
 
 class PagamentoSerializer(serializers.ModelSerializer):

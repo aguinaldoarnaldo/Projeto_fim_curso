@@ -80,7 +80,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       </div>
 
       <nav className="sidebar-nav">
-        {menuItems.map((item) => (
+        {menuItems.map((item) => {
+          if (item.permission && !hasPermission(item.permission)) return null;
+          
+          return (
             <NavLink
               key={item.path}
               to={item.path}
@@ -89,7 +92,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               {item.icon}
               {isOpen && <span>{item.name}</span>}
             </NavLink>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">

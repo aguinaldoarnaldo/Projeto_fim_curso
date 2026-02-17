@@ -174,7 +174,7 @@
 .student-avatar {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: 50%; /* Circular */
     background: var(--bg-color);
     color: var(--primary-color);
     display: flex;
@@ -254,7 +254,7 @@
 .profile-avatar-large {
     width: 160px; /* Increased from 120px */
     height: 160px; /* Increased from 120px */
-    border-radius: 40px;
+    border-radius: 50%; /* Circular */
     background: rgba(255,255,255,0.1);
     backdrop-filter: blur(10px);
     display: flex;

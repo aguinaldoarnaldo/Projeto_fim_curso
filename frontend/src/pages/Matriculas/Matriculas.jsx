@@ -24,7 +24,8 @@ import {
     ArrowDown,
     ChevronRight,
     MapPin, // Added for Sala
-    Users // Added for Turma
+    Users, // Added for Turma
+    Lock
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -138,10 +139,10 @@ const Matriculas = () => {
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
             alunoId: item.id_aluno, // Use correct ID field from serializer
             detalhes: {
-                bi: item.bi || item.numero_bi || 'N/A', 
-                genero: item.genero || 'N/A',
+                bi: item.aluno_bi || item.bi || item.numero_bi || 'N/A', 
+                genero: item.aluno_genero || item.genero || 'N/A',
                 nif: item.nif || 'N/A',
-                dataNascimento: item.data_nascimento || 'N/A',
+                dataNascimento: item.aluno_data_nascimento || item.data_nascimento || 'N/A',
                 encarregado: item.encarregado_nome || 'N/A', 
                 parentesco: item.encarregado_parentesco || 'N/A',
                 telefoneEncarregado: item.encarregado_telefone || 'N/A',
@@ -158,6 +159,8 @@ const Matriculas = () => {
                 profissao_encarregado: item.encarregado_profissao || '',
                 pagamentoStatus: item.ativo ? 'Confirmado' : 'Pendente',
                 documentos: item.documentos_entregues ? item.documentos_entregues.split(',') : [],
+                doc_bi: item.doc_bi,
+                doc_cert: item.doc_certificado,
                 historico: item.historico_escolar || [] 
             }
         }));
@@ -197,8 +200,11 @@ const Matriculas = () => {
                 if (salasRes.data.results || Array.isArray(salasRes.data))
                      setSalasDisponiveis(salasRes.data.results || salasRes.data);
 
-                if (turmasRes.data.results || Array.isArray(turmasRes.data))
-                     setTurmasDisponiveis(turmasRes.data.results || turmasRes.data);
+                if (turmasRes.data.results || Array.isArray(turmasRes.data)) {
+                     const allTurmas = turmasRes.data.results || turmasRes.data;
+                     // Only show active turmas in the filter dropdown to avoid confusion with past years
+                     setTurmasDisponiveis(allTurmas.filter(t => t.status === 'Ativa'));
+                }
 
             } catch (e) {
                 console.error("Error fetching filter options", e);
@@ -252,7 +258,18 @@ const Matriculas = () => {
             refresh(true);
         } catch (err) {
             console.error("Erro ao atualizar matrícula:", err);
-            alert("Erro ao atualizar matrícula.");
+            
+            let msg = "Erro ao atualizar matrícula.";
+             if (err.response?.data) {
+                const data = err.response.data;
+                if (data.detail) {
+                     msg = data.detail;
+                } else if (typeof data === 'object') {
+                    const errors = Object.values(data).flat();
+                    if (errors.length > 0) msg = errors[0];
+                }
+            }
+            alert(`Erro: ${msg}`);
         }
     };
 
@@ -275,7 +292,7 @@ const Matriculas = () => {
     };
 
     // Sorting State
-    const [sortConfig, setSortConfig] = useState({ key: 'aluno', direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'real_id', direction: 'desc' });
 
     const requestSort = (key) => {
         let direction = 'asc';
@@ -326,20 +343,49 @@ const Matriculas = () => {
     }, [matriculas, searchTerm, filters, sortConfig]);
 
     const getStatusBadge = (status) => {
-        switch (status) {
-            case 'Ativa': return <span className="status-badge status-confirmed">Ativa</span>;
-            case 'Confirmada': return <span className="status-badge status-confirmed">Confirmada</span>;
-            case 'Concluida': return <span className="status-badge status-success">Concluída</span>;
-            case 'Transferido': return <span className="status-badge status-warning">Transferido</span>;
-            case 'Desistente': return <span className="status-badge status-danger">Desistente</span>;
-            default: return <span className="status-badge status-default">{status}</span>;
-        }
+        if (!status) return <span className="status-badge status-default">N/A</span>;
+        
+        // Normalizamos para minúsculo para garantir o match com as chaves abaixo
+        const normalizedStatus = String(status).toLowerCase();
+        
+        // Mapeamento estrito conforme o Backend (models.py)
+        // STATUS_MATRICULA = ['Ativa', 'Confirmada', 'Concluida', 'Desistente', 'Transferido']
+        const statusMap = {
+            // Status: Ativa / Confirmada -> Verde
+            'ativa': 'status-confirmed',
+            'confirmada': 'status-confirmed',
+
+            // Status: Concluida -> Verde Sucesso
+            'concluida': 'status-success',
+            
+            // Status: Transferido -> Azul
+            'transferido': 'status-info',
+            
+            // Status: Desistente -> Vermelho
+            'desistente': 'status-danger',
+        };
+
+        // Fallback: se o status não estiver no mapa, usa status-default (Cinza)
+        const badgeClass = statusMap[normalizedStatus] || 'status-default';
+        
+        return (
+            <span className={`status-badge ${badgeClass}`}>
+                {String(status).toUpperCase()}
+            </span>
+        );
     };
 
     // Get current items
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredMatriculas.slice(indexOfFirstItem, indexOfLastItem);
+
+    // 5. Active Year Logic
+    const activeYear = useMemo(() => {
+        return anosDisponiveis.find(a => a.activo) || null;
+    }, [anosDisponiveis]);
+
+    const isYearClosed = !activeYear; // Or if we need to check specifically against selected year filter
 
     // Filter Configurations
     const filterConfigs = useMemo(() => [
@@ -377,6 +423,37 @@ const Matriculas = () => {
 
     return (
         <div className="page-container matriculas-page">
+            {isYearClosed && (
+                <div style={{
+                    background: '#fef2f2',
+                    borderLeft: '4px solid #ef4444',
+                    padding: '12px 16px',
+                    margin: '0 0 20px 0',
+                    borderRadius: '0 8px 8px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#991b1b',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }}>
+                    <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: '#fee2e2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <Lock size={14} color="#dc2626" />
+                    </div>
+                    <span>
+                        <strong>Ano Lectivo Encerrado:</strong> Todas as operações de edição, criação e permuta estão desactivadas. Contacte o administrador para reabrir.
+                    </span>
+                </div>
+            )}
+
             <header className="page-header">
                 <div className="page-header-content">
                     <div>
@@ -387,8 +464,10 @@ const Matriculas = () => {
                         {hasPermission(PERMISSIONS.EDIT_MATRICULA) && (
                             <button
                                 onClick={() => setShowPermutaModal(true)}
-                                className="btn-permuta"
-                                title="Trocar turmas entre alunos"
+                                className={`btn-permuta ${isYearClosed ? 'disabled' : ''}`}
+                                title={isYearClosed ? "Ano lectivo encerrado" : "Trocar turmas entre alunos"}
+                                disabled={isYearClosed}
+                                style={isYearClosed ? { opacity: 0.5, cursor: 'not-allowed', background: '#e2e8f0', color: '#64748b' } : {}}
                             >
                                 <ArrowRightLeft size={18} /> Permuta
                             </button>
@@ -396,7 +475,10 @@ const Matriculas = () => {
                         {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                             <button
                                 onClick={() => navigate('/matriculas/nova')}
-                                className="btn-new-matricula"
+                                className={`btn-new-matricula ${isYearClosed ? 'disabled' : ''}`}
+                                disabled={isYearClosed}
+                                style={isYearClosed ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8', boxShadow: 'none' } : {}}
+                                title={isYearClosed ? "Ano lectivo encerrado" : "Nova Matrícula"}
                             >
                                 <Calendar size={18} /> Nova Matrícula
                             </button>
@@ -736,7 +818,7 @@ const Matriculas = () => {
                                         <div><p className="info-label">Endereço</p><p className="info-value">{selectedMatricula.detalhes.endereco}</p></div>
                                     </div>
                                 </div>
-
+                                
                                 {/* 2. Dados Académicos */}
                                 <div className="info-section">
                                     <div className="section-title"><BookOpen size={20} color="#b45309" /> Informações Académicas</div>
@@ -753,6 +835,21 @@ const Matriculas = () => {
                                                     <p className="info-value" style={{fontSize: '18px'}}>{selectedMatricula.sala} • {selectedMatricula.turma}</p>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* 3. Contactos & Encarregado */}
+                                <div className="info-section">
+                                    <div className="section-title" style={{ color: '#0ea5e9' }}>
+                                        <Phone size={20} color="#0ea5e9" /> Contactos & Encarregado
+                                    </div>
+                                    <div className="info-grid-2">
+                                        <div><p className="info-label">Telefone</p><p className="info-value">{selectedMatricula.detalhes.telefoneEncarregado || 'N/A'}</p></div>
+                                        <div><p className="info-label">Encarregado (Vínculo)</p><p className="info-value">{selectedMatricula.detalhes.encarregado}</p></div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <p className="info-label">Grau de Parentesco</p>
+                                            <p className="info-value" style={{ fontSize: '15px' }}>{selectedMatricula.detalhes.parentesco}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -813,16 +910,65 @@ const Matriculas = () => {
                                         </div>
 
                                         <div style={{ flex: 1.5, minWidth: '240px' }}>
-                                            <p className="info-label" style={{marginBottom: '10px'}}>DOCUMENTOS ENTREGUES</p>
-                                            <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
-                                                {selectedMatricula.detalhes.documentos.length > 0 ? selectedMatricula.detalhes.documentos.map((doc, i) => (
-                                                    <span key={i} style={{
-                                                        background: 'white', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px'
-                                                    }}>
-                                                        <CheckCircle size={14} color="#b45309"/> {doc}
-                                                    </span>
-                                                )) : <span style={{color: '#94a3b8', fontStyle: 'italic'}}>Nenhum documento registado.</span>}
+                                            <p className="info-label" style={{marginBottom: '10px'}}>VISUALIZAR DOCUMENTOS ANEXADOS</p>
+                                            <div style={{display: 'flex', flexWrap: 'wrap', gap: '12px'}}>
+                                                {selectedMatricula.detalhes.doc_bi ? (
+                                                    <a 
+                                                        href={selectedMatricula.detalhes.doc_bi} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="doc-view-btn"
+                                                        style={{
+                                                            background: '#eff6ff', 
+                                                            border: '1px solid #bfdbfe', 
+                                                            padding: '10px 16px', 
+                                                            borderRadius: '10px', 
+                                                            fontSize: '13px', 
+                                                            fontWeight: '600', 
+                                                            color: '#1d4ed8', 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            gap: '8px',
+                                                            textDecoration: 'none',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        <FileText size={16} /> Ver B.I
+                                                    </a>
+                                                ) : (
+                                                    <span style={{color: '#94a3b8', fontSize: '12px', border: '1px dashed #cbd5e1', padding: '10px 16px', borderRadius: '10px'}}>B.I não disponível</span>
+                                                )}
+
+                                                {selectedMatricula.detalhes.doc_cert ? (
+                                                    <a 
+                                                        href={selectedMatricula.detalhes.doc_cert} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="doc-view-btn"
+                                                        style={{
+                                                            background: '#f0fdf4', 
+                                                            border: '1px solid #bbf7d0', 
+                                                            padding: '10px 16px', 
+                                                            borderRadius: '10px', 
+                                                            fontSize: '13px', 
+                                                            fontWeight: '600', 
+                                                            color: '#15803d', 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            gap: '8px',
+                                                            textDecoration: 'none',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        <FileText size={16} /> Ver Certificado
+                                                    </a>
+                                                ) : (
+                                                    <span style={{color: '#94a3b8', fontSize: '12px', border: '1px dashed #cbd5e1', padding: '10px 16px', borderRadius: '10px'}}>Certificado não disponível</span>
+                                                )}
                                             </div>
+                                            <p style={{fontSize: '11px', color: '#64748b', marginTop: '12px'}}>
+                                                * Documentos anexados durante a candidatura ou matrícula.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -928,7 +1074,15 @@ const Matriculas = () => {
                     {hasPermission(PERMISSIONS.EDIT_MATRICULA) && (
                         <button 
                             className="dropdown-item" 
-                            onClick={() => { handleEdit(menuMatricula); setActiveMenuId(null); setMenuMatricula(null); }}
+                            onClick={() => { 
+                                if (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) {
+                                    handleEdit(menuMatricula); 
+                                    setActiveMenuId(null); 
+                                    setMenuMatricula(null); 
+                                } else {
+                                     alert("Não é possível editar matrículas de anos lectivos encerrados.");
+                                }
+                            }}
                             style={{
                                 width: '100%',
                                 textAlign: 'left',
@@ -936,19 +1090,23 @@ const Matriculas = () => {
                                 background: 'transparent',
                                 border: 'none',
                                 borderRadius: '8px',
-                                cursor: 'pointer',
+                                cursor: (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? 'pointer' : 'not-allowed',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '10px',
-                                color: '#1e293b',
+                                color: (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? '#1e293b' : '#94a3b8',
                                 fontSize: '14px',
                                 fontWeight: 500,
-                                marginBottom: '2px'
+                                marginBottom: '2px',
+                                opacity: (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? 1 : 0.6
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseOver={(e) => { 
+                                if (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) e.currentTarget.style.background = '#f8fafc'; 
+                            }}
                             onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            title={(!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? "Editar" : "Ano Encerrado"}
                         >
-                            <Edit size={16} color="#64748b" /> Editar Matrícula
+                            <Edit size={16} color={(!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? "#64748b" : "#cbd5e1"} /> Editar Matrícula
                         </button>
                     )}
 
@@ -961,7 +1119,13 @@ const Matriculas = () => {
                             </div>
                             <button 
                                 className="dropdown-item success" 
-                                onClick={() => navigate('/matriculas/nova', { state: { matricula: menuMatricula, tipo: 'Confirmacao' } })}
+                                onClick={() => {
+                                     if (!isYearClosed) {
+                                        navigate('/matriculas/nova', { state: { matricula: menuMatricula, tipo: 'Confirmacao' } })
+                                     } else {
+                                        alert("Crie um Ano Lectivo Ativo para poder confirmar matrículas."); 
+                                     }
+                                }}
                                 style={{
                                     width: '100%',
                                     textAlign: 'left',
@@ -969,18 +1133,20 @@ const Matriculas = () => {
                                     background: 'transparent',
                                     border: 'none',
                                     borderRadius: '8px',
-                                    cursor: 'pointer',
+                                    cursor: !isYearClosed ? 'pointer' : 'not-allowed',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '10px',
-                                    color: '#059669',
+                                    color: !isYearClosed ? '#059669' : '#94a3b8',
                                     fontSize: '14px',
-                                    fontWeight: 600
+                                    fontWeight: 600,
+                                    opacity: !isYearClosed ? 1 : 0.6
                                 }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#ecfdf5'}
+                                onMouseOver={(e) => { if (!isYearClosed) e.currentTarget.style.background = '#ecfdf5'; }}
                                 onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                                title={!isYearClosed ? "Confirmar para o novo ano" : "Não há ano lectivo ativo"}
                             >
-                                <CheckCircle size={16} color="#059669" /> Confirmar Matrícula
+                                <CheckCircle size={16} color={!isYearClosed ? "#059669" : "#cbd5e1"} /> Confirmar Matrícula
                             </button>
                         </div>
                     )}

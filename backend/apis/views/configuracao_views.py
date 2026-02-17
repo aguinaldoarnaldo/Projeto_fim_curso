@@ -26,6 +26,14 @@ class ConfiguracaoViewSet(viewsets.GenericViewSet):
     def list(self, request):
         """Retorna a configuração singleton"""
         config = Configuracao.get_solo()
+        
+        # Lógica de fechamento automático
+        from django.utils import timezone
+        if config.candidaturas_abertas and config.fechamento_automatico and config.data_fim_candidatura:
+            if timezone.now() > config.data_fim_candidatura:
+                config.candidaturas_abertas = False
+                config.save()
+        
         serializer = self.get_serializer(config)
         return Response(serializer.data)
 

@@ -9,10 +9,7 @@ const Layout = ({ children }) => {
     const [isNavigating, setIsNavigating] = useState(false);
 
     // Sidebar state persistido
-    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-        const saved = localStorage.getItem('@App:sidebarOpen');
-        return saved !== null ? JSON.parse(saved) : true;
-    });
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     // Detectar navegação para feedback visual
     useEffect(() => {

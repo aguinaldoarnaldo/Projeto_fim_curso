@@ -20,8 +20,19 @@ class AnoLectivo(BaseModel):
         
     def save(self, *args, **kwargs):
         if self.activo:
-            # Se este ano for marcado como activo, desactivar todos os outros
+            # Se este ano for marcado como activo:
+            # 1. Encontrar o ano ativo anterior (excluindo este se já existir)
+            from django.apps import apps
+            Turma = apps.get_model('apis', 'Turma')
+            
+            old_active = AnoLectivo.objects.filter(activo=True).exclude(pk=self.pk).first()
+            if old_active:
+                # 2. Marcar Turmas do ano anterior como Concluídas
+                Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
+            
+            # 3. Desactivar todos os outros anos
             AnoLectivo.objects.filter(activo=True).exclude(pk=self.pk).update(activo=False)
+            
         super().save(*args, **kwargs)
         
     def __str__(self):
@@ -235,6 +246,13 @@ class Turma(BaseModel):
         if not self.ano_lectivo:
             self.ano_lectivo = AnoLectivo.get_active_year()
             
+        # Validação estrita: Impedir operações se não houver ano lectivo ativo
+        if not self.ano_lectivo:
+             raise ValidationError("Não existe um Ano Lectivo Ativo no sistema. É necessário abrir um novo ano lectivo para criar turmas.")
+
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError(f"O Ano Lectivo '{self.ano_lectivo.nome}' está encerrado. Não são permitidas alterações ou criações neste ano.")
+
         if self.id_sala and self.id_curso and self.id_classe and self.id_periodo:
             sala = str(self.id_sala.numero_sala)
             curso = self.id_curso.nome_curso[:2].upper()
@@ -249,9 +267,6 @@ class Turma(BaseModel):
             ano_suffix = str(ano_str)[-2:] if ano_str else "25"
             
             self.codigo_turma = f"{sala}{curso}{classe}{periodo}{ano_suffix}"
-            
-        if self.ano_lectivo and not self.ano_lectivo.activo:
-             raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
 
         super().save(*args, **kwargs)
 

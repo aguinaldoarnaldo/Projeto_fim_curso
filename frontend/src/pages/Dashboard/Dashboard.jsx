@@ -214,57 +214,67 @@ const Dashboard = () => {
       {/* KPI GRID */}
       <div className="kpi-grid">
         {/* 1. ALUNOS */}
-        <div className="kpi-card card-premium-blue">
-          <div className="kpi-icon-floating"><Users size={24} /></div>
-          <div className="kpi-content">
-            <h3>{kpiData.alunos.total}</h3>
-            <span className="kpi-label">Total Alunos</span>
+        {hasPermission(PERMISSIONS.VIEW_ALUNOS) && (
+          <div className="kpi-card card-premium-blue">
+            <div className="kpi-icon-floating"><Users size={24} /></div>
+            <div className="kpi-content">
+              <h3>{kpiData.alunos.total}</h3>
+              <span className="kpi-label">Total Alunos</span>
+            </div>
+            <div className="kpi-mini-stats">
+              <span className="mini-stat active">Ativos: {kpiData.alunos.ativos}</span>
+              <span className="mini-stat locked">Trancados: {kpiData.alunos.trancados}</span>
+            </div>
           </div>
-          <div className="kpi-mini-stats">
-            <span className="mini-stat active">Ativos: {kpiData.alunos.ativos}</span>
-            <span className="mini-stat locked">Trancados: {kpiData.alunos.trancados}</span>
-          </div>
-        </div>
+        )}
 
         {/* 2. TURMAS */}
-        <div className="kpi-card card-premium-purple">
-          <div className="kpi-icon-floating"><Layers size={24} /></div>
-          <div className="kpi-content">
-            <h3>{kpiData.turmas.total}</h3>
-            <span className="kpi-label">Total Turmas</span>
+        {hasPermission(PERMISSIONS.VIEW_TURMAS) && (
+          <div className="kpi-card card-premium-purple">
+            <div className="kpi-icon-floating"><Layers size={24} /></div>
+            <div className="kpi-content">
+              <h3>{kpiData.turmas.total}</h3>
+              <span className="kpi-label">Total Turmas</span>
+            </div>
+            <div className="kpi-mini-stats">
+              <span className="mini-stat active">Ativas: {kpiData.turmas.ativas}</span>
+              <span className="mini-stat">Concluídas: {kpiData.turmas.concluidas}</span>
+            </div>
           </div>
-          <div className="kpi-mini-stats">
-            <span className="mini-stat active">Ativas: {kpiData.turmas.ativas}</span>
-            <span className="mini-stat">Concluídas: {kpiData.turmas.concluidas}</span>
-          </div>
-        </div>
+        )}
 
         {/* 3. SALAS */}
-        <div className="kpi-card card-premium-orange">
-          <div className="kpi-icon-floating"><DoorOpen size={24} /></div>
-          <div className="kpi-content">
-            <h3>{countSalas}</h3>
-            <span className="kpi-label">Salas</span>
+        {hasPermission(PERMISSIONS.VIEW_SALAS) && (
+          <div className="kpi-card card-premium-orange">
+            <div className="kpi-icon-floating"><DoorOpen size={24} /></div>
+            <div className="kpi-content">
+              <h3>{countSalas}</h3>
+              <span className="kpi-label">Salas</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 4. CLASSES */}
-        <div className="kpi-card card-premium-teal">
-          <div className="kpi-icon-floating"><BookOpen size={24} /></div>
-          <div className="kpi-content">
-            <h3>{countClasses}</h3>
-            <span className="kpi-label">Classes</span>
+        {hasPermission(PERMISSIONS.VIEW_CURSOS) && (
+          <div className="kpi-card card-premium-teal">
+            <div className="kpi-icon-floating"><BookOpen size={24} /></div>
+            <div className="kpi-content">
+              <h3>{countClasses}</h3>
+              <span className="kpi-label">Classes</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 5. CURSOS */}
-        <div className="kpi-card card-premium-indigo">
-          <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
-          <div className="kpi-content">
-            <h3>{countCursos}</h3>
-            <span className="kpi-label">Cursos</span>
+        {hasPermission(PERMISSIONS.VIEW_CURSOS) && (
+          <div className="kpi-card card-premium-indigo">
+            <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
+            <div className="kpi-content">
+              <h3>{countCursos}</h3>
+              <span className="kpi-label">Cursos</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* GRID: CHARTS + CALENDAR */}

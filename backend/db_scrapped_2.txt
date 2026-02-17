@@ -1,0 +1,14 @@
+Checking turma table columns:
+COL: ano | TYPE: character varying
+COL: ano_lectivo_id | TYPE: integer
+COL: atualizado_em | TYPE: timestamp with time zone
+COL: capacidade | TYPE: integer
+COL: codigo_turma | TYPE: character varying
+COL: criado_em | TYPE: timestamp with time zone
+COL: id_classe_id | TYPE: integer
+COL: id_curso_id | TYPE: integer
+COL: id_periodo_id | TYPE: integer
+COL: id_responsavel_id | TYPE: integer
+COL: id_sala_id | TYPE: integer
+COL: id_turma | TYPE: integer
+COL: status | TYPE: character varying

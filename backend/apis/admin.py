@@ -13,10 +13,6 @@ from apis.models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao, Curso, Periodo, Turma, AnoLectivo,
     # Avaliações
     TipoDisciplina, Disciplina, DisciplinaCurso, ProfessorDisciplina, Nota, FaltaAluno,
-    # Documentos
-    Documento, SolicitacaoDocumento,
-    # Biblioteca
-    Categoria, Livro,
     # Financeiro
     Fatura, Pagamento,
     # Matrículas
@@ -392,29 +388,7 @@ class NotaAdmin(ModelAdmin):
         return format_html('<span class="badge badge-{}">{}</span>', color, obj.valor)
 
 
-@admin.register(SolicitacaoDocumento)
-class SolicitacaoDocumentoAdmin(ModelAdmin):
-    list_display = ['id_solicitacao', 'tipo_documento', 'aluno_nome', 'status_badge', 'data_solicitacao']
-    list_filter = ['status_solicitacao', 'tipo_documento']
-    search_fields = ['tipo_documento', 'id_aluno__nome_completo']
-    list_per_page = 20
-    
-    @display(description='Aluno', ordering='id_aluno__nome_completo')
-    def aluno_nome(self, obj):
-        if obj.id_aluno:
-            return obj.id_aluno.nome_completo
-        return '-'
-    
-    @display(description='Status', ordering='status_solicitacao')
-    def status_badge(self, obj):
-        colors = {
-            'pendente': 'warning',
-            'aprovado': 'success',
-            'rejeitado': 'danger',
-            'pago': 'info'
-        }
-        color = colors.get(obj.status_solicitacao, 'secondary')
-        return format_html('<span class="badge badge-{}">{}</span>', color, obj.status_solicitacao.title())
+
 
 
 @admin.register(Fatura)
@@ -465,9 +439,6 @@ admin.site.register(TipoDisciplina, ModelAdmin)
 admin.site.register(DisciplinaCurso, ModelAdmin)
 admin.site.register(ProfessorDisciplina, ModelAdmin)
 admin.site.register(FaltaAluno, ModelAdmin)
-admin.site.register(Documento, ModelAdmin)
-admin.site.register(Categoria, ModelAdmin)
-admin.site.register(Livro, ModelAdmin)
 admin.site.register(Pagamento, ModelAdmin)
 admin.site.register(Inscricao, ModelAdmin)
 from django import forms

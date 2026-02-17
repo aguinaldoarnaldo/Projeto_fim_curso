@@ -8,3 +8,4 @@ psycopg2-binary>=2.9
 Pillow>=10.0
 django-unfold>=0.30.0
 xhtml2pdf>=0.2.11
+python-dotenv>=1.0.0

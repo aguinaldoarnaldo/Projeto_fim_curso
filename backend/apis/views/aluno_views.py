@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 
 from apis.models import Aluno, AlunoEncarregado
 from apis.serializers import (
@@ -26,7 +26,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
         'alunoencarregado_set__id_encarregado'
     ).all()
     
-    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     
     # Mapeamento de permissões por ação
     permission_map = {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, ClipboardList, BookOpen, GraduationCap, CheckCircle, Send, UploadCloud, CreditCard, Calendar, Search } from 'lucide-react';
+import { User, ClipboardList, BookOpen, GraduationCap, CheckCircle, Send, UploadCloud, CreditCard, Calendar, Search, AlertTriangle, History, RefreshCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Candidatura.css';
@@ -14,6 +14,56 @@ const api = axios.create({
 });
 
 import { useConfig } from '../../../context/ConfigContext';
+
+const CountdownTimer = ({ targetDate }) => {
+    const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+
+    function calculateTimeLeft() {
+        if (!targetDate) return null;
+        const difference = +new Date(targetDate) - +new Date();
+        let timeLeft = {};
+
+        if (difference > 0) {
+            timeLeft = {
+                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                minutes: Math.floor((difference / 1000 / 60) % 60),
+                seconds: Math.floor((difference / 1000) % 60),
+            };
+        } else {
+            return { expired: true };
+        }
+        return timeLeft;
+    }
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [targetDate]);
+
+    if (!timeLeft || timeLeft.expired) return null;
+
+    return (
+        <div className="countdown-timer" style={{
+            display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '20px',
+            background: 'rgba(255, 255, 255, 0.1)', padding: '15px', borderRadius: '12px',
+            backdropFilter: 'blur(5px)', border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+            {Object.keys(timeLeft).map((interval) => (
+                <div key={interval} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'white' }}>
+                        {timeLeft[interval].toString().padStart(2, '0')}
+                    </div>
+                    <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.7)', letterSpacing: '1px' }}>
+                        {interval === 'days' ? 'Dias' : interval === 'hours' ? 'Horas' : interval === 'minutes' ? 'Min' : 'Seg'}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 const Candidatura = () => {
     const navigate = useNavigate();
@@ -546,7 +596,19 @@ const Candidatura = () => {
                     </div>
                 </div>
 
-                <div style={{maxWidth: '450px', margin: '32px auto 0', textAlign: 'center'}}>
+                <div style={{maxWidth: '450px', margin: '32px auto 0', textAlign: 'left', background: '#fffbeb', padding: '20px', borderRadius: '16px', border: '1px solid #fde68a'}}>
+                    <div style={{display: 'flex', gap: '12px', marginBottom: '16px'}}>
+                        <AlertTriangle size={20} color="#d97706" />
+                        <h4 style={{fontSize: '15px', fontWeight: '700', color: '#92400e', margin: 0}}>Atenção ao Prazo e Pagamento</h4>
+                    </div>
+                    <ul style={{fontSize: '13px', color: '#92400e', paddingLeft: '20px', margin: 0}}>
+                        <li style={{marginBottom: '8px'}}>Esta referência <strong>expira em 48 horas</strong>. Se não pagar a tempo, terá de gerar uma nova.</li>
+                        <li style={{marginBottom: '8px'}}>Pode pagar no <strong>ATM (Multicaixa)</strong>: Escolha Pagamentos {'>'} Pagamentos ao Estado {'>'} RUPE.</li>
+                        <li>Introduza a referência e o montante exatos. O sistema confirma automaticamente.</li>
+                    </ul>
+                </div>
+
+                <div style={{maxWidth: '450px', margin: '24px auto 0', textAlign: 'center'}}>
                     <p className="payment-hint" style={{fontSize: '14px', color: '#94a3b8', marginBottom: '16px'}}>
                         O sistema irá confirmar automaticamente após a transação.
                     </p>
@@ -643,11 +705,19 @@ const Candidatura = () => {
                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px'}}>
                         <div>
                             <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>DATA & HORA</span>
-                            <strong style={{fontSize: '16px', color: '#334155'}}>25 Jan 2026 • 08:00</strong>
+                            <strong style={{fontSize: '16px', color: '#334155'}}>
+                                {new Date() < new Date(config.data_fim_candidatura) 
+                                    ? "Disponível em breve" 
+                                    : (createdCandidate?.exame_data ? new Date(createdCandidate.exame_data).toLocaleString() : "A definir")}
+                            </strong>
                         </div>
                         <div>
                             <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>LOCAL</span>
-                            <strong style={{fontSize: '16px', color: '#334155'}}>Bloco A, Sala 12</strong>
+                            <strong style={{fontSize: '16px', color: '#334155'}}>
+                                {new Date() < new Date(config.data_fim_candidatura) 
+                                    ? "Consultar no portal" 
+                                    : (createdCandidate?.exame_sala || "A definir")}
+                            </strong>
                         </div>
                     </div>
                 
@@ -827,25 +897,33 @@ const Candidatura = () => {
                         {consultResult.status === 'Agendado' && consultResult.exame_data && (
                             <div style={{gridColumn: 'span 2', background: '#eff6ff', padding: '16px', borderRadius: '16px', border: '1px solid #dbeafe', marginTop: '16px'}}>
                                 <strong>📅 Agendamento de Exame</strong>
-                                <div style={{display: 'flex', gap: '24px', marginTop: '12px'}}>
-                                    <div>
-                                        <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>DATA E HORA</p>
-                                        <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>
-                                            {new Date(consultResult.exame_data).toLocaleDateString()} às {new Date(consultResult.exame_data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                {new Date() < new Date(config.data_fim_candidatura) ? (
+                                    <p style={{fontSize: '14px', color: '#1e40af', marginTop: '12px'}}>
+                                        A data e sala do exame serão publicadas após o encerramento das inscrições (<strong>{new Date(config.data_fim_candidatura).toLocaleDateString()}</strong>).
+                                    </p>
+                                ) : (
+                                    <>
+                                        <div style={{display: 'flex', gap: '24px', marginTop: '12px'}}>
+                                            <div>
+                                                <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>DATA E HORA</p>
+                                                <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>
+                                                    {new Date(consultResult.exame_data).toLocaleDateString()} às {new Date(consultResult.exame_data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>LOCAL / SALA</p>
+                                                <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>{consultResult.exame_sala || 'A definir'}</p>
+                                            </div>
+                                        </div>
+                                        <p style={{fontSize: '13px', color: '#1e40af', marginTop: '12px', opacity: 0.8}}>
+                                            * Compareça com 30 minutos de antecedência portando o seu BI original.
                                         </p>
-                                    </div>
-                                    <div>
-                                        <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>LOCAL / SALA</p>
-                                        <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>{consultResult.exame_sala || 'A definir'}</p>
-                                    </div>
-                                </div>
-                                <p style={{fontSize: '13px', color: '#1e40af', marginTop: '12px', opacity: 0.8}}>
-                                    * Compareça com 30 minutos de antecedência portando o seu BI original.
-                                </p>
+                                    </>
+                                )}
                             </div>
                         )}
                         
-                        <div style={{marginTop: '20px', textAlign: 'center'}}>
+                        <div style={{marginTop: '20px', textAlign: 'center', display: 'flex', gap: '12px', justifyContent: 'center'}}>
                             <button 
                                 onClick={() => handleDownloadComprovativo(consultResult.id_candidato || consultResult.id)}
                                 className="btn-secondary-action"
@@ -865,6 +943,83 @@ const Candidatura = () => {
                                 <ClipboardList size={16} /> Baixar Comprovativo
                             </button>
                         </div>
+
+                        {consultResult.rupe_historico && consultResult.rupe_historico.length > 0 && (
+                            <div style={{gridColumn: 'span 2', marginTop: '24px', borderTop: '1px solid #f1f5f9', paddingTop: '24px'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px'}}>
+                                    <History size={18} color="#64748b" />
+                                    <strong style={{color: '#475569'}}>Histórico de Pagamentos (RUPE)</strong>
+                                </div>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    {consultResult.rupe_historico.map((rupe, index) => (
+                                        <div key={rupe.id_rupe} style={{
+                                            background: index === 0 ? '#f8fafc' : 'white',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '16px',
+                                            borderRadius: '12px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <div>
+                                                <div style={{fontSize: '14px', fontWeight: '700', color: '#1e293b'}}>Ref: {rupe.referencia}</div>
+                                                <div style={{fontSize: '12px', color: '#94a3b8'}}>Gerado em: {new Date(rupe.criado_em).toLocaleString()}</div>
+                                            </div>
+                                            <div style={{textAlign: 'right'}}>
+                                                <span style={{
+                                                    fontSize: '11px',
+                                                    fontWeight: '700',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '6px',
+                                                    textTransform: 'uppercase',
+                                                    background: rupe.status === 'Pago' ? '#dcfce7' : (rupe.is_expired ? '#fee2e2' : '#fff7ed'),
+                                                    color: rupe.status === 'Pago' ? '#166534' : (rupe.is_expired ? '#b91c1c' : '#9a3412')
+                                                }}>
+                                                    {rupe.status === 'Pago' ? 'Pago' : (rupe.is_expired ? 'Expirado' : 'Pendente')}
+                                                </span>
+                                                <div style={{fontSize: '14px', fontWeight: '700', color: '#1e293b', marginTop: '4px'}}>
+                                                    {parseFloat(rupe.valor).toLocaleString()} Kz
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {consultResult.rupe_historico[0].status === 'Pendente' && consultResult.rupe_historico[0].is_expired && consultResult.rupe_historico.length < 2 && (
+                                    <div style={{marginTop: '16px', padding: '16px', background: '#fff7ed', borderRadius: '12px', border: '1px solid #fed7aa'}}>
+                                        <p style={{fontSize: '14px', color: '#9a3412', margin: '0 0 12px 0'}}>
+                                            A sua referência RUPE <strong>expirou</strong>. Pode gerar uma nova (limite de 2).
+                                        </p>
+                                        <button 
+                                            onClick={async () => {
+                                                setLoading(true);
+                                                try {
+                                                    const response = await api.post(`candidaturas/${consultResult.id_candidato || consultResult.id}/gerar_rupe/`);
+                                                    alert(response.data.mensagem);
+                                                    handleConsultStatus(new Event('submit')); // Refresh data
+                                                } catch (err) {
+                                                    alert(err.response?.data?.erro || "Erro ao gerar nova referência.");
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }}
+                                            className="btn-primary"
+                                            style={{
+                                                padding: '10px 16px',
+                                                fontSize: '14px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                width: 'auto'
+                                            }}
+                                            disabled={loading}
+                                        >
+                                            <RefreshCcw size={16} /> Gerar Nova Referência
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         
 
 
@@ -890,6 +1045,12 @@ const Candidatura = () => {
                     <div className="hero-logo">Sistema de Gestão de matriculas IPM3050</div>
                     <h1 className="hero-title">{config.nome_escola || "Portal de Admissão 2026"}</h1>
                     <p className="hero-description">Inscreva-se agora para garantir o seu futuro. Processo 100% digital, rápido e seguro.</p>
+                    {config.data_fim_candidatura && (
+                        <div style={{marginTop: '20px'}}>
+                            <p style={{color: 'white', opacity: 0.9, fontSize: '14px', marginBottom: '8px'}}>As candidaturas terminam em:</p>
+                            <CountdownTimer targetDate={config.data_fim_candidatura} />
+                        </div>
+                    )}
                     
                     <div className="tab-container">
                         <button 

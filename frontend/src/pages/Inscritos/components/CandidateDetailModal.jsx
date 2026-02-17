@@ -220,9 +220,11 @@ const CandidateDetailModal = ({
                         !rupGenerated ? (
                             <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', textAlign: 'center' }}>
                               <p style={{marginBottom: '16px', color: '#475569'}}>Este candidato ainda não tem Referência de Pagamento.</p>
-                              <button className="btn-finish" onClick={onGenerateRUP} style={{maxWidth: '400px', margin: '0 auto'}}>
-                                <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Validar Inscrição e Gerar RUP
-                              </button>
+                              {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
+                                <button className="btn-finish" onClick={onGenerateRUP} style={{maxWidth: '400px', margin: '0 auto'}}>
+                                  <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Validar Inscrição e Gerar RUP
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <div className="rup-container">

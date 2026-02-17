@@ -70,8 +70,8 @@ const TopNavbar = ({ onMenuClick }) => {
                             <span className="user-role-top">{user?.role || 'Administrador'}</span>
                         </div>
                         <div className="user-avatar-top">
-                            {user?.profilePhoto ? (
-                                 <img src={user.profilePhoto} alt={displayName} />
+                            {user?.foto ? (
+                                 <img src={user.foto} alt={displayName} />
                             ) : (
                                  getInitials(displayName)
                             )}
@@ -82,8 +82,8 @@ const TopNavbar = ({ onMenuClick }) => {
                         <div className="user-dropdown">
                             <div className="user-dropdown-header">
                                 <div className="user-avatar-large">
-                                    {user?.profilePhoto ? (
-                                        <img src={user.profilePhoto} alt={displayName} />
+                                    {user?.foto ? (
+                                        <img src={user.foto} alt={displayName} />
                                     ) : (
                                         getInitials(displayName)
                                     )}
