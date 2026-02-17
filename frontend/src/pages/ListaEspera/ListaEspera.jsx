@@ -25,6 +25,17 @@ const ListaEspera = () => {
         ano: '' // If supported by backend or derived
     });
 
+    // Sorting State
+    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'desc' });
+
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
 
     // Get courses for filter
@@ -86,7 +97,7 @@ const ListaEspera = () => {
     };
 
     const filtered = useMemo(() => {
-        return lista.filter(item => {
+        let sortableItems = lista.filter(item => {
             const matchesSearch = 
                 (item.candidato_nome?.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (item.candidato_numero?.includes(searchTerm));
@@ -97,7 +108,22 @@ const ListaEspera = () => {
             
             return matchesSearch && matchesCurso && matchesStatus;
         });
-    }, [lista, searchTerm, filters]);
+
+        if (sortConfig.key) {
+            sortableItems.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+                
+                if (aValue === null) aValue = '';
+                if (bValue === null) bValue = '';
+                
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [lista, searchTerm, filters, sortConfig]);
 
 
     const filterConfigs = useMemo(() => [

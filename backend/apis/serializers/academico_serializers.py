@@ -130,6 +130,7 @@ class PeriodoSerializer(serializers.ModelSerializer):
 
 class TurmaSerializer(serializers.ModelSerializer):
     """Serializer para Turma"""
+    ano_lectivo_ativo = serializers.SerializerMethodField()
     sala_numero = serializers.IntegerField(source='id_sala.numero_sala', read_only=True)
     curso_nome = serializers.CharField(source='id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_classe.nivel', read_only=True)
@@ -147,9 +148,12 @@ class TurmaSerializer(serializers.ModelSerializer):
             'id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'sala_capacidade',
             'id_curso', 'curso_nome', 'id_classe', 'classe_nivel', 'classe_nome',
             'id_periodo', 'periodo_nome', 'ano', 'ano_lectivo', 'ano_lectivo_nome', 'status', 'id_responsavel',
-            'responsavel_nome', 'total_alunos', 'capacidade', 'criado_em', 'atualizado_em'
+            'responsavel_nome', 'total_alunos', 'capacidade', 'criado_em', 'atualizado_em', 'ano_lectivo_ativo'
         ]
         read_only_fields = ['id_turma', 'codigo_turma', 'criado_em', 'atualizado_em']
+        
+    def get_ano_lectivo_ativo(self, obj):
+        return obj.ano_lectivo.activo if obj.ano_lectivo else False
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno
@@ -158,6 +162,7 @@ class TurmaSerializer(serializers.ModelSerializer):
 
 class TurmaListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem de Turmas"""
+    ano_lectivo_ativo = serializers.SerializerMethodField()
     sala_numero = serializers.IntegerField(source='id_sala.numero_sala', read_only=True)
     curso_nome = serializers.CharField(source='id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_classe.nivel', read_only=True)
@@ -174,8 +179,11 @@ class TurmaListSerializer(serializers.ModelSerializer):
             'id_turma', 'codigo_turma', 'id_sala', 'sala_numero', 'sala_capacidade',
             'id_curso', 'curso_nome', 'id_classe', 'classe_nivel', 'classe_nome',
             'id_periodo', 'periodo_nome', 'status', 'ano', 'ano_lectivo', 'ano_lectivo_nome',
-            'total_alunos', 'responsavel_nome', 'capacidade'
+            'total_alunos', 'responsavel_nome', 'capacidade', 'ano_lectivo_ativo'
         ]
+        
+    def get_ano_lectivo_ativo(self, obj):
+        return obj.ano_lectivo.activo if obj.ano_lectivo else False
         
     def get_total_alunos(self, obj):
         from apis.models import Aluno

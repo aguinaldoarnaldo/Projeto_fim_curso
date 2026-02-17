@@ -273,7 +273,7 @@
 .user-avatar-v2 {
     width: 56px;
     height: 56px;
-    border-radius: 18px;
+    border-radius: 50%; /* Circular */
     background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
     color: white;
     display: flex;

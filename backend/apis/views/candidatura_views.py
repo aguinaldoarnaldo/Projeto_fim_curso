@@ -109,7 +109,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def gerar_rupe(self, request, pk=None):
-        """Gera RUPE para o candidato"""
+        """Gera RUPE para o candidato (limite de 2 referências)"""
         candidato = self.get_object()
         
         # Logica de Cobranca: 1 RUPE por curso
@@ -120,27 +120,53 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         valor_unitario = Decimal('2000.00') # Exemplo 2000 Kz
         total = valor_unitario * qtd_cursos
         
-        # Check if already exists
+        # Histórico de RUPEs deste candidato
+        rupes_existentes = RupeCandidato.objects.filter(candidato=candidato).order_by('-criado_em')
+        rupe_ativo = None
+        
+        # Verificar se existe algum RUPE pago ou pendente válido
+        for r in rupes_existentes:
+            if r.status == 'Pago':
+                return Response({'erro': 'Já existe um pagamento confirmado para esta candidatura.'}, status=400)
+            if not r.is_expired:
+                rupe_ativo = r
+                break
+        
+        if rupe_ativo:
+            return Response({
+                'mensagem': 'RUPE atual ainda é válido.',
+                'referencia': rupe_ativo.referencia,
+                'valor': rupe_ativo.valor,
+                'status': rupe_ativo.status,
+                'expira_em': (rupe_ativo.criado_em + datetime.timedelta(hours=48))
+            })
+
+        # Se não há RUPE ativo, verificar o limite de 2
+        if rupes_existentes.count() >= 2:
+            return Response({
+                'erro': 'Limite de referências RUPE atingido (máximo 2).',
+                'detalhe': 'As suas referências anteriores expiraram. Por favor, contacte a administração.'
+            }, status=403)
+        
+        # Gerar nova referência
+        import random
         import datetime
-        rupe = RupeCandidato.objects.filter(candidato=candidato).first()
-        if not rupe:
-            # Generate a numeric reference (simulation)
-            import random
-            ano = datetime.datetime.now().year
-            ref_num = f"{ano}.{random.randint(10000000, 99999999)}"
-            
-            rupe = RupeCandidato.objects.create(
-                candidato=candidato,
-                valor=total,
-                status='Pendente',
-                referencia=ref_num
-            )
+        ano = datetime.datetime.now().year
+        ref_num = f"{ano}.{random.randint(10000000, 99999999)}"
+        
+        rupe = RupeCandidato.objects.create(
+            candidato=candidato,
+            valor=total,
+            status='Pendente',
+            referencia=ref_num
+        )
         
         return Response({
-            'mensagem': 'RUPE gerado com sucesso',
+            'mensagem': 'Nova referência RUPE gerada com sucesso.',
             'referencia': rupe.referencia,
             'valor': rupe.valor,
-            'status': rupe.status
+            'status': rupe.status,
+            'expira_em': (rupe.criado_em + datetime.timedelta(hours=48))
         })
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
@@ -338,32 +364,38 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def avaliar(self, request, pk=None):
         """Avalia o exame do candidato"""
-        candidato = self.get_object()
-        nota = request.data.get('nota')
-        
-        if nota is None:
-            return Response({'erro': 'Informe a nota'}, status=400)
-            
         try:
-            nota = Decimal(str(nota))
-        except:
-             return Response({'erro': 'Nota invalida'}, status=400)
-             
-        # Update Exam
-        exame, _ = ExameAdmissao.objects.get_or_create(candidato=candidato, defaults={'data_exame': '2026-01-25'})
-        exame.nota = nota
-        exame.realizado = True
-        exame.save()
-        
-        # Update Status
-        aprovado = nota >= 10
-        candidato.status = 'Aprovado' if aprovado else 'Reprovado' # Or 'Nao Admitido'
-        candidato.save()
-        
-        return Response({
-            'status': candidato.status,
-            'nota': exame.nota
-        })
+            candidato = self.get_object()
+            nota = request.data.get('nota')
+            
+            if nota is None:
+                return Response({'erro': 'Informe a nota'}, status=400)
+                
+            try:
+                nota = Decimal(str(nota))
+            except:
+                 return Response({'erro': 'Nota invalida'}, status=400)
+                 
+            # Update Exam
+            from apis.models import ExameAdmissao
+            exame, _ = ExameAdmissao.objects.get_or_create(candidato=candidato, defaults={'data_exame': '2026-01-25'})
+            exame.nota = nota
+            exame.realizado = True
+            exame.save()
+            
+            # Update Status
+            aprovado = nota >= 10
+            candidato.status = 'Aprovado' if aprovado else 'Reprovado'
+            candidato.save()
+            
+            return Response({
+                'status': candidato.status,
+                'nota': exame.nota
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'erro': f'Erro ao avaliar: {str(e)}'}, status=500)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def matricular(self, request, pk=None):

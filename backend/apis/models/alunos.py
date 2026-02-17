@@ -56,6 +56,24 @@ class Aluno(BaseModel):
         return f"{self.nome_completo} - {self.numero_matricula}"
 
     def save(self, *args, **kwargs):
+        # Gerar número de matrícula se não existir
+        if not self.numero_matricula:
+            import datetime
+            year = datetime.datetime.now().year
+            start_range = year * 10000
+            end_range = (year + 1) * 10000
+            
+            # Pegar o último número do ano atual para evitar conflitos
+            last = Aluno.objects.filter(
+                numero_matricula__gte=start_range,
+                numero_matricula__lt=end_range
+            ).order_by('-numero_matricula').first()
+            
+            if last and last.numero_matricula:
+                self.numero_matricula = last.numero_matricula + 1
+            else:
+                self.numero_matricula = start_range + 1
+
         # Se a senha não estiver criptografada
         if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
             self.senha_hash = make_password(self.senha_hash)

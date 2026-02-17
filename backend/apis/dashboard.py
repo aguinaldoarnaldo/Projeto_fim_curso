@@ -1,7 +1,7 @@
 
 from django.db.models import Count, Avg, Sum
 from apis.models import (
-    Aluno, Funcionario, Turma, Curso, SolicitacaoDocumento, Fatura, Nota
+    Aluno, Funcionario, Turma, Curso, Fatura, Nota
 )
 
 def dashboard_callback(request, context):
@@ -14,9 +14,6 @@ def dashboard_callback(request, context):
         total_funcionarios = Funcionario.objects.filter(status_funcionario='Activo').count()
         total_turmas = Turma.objects.count()
         total_cursos = Curso.objects.count()
-        
-        # Solicitações pendentes
-        solicitacoes_pendentes = SolicitacaoDocumento.objects.filter(status_solicitacao='pendente').count()
         
         # Faturas pendentes
         faturas_pendentes = Fatura.objects.filter(status='pendente').count()
@@ -55,13 +52,6 @@ def dashboard_callback(request, context):
                     'footer': 'Média geral das avaliações',
                     'icon': 'trending_up',
                     'color': 'success' if media_geral >= 10 else 'danger',
-                },
-                {
-                    'title': 'Pendências de Documentação',
-                    'metric': solicitacoes_pendentes,
-                    'footer': 'Solicitações pendentes',
-                    'icon': 'description',
-                    'color': 'warning' if solicitacoes_pendentes > 0 else 'success',
                 },
                 {
                     'title': 'Saúde Financeira',

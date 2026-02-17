@@ -1,11 +1,9 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.hashers import check_password, make_password
-from django.contrib.auth.models import User
-from apis.models import Usuario, Funcionario, Aluno, Encarregado, HistoricoLogin
 
 
 def get_client_ip(request):
@@ -32,15 +30,11 @@ def get_user_agent_info(request):
 @permission_classes([AllowAny])
 def login_view(request):
     """
-    Endpoint de login para Funcionários, Alunos e Encarregados
-    
-    Body:
-    {
-        "email": "usuario@exemplo.com",
-        "senha": "senha123",
-        "tipo_usuario": "funcionario" | "aluno" | "encarregado"
-    }
+    Endpoint de login unificado para Funcionários, Alunos e Encarregados.
+    Utiliza AuthService para abstrair a complexidade de múltiplos tipos de usuários.
     """
+    from apis.services.auth_service import AuthService
+
     email = request.data.get('email')
     senha = request.data.get('senha')
     tipo_usuario = request.data.get('tipo_usuario', 'funcionario')
@@ -51,394 +45,137 @@ def login_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    user = None
-    user_data = {}
-    
     try:
-        # Buscar usuário baseado no tipo
-        if tipo_usuario == 'funcionario' or tipo_usuario == 'usuario':
-            user_profile = None
-            try:
-                user_profile = Usuario.objects.get(email=email)
-            except Usuario.DoesNotExist:
-                # Tenta buscar no User nativo caso o perfil não exista
-                try:
-                    django_user = User.objects.get(email=email)
-                    user_profile = Usuario.objects.create(
-                        user=django_user,
-                        email=django_user.email,
-                        nome_completo=django_user.get_full_name() or django_user.username,
-                        papel='Admin' if django_user.is_superuser else 'Comum',
-                        is_superuser=django_user.is_superuser
-                    )
-                except User.DoesNotExist:
-                    # Tenta buscar por username se email falhar
-                    try:
-                        django_user = User.objects.get(username=email)
-                        user_profile, _ = Usuario.objects.get_or_create(
-                            user=django_user,
-                            defaults={
-                                'email': django_user.email or f"{django_user.username}@sistema.local",
-                                'nome_completo': django_user.get_full_name() or django_user.username,
-                                'papel': 'Admin' if django_user.is_superuser else 'Comum',
-                                'is_superuser': django_user.is_superuser
-                            }
-                        )
-                    except User.DoesNotExist:
-                        return Response(
-                            {'error': 'Usuário não encontrado'},
-                            status=status.HTTP_404_NOT_FOUND
-                        )
+        # 1. Autenticar Usuário
+        user_obj, user_data = AuthService.authenticate_user(email, senha, tipo_usuario)
+        
+        # 2. Gerar Tokens
+        tokens = AuthService.generate_tokens(user_data)
+        
+        # 3. Registrar Log de Atividade
+        AuthService.log_login_activity(user_obj, tipo_usuario, request)
+        
+        # 4. Preparar Resposta (Remover campos internos sensíveis)
+        response_user = user_data.copy()
+        if 'profile_id' in response_user:
+            response_user['id'] = response_user.pop('profile_id')
             
-            user = user_profile
-            
-            # Verificar senha (prioriza User do Django se existir)
-            password_valid = False
-            if user.user:
-                password_valid = user.user.check_password(senha)
-            else:
-                password_valid = check_password(senha, user.senha_hash)
+        # Adicionar URL completa da foto se existir (o Service retorna o objeto ImageField)
+        if 'foto_obj' in response_user:
+            foto_obj = response_user.pop('foto_obj')
+            response_user['foto'] = request.build_absolute_uri(foto_obj.url) if foto_obj else None
 
-            if password_valid:
-                user_data = {
-                    'id': user.id_usuario,
-                    'tipo': 'usuario',
-                    'nome': user.nome_completo,
-                    'email': user.email,
-                    'cargo': user.cargo.nome_cargo if user.cargo else None,
-                    'status': 'Activo' if user.is_active else 'Inactivo',
-                    'papel': user.papel,
-                    'permissoes': user.permissoes,
-                    'is_superuser': user.is_superuser or (user.user.is_superuser if user.user else False),
-                    'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None
-                }
-                # Se for superuser, garantir papel Admin
-                if user_data['is_superuser']:
-                    user_data['papel'] = 'Admin'
-                
-                # Atualizar status online
-                user.is_online = True
-                user.save()
-
-            else:
-                return Response(
-                    {'error': 'Senha incorreta'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-                
-        elif tipo_usuario == 'aluno':
-            user = Aluno.objects.get(email=email)
-            if check_password(senha, user.senha_hash):
-                user_data = {
-                    'id': user.id_aluno,
-                    'tipo': 'aluno',
-                    'nome': user.nome_completo,
-                    'email': user.email,
-                    'numero_matricula': user.numero_matricula,
-                    'turma': user.id_turma.codigo_turma if user.id_turma else None,
-                    'status': user.status_aluno
-                }
-                # Atualizar status online
-                user.is_online = True
-                user.save()
-            else:
-                return Response(
-                    {'error': 'Senha incorreta'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-                
-        elif tipo_usuario == 'encarregado':
-            user = Encarregado.objects.get(email=email)
-            if check_password(senha, user.senha_hash):
-                user_data = {
-                    'id': user.id_encarregado,
-                    'tipo': 'encarregado',
-                    'nome': user.nome_completo,
-                    'email': user.email
-                }
-                # Atualizar status online
-                user.is_online = True
-                user.save()
-            else:
-                return Response(
-                    {'error': 'Senha incorreta'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-        else:
-            return Response(
-                {'error': 'Tipo de usuário inválido'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Gerar tokens JWT
-        refresh = RefreshToken()
-        refresh['user_id'] = user_data['id']
-        refresh['user_type'] = user_data['tipo']
-        
-        # Adicionar claims também ao token de acesso
-        access_token = refresh.access_token
-        access_token['user_id'] = user_data['id']
-        access_token['user_type'] = user_data['tipo']
-        
-        # Registrar histórico de login
-        user_agent_info = get_user_agent_info(request)
-        historico_data = {
-            'ip_usuario': get_client_ip(request),
-            'dispositivo': user_agent_info['dispositivo'],
-            'navegador': user_agent_info['navegador']
-        }
-        
-        if tipo_usuario == 'funcionario' or tipo_usuario == 'usuario':
-            historico_data['id_usuario'] = user
-        elif tipo_usuario == 'aluno':
-            historico_data['id_aluno'] = user
-        elif tipo_usuario == 'encarregado':
-            historico_data['id_encarregado'] = user
-        
-        HistoricoLogin.objects.create(**historico_data)
-        
         return Response({
-            'access': str(access_token),
-            'refresh': str(refresh),
-            'user': user_data
+            'access': tokens['access'],
+            'refresh': tokens['refresh'],
+            'user': response_user
         }, status=status.HTTP_200_OK)
-        
-    except (Usuario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
-        return Response(
-            {'error': 'Usuário não encontrado'},
-            status=status.HTTP_404_NOT_FOUND
-        )
+
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
-        return Response(
-            {'error': f'Erro no login: {str(e)}'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        # Logar erro real no servidor se necessário
+        print(f"Erro Crítico no Login: {str(e)}")
+        return Response({'error': 'Erro interno ao processar login.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def logout_view(request):
     """
-    Endpoint de logout
-    
-    Body:
-    {
-        "user_id": 1,
-        "user_type": "funcionario" | "aluno" | "encarregado"
-    }
+    Endpoint de logout.
     """
-    user_id = request.data.get('user_id')
-    user_type = request.data.get('user_type')
+    from apis.services.auth_service import AuthService
     
     try:
-        # Atualizar status online
-        if user_type == 'funcionario' or user_type == 'usuario':
-            user = Usuario.objects.get(id_usuario=user_id)
-            user.is_online = False
-            user.save()
-        elif user_type == 'aluno':
-            user = Aluno.objects.get(id_aluno=user_id)
-            user.is_online = False
-            user.save()
-        elif user_type == 'encarregado':
-            user = Encarregado.objects.get(id_encarregado=user_id)
-            user.is_online = False
-            user.save()
+        user_id = request.data.get('user_id')
+        user_type = request.data.get('user_type', 'funcionario')
         
-        # Atualizar histórico de login (hora de saída)
-        from django.utils import timezone
-        historico = HistoricoLogin.objects.filter(
-            **{f'id_{user_type}': user},
-            hora_saida__isnull=True
-        ).order_by('-hora_entrada').first()
+        AuthService.logout_user(user_id, user_type)
         
-        if historico:
-            historico.hora_saida = timezone.now()
-            historico.save()
-        
-        return Response(
-            {'message': 'Logout realizado com sucesso'},
-            status=status.HTTP_200_OK
-        )
+        return Response({'message': 'Logout realizado com sucesso'}, status=status.HTTP_200_OK)
         
     except Exception as e:
-        return Response(
-            {'error': f'Erro no logout: {str(e)}'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({'error': f'Erro no logout: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def me_view(request):
     """
-    Retorna informações do usuário autenticado baseado no Token JWT
+    Retorna informações do perfil do usuário autenticado.
     """
     from rest_framework_simplejwt.authentication import JWTAuthentication
-    from rest_framework.exceptions import AuthenticationFailed
+    from apis.services.auth_service import AuthService
     
     try:
-        # Autenticar manualmente o token
+        # Autenticar token manualmente (pois a rota é AllowAny para lidar com erros graciosamente)
         jwt_auth = JWTAuthentication()
         user_auth_tuple = jwt_auth.authenticate(request)
         
         if user_auth_tuple is None:
-            return Response(
-                {'error': 'Token inválido ou não fornecido'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({'error': 'Token inválido ou não fornecido'}, status=status.HTTP_401_UNAUTHORIZED)
             
-        # O user retornado pelo JWTAuthentication já é o objeto do modelo (AuthUser ou Custom)
-        # Mas como não usamos o Auth User padrão do Django para tudo, precisamos verificar
-        # o payload do token para saber quem é (aluno, funcionario, etc)
-        
-        # O payload está no segundo elemento da tupla (token)
         token = user_auth_tuple[1]
         user_id = token.payload.get('user_id')
         user_type = token.payload.get('user_type')
         
-        user_data = {}
+        # Recuperar perfil via Serviço
+        user_data = AuthService.get_user_profile(user_id, user_type)
         
-        if user_type == 'funcionario' or user_type == 'usuario':
-            user = Usuario.objects.get(id_usuario=user_id)
-            user_data = {
-                'id': user.id_usuario,
-                'tipo': 'usuario',
-                'nome': user.nome_completo,
-                'email': user.email,
-                'cargo': user.cargo.nome_cargo if user.cargo else None,
-                'status': 'Activo' if user.is_active else 'Inactivo',
-                'papel': user.papel,
-                'permissoes': user.permissoes,
-                'is_superuser': user.is_superuser or (user.user.is_superuser if user.user else False),
-                'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None
-            }
-            if user_data['is_superuser']:
-                user_data['papel'] = 'Admin'
-        elif user_type == 'aluno':
-            user = Aluno.objects.get(id_aluno=user_id)
-            user_data = {
-                'id': user.id_aluno,
-                'tipo': 'aluno',
-                'nome': user.nome_completo,
-                'email': user.email,
-                'numero_matricula': user.numero_matricula,
-                'turma': user.id_turma.codigo_turma if user.id_turma else None,
-                'status': user.status_aluno,
-                'is_online': True
-            }
-        elif user_type == 'encarregado':
-            user = Encarregado.objects.get(id_encarregado=user_id)
-            user_data = {
-                'id': user.id_encarregado,
-                'tipo': 'encarregado',
-                'nome': user.nome_completo,
-                'email': user.email,
-                'is_online': True
-            }
+        # Processar URL da foto
+        if 'foto_obj' in user_data:
+            foto_obj = user_data.pop('foto_obj')
+            user_data['foto'] = request.build_absolute_uri(foto_obj.url) if foto_obj else None
             
-        return Response({
-            'user': user_data
-        }, status=status.HTTP_200_OK)
+        return Response({'user': user_data}, status=status.HTTP_200_OK)
         
-    except (Usuario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
-        return Response(
-            {'error': 'Usuário associado ao token não encontrado.'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+    except (Usuario.DoesNotExist, Funcionario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
+        return Response({'error': 'Usuário não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response(
-            {'error': f'Erro ao obter dados do usuário: {str(e)}'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({'error': f'Erro ao obter perfil: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['PUT', 'PATCH'])
+@permission_classes([AllowAny])
+@parser_classes([MultiPartParser, FormParser])
 def update_profile_view(request):
     """
-    Endpoint para atualização de perfil do usuário logado
+    Endpoint para atualização de perfil do usuário logado via AuthService.
     """
-    from rest_framework_simplejwt.authentication import JWTAuthentication
-    
-    # 1. Identificar usuário via Token
+    from rest_framework_simplejwt.tokens import AccessToken
+    from apis.services.auth_service import AuthService
+
     try:
-        jwt_auth = JWTAuthentication()
-        user_auth_tuple = jwt_auth.authenticate(request)
-        
-        if user_auth_tuple is None:
-            return Response({'error': 'Token não fornecido'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-        token = user_auth_tuple[1]
+        # 1. Extrair ID e Tipo do Token (Manualmente para suportar todos os tipos)
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if not auth_header.startswith('Bearer '):
+             return Response({'error': 'Token não fornecido ou formato inválido'}, status=status.HTTP_401_UNAUTHORIZED)
+             
+        token_str = auth_header.split(' ')[1]
+        token = AccessToken(token_str)
         user_id = token.payload.get('user_id')
         user_type = token.payload.get('user_type')
         
-    except Exception as e:
-        return Response({'error': 'Token inválido'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    # 2. Obter instância do usuário
-    user = None
-    try:
-        if user_type == 'funcionario':
-            user = Funcionario.objects.get(id_funcionario=user_id)
-        elif user_type == 'aluno':
-            user = Aluno.objects.get(id_aluno=user_id)
-        elif user_type == 'encarregado':
-            user = Encarregado.objects.get(id_encarregado=user_id)
-        else:
-            return Response({'error': 'Tipo de usuário desconhecido'}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception:
-        return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
-
-    # 3. Atualizar dados
-    data = request.data
-    
-    # Atualizar Senha
-    senha_atual = data.get('currentPassword')
-    nova_senha = data.get('newPassword')
-    
-    if nova_senha:
-        # Se o usuário está tentando mudar a senha
-        if not senha_atual:
-            return Response({'error': 'Para definir nova senha, a senha atual é obrigatória.'}, status=status.HTTP_400_BAD_REQUEST)
+        # 2. Delegar atualização para o Serviço
+        user = AuthService.update_user_profile(user_id, user_type, request.data, request.FILES)
         
-        # Verificar senha atual
-        if not check_password(senha_atual, user.senha_hash):
-            return Response({'error': 'A senha atual está incorreta.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # A senha será hasheada no método .save() do modelo Usuario
-        user.senha_hash = nova_senha 
-        if user.user:
-            user.user.set_password(nova_senha)
-            user.user.save()
-
-    # Atualizar Outros campos
-    if 'nome' in data and data['nome']:
-        user.nome_completo = data['nome']
-    
-    # Endereço -> mapear para bairro_residencia (simplificação)
-    if 'endereco' in data:
-        user.bairro_residencia = data['endereco']
+        # 3. Preparar resposta com dados atualizados
+        # Reutiliza lógica de formatação do serviço se possível, ou constrói resposta simples
+        # Aqui vamos construir uma resposta simples para manter compatibilidade com frontend
         
-    # Telefone
-    if 'telefone' in data:
-        if hasattr(user, 'telefone') and user_type != 'encarregado':
-            user.telefone = data['telefone']
-    
-    # Foto de Perfil
-    if 'foto' in request.FILES:
-        user.img_path = request.FILES['foto']
-
-    try:
-        user.save()
+        foto_url = request.build_absolute_uri(user.img_path.url) if user.img_path else None
         
-        # Retornar dados atualizados (estrutura similar ao me_view)
         user_resp = {
             'nome': user.nome_completo,
+            'nome_completo': user.nome_completo,
             'email': user.email,
-            'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None
+            'username': user.email,
+            'foto': foto_url
         }
         
         if hasattr(user, 'bairro_residencia'):
-            user_resp['endereco'] = user.bairro_residencia
+            user_resp['endereco'] = user.bairro_residencia or (user.municipio_residencia if hasattr(user, 'municipio_residencia') else '')
         if hasattr(user, 'telefone') and user_type != 'encarregado':
             user_resp['telefone'] = user.telefone
             
@@ -446,25 +183,28 @@ def update_profile_view(request):
             'message': 'Perfil atualizado com sucesso!',
             'user': user_resp
         }, status=status.HTTP_200_OK)
-        
+
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return Response({'error': f'Erro ao salvar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Erro interno ao atualizar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def define_password_view(request):
     """
-    Endpoint para definir senha através do link enviado por email
-    Body: { "token": "...", "password": "..." }
+    Redefine senha usando token de recuperação.
     """
+    from apis.utils.auth_utils import decode_password_token
+    from apis.services.auth_service import AuthService
+    
     token = request.data.get('token')
     password = request.data.get('password')
     
     if not token or not password:
         return Response({'error': 'Token e senha são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
         
-    from apis.utils.auth_utils import decode_password_token
     payload = decode_password_token(token)
     
     if not payload:
@@ -474,23 +214,13 @@ def define_password_view(request):
     user_type = payload['user_type']
     
     try:
-        user = None
-        if user_type == 'funcionario' or user_type == 'usuario':
-            user = Usuario.objects.get(id_usuario=user_id)
-        elif user_type == 'encarregado':
-            user = Encarregado.objects.get(id_encarregado=user_id)
-        elif user_type == 'aluno':
-            user = Aluno.objects.get(id_aluno=user_id)
-            
-        if user:
-            # A senha será hasheada pelo método save() do modelo (se lógica customizada existir)
-            # Mas wait, Funcionario.save() calls make_password ONLY if it doesn't start with pbkdf2...
-            # If we send plain text "123456", it triggers make_password.
-            user.senha_hash = password 
-            user.save()
-            return Response({'message': 'Senha definida com sucesso!'}, status=status.HTTP_200_OK)
+        success = AuthService.update_password_via_token(user_id, user_type, password)
+        if success:
+             return Response({'message': 'Senha definida com sucesso!'}, status=status.HTTP_200_OK)
         else:
-            return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
-            
+             return Response({'error': 'Falha ao atualizar senha.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': 'Erro interno.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

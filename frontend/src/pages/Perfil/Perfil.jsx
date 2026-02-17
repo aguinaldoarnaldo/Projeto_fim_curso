@@ -6,6 +6,7 @@ import './Perfil.css';
 const Perfil = () => {
     const { user, updateProfile } = useAuth();
     const [activeTab, setActiveTab] = useState('dados'); // 'dados' | 'seguranca'
+    const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [profilePhoto, setProfilePhoto] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -21,6 +22,22 @@ const Perfil = () => {
         confirmPassword: ''
     });
 
+    // Sync form data with user context when user changes
+    React.useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                nome: user.nome || user.nome_completo || user.username || '',
+                email: user.email || '',
+                telefone: user.telefone || '',
+                endereco: user.endereco || user.bairro_residencia || ''
+            }));
+            // Clear preview if user updated (save successful)
+            setPreviewUrl(null);
+            setProfilePhoto(null);
+        }
+    }, [user]);
+
     const getInitials = (name) => {
         if (!name) return 'US';
         const parts = name.split(' ');
@@ -33,6 +50,29 @@ const Perfil = () => {
         if (file) {
             setProfilePhoto(file);
             setPreviewUrl(URL.createObjectURL(file));
+            setIsEditing(true); // Auto-enable edit mode so Save button appears
+        }
+    };
+    
+    const handleCancel = () => {
+        setIsEditing(false);
+        // Revert to user data
+        if (user) {
+            setFormData({
+                nome: user.nome_completo || user.username || '',
+                email: user.email || '',
+                telefone: user.telefone || '',
+                endereco: user.endereco || user.bairro_residencia || '',
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            });
+            setPreviewUrl(null);
+            setProfilePhoto(null);
+        }
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
         }
     };
 
@@ -55,6 +95,7 @@ const Perfil = () => {
         
         if (activeTab === 'dados') {
             dataToSubmit.append('nome_completo', formData.nome);
+            dataToSubmit.append('email', formData.email);
             dataToSubmit.append('endereco', formData.endereco);
             dataToSubmit.append('telefone', formData.telefone);
             if (profilePhoto) {
@@ -69,15 +110,8 @@ const Perfil = () => {
             const result = await updateProfile(dataToSubmit);
             if (result.success) {
                 alert("Perfil atualizado com sucesso!");
-                // Clear password fields if on security tab
-                if (activeTab === 'seguranca') {
-                    setFormData(prev => ({
-                        ...prev,
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: ''
-                    }));
-                }
+                setIsEditing(false);
+                // AuthContext updateUser should trigger re-render via useEffect above
             } else {
                 alert(result.message || "Erro ao atualizar perfil.");
             }
@@ -158,63 +192,105 @@ const Perfil = () => {
                 {/* Content Area */}
                 <main className="perfil-main-v3">
                     <div className="content-island-v3">
-                        <header className="island-header-v3">
-                            <div className="header-icon">
-                                {activeTab === 'dados' ? <Edit3 size={24} /> : <Lock size={24} />}
+                        <header className="island-header-v3" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                            <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
+                                <div className="header-icon">
+                                    {activeTab === 'dados' ? <User size={24} /> : <Lock size={24} />}
+                                </div>
+                                <div className="header-text">
+                                    <h1>{activeTab === 'dados' ? (isEditing ? 'Editar Informações' : 'Minhas Informações') : 'Alterar Senha'}</h1>
+                                    <p>{activeTab === 'dados' ? 'Mantenha seus dados de contato e endereço atualizados.' : 'Recomendamos o uso de uma senha forte para maior segurança.'}</p>
+                                </div>
                             </div>
-                            <div className="header-text">
-                                <h1>{activeTab === 'dados' ? 'Editar Informações' : 'Alterar Senha'}</h1>
-                                <p>{activeTab === 'dados' ? 'Mantenha seus dados de contato e endereço atualizados.' : 'Recomendamos o uso de uma senha forte para maior segurança.'}</p>
-                            </div>
+                            
+                            {activeTab === 'dados' && !isEditing && (
+                                <div className="header-actions">
+                                    <button 
+                                        onClick={() => setIsEditing(true)} 
+                                        className="edit-pill-btn"
+                                    >
+                                        <Edit3 size={16} /> Editar Dados
+                                    </button>
+                                </div>
+                            )}
                         </header>
 
                         <form className="perfil-form-v3" onSubmit={handleSave}>
                             {activeTab === 'dados' ? (
-                                <div className="form-grid-v3">
-                                    <div className="form-input-v3 full">
-                                        <label>Nome Completo</label>
-                                        <div className="field-group">
-                                            <User size={18} className="field-icon" />
-                                            <input 
-                                                value={formData.nome}
-                                                onChange={e => setFormData({...formData, nome: e.target.value})}
-                                                placeholder="Seu nome completo"
-                                            />
+                                <>
+                                    {!isEditing ? (
+                                        // FLAT CLEAN LIST MODE (No effects)
+                                        <div className="view-mode-flat">
+                                            <div className="flat-item">
+                                                <div className="flat-label"><User size={14} /> Nome Completo</div>
+                                                <div className="flat-value">{formData.nome || <span className="empty">Não informado</span>}</div>
+                                            </div>
+                                            <div className="flat-item">
+                                                <div className="flat-label"><Mail size={14} /> Email Corporativo</div>
+                                                <div className="flat-value">{formData.email || <span className="empty">Não informado</span>}</div>
+                                            </div>
+                                            <div className="flat-item">
+                                                <div className="flat-label"><Phone size={14} /> Telemóvel</div>
+                                                <div className="flat-value">{formData.telefone || <span className="empty">Não informado</span>}</div>
+                                            </div>
+                                            <div className="flat-item">
+                                                <div className="flat-label"><MapPin size={14} /> Endereço de Residência</div>
+                                                <div className="flat-value">{formData.endereco || <span className="empty">Não informado</span>}</div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        // EDIT MODE FORM
+                                        <div className="form-grid-v3">
+                                            <div className="form-input-v3 full">
+                                                <label>Nome Completo</label>
+                                                <div className="field-group">
+                                                    <User size={18} className="field-icon" />
+                                                    <input 
+                                                        value={formData.nome}
+                                                        onChange={e => setFormData({...formData, nome: e.target.value})}
+                                                        placeholder="Seu nome completo"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    <div className="form-input-v3">
-                                        <label>Email Corporativo</label>
-                                        <div className="field-group disabled">
-                                            <Mail size={18} className="field-icon" />
-                                            <input value={formData.email} disabled />
-                                        </div>
-                                    </div>
+                                            <div className="form-input-v3">
+                                                <label>Email Corporativo</label>
+                                                <div className="field-group">
+                                                    <Mail size={18} className="field-icon" />
+                                                    <input 
+                                                        type="email"
+                                                        value={formData.email}
+                                                        onChange={e => setFormData({...formData, email: e.target.value})}
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    <div className="form-input-v3">
-                                        <label>Telemóvel</label>
-                                        <div className="field-group">
-                                            <Phone size={18} className="field-icon" />
-                                            <input 
-                                                value={formData.telefone}
-                                                onChange={e => setFormData({...formData, telefone: e.target.value})}
-                                                placeholder="9XX XXX XXX"
-                                            />
-                                        </div>
-                                    </div>
+                                            <div className="form-input-v3">
+                                                <label>Telemóvel</label>
+                                                <div className="field-group">
+                                                    <Phone size={18} className="field-icon" />
+                                                    <input 
+                                                        value={formData.telefone}
+                                                        onChange={e => setFormData({...formData, telefone: e.target.value})}
+                                                        placeholder="9XX XXX XXX"
+                                                    />
+                                                </div>
+                                            </div>
 
-                                    <div className="form-input-v3 full">
-                                        <label>Endereço de Residência</label>
-                                        <div className="field-group">
-                                            <MapPin size={18} className="field-icon" />
-                                            <input 
-                                                value={formData.endereco}
-                                                onChange={e => setFormData({...formData, endereco: e.target.value})}
-                                                placeholder="Província, Município, Bairro..."
-                                            />
+                                            <div className="form-input-v3 full">
+                                                <label>Endereço de Residência</label>
+                                                <div className="field-group">
+                                                    <MapPin size={18} className="field-icon" />
+                                                    <input 
+                                                        value={formData.endereco}
+                                                        onChange={e => setFormData({...formData, endereco: e.target.value})}
+                                                        placeholder="Província, Município, Bairro..."
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    )}
+                                </>
                             ) : (
                                 <div className="form-grid-v3">
                                     <div className="form-input-v3 full">
@@ -260,18 +336,29 @@ const Perfil = () => {
                                 </div>
                             )}
 
-                            <div className="form-footer-v3">
-                                <button type="submit" className="save-button-v3" disabled={loading}>
-                                    {loading ? (
-                                        <div className="loading-spinner-v3"></div>
-                                    ) : (
-                                        <>
-                                            <Save size={20} />
-                                            <span>Salvar Alterações</span>
-                                        </>
+                            {(activeTab === 'seguranca' || isEditing) && (
+                                <div className="form-footer-v3" style={{marginTop: '30px', display: 'flex', gap: '16px'}}>
+                                    {isEditing && (
+                                        <button 
+                                            type="button" 
+                                            onClick={handleCancel} 
+                                            className="cancel-button-v3"
+                                        >
+                                            Cancelar
+                                        </button>
                                     )}
-                                </button>
-                            </div>
+                                    <button type="submit" className="save-button-v3" disabled={loading}>
+                                        {loading ? (
+                                            <div className="loading-spinner-v3"></div>
+                                        ) : (
+                                            <>
+                                                <Save size={20} />
+                                                <span>Salvar Alterações</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </form>
                     </div>
                 </main>

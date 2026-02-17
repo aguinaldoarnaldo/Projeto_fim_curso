@@ -161,20 +161,27 @@ const Salas = () => {
         return '#059669';
     }
 
-    // Filter Logic
-    const filteredData = salas.filter(item => {
-        const term = searchTerm.toLowerCase();
-        const matchesSearch = 
-            String(item.numero_sala).includes(term) ||
-            String(item.bloco || '').toLowerCase().includes(term);
-        
-        const type = getRoomType(item).label;
-        const matchesFilters = 
-            (filters.bloco === '' || item.bloco === filters.bloco) &&
-            (filters.tipo === '' || type === filters.tipo);
+    // Filter & Sort Logic
+    const filteredData = React.useMemo(() => {
+        let sortableItems = salas.filter(item => {
+            const term = searchTerm.toLowerCase();
+            const matchesSearch = 
+                String(item.numero_sala).includes(term) ||
+                String(item.bloco || '').toLowerCase().includes(term);
+            
+            const type = getRoomType(item).label;
+            const matchesFilters = 
+                (filters.bloco === '' || item.bloco === filters.bloco) &&
+                (filters.tipo === '' || type === filters.tipo);
 
-        return matchesSearch && matchesFilters;
-    });
+            return matchesSearch && matchesFilters;
+        });
+
+        // Default sort by ID descending (newest first)
+        sortableItems.sort((a, b) => b.id_sala - a.id_sala);
+        
+        return sortableItems;
+    }, [salas, searchTerm, filters]);
 
     // Pagination Slicing
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -225,7 +232,7 @@ const Salas = () => {
                         <p>Controlo e distribuição das salas de aula e laboratórios.</p>
                     </div>
                     <div className="page-header-actions">
-                        {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                        {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
                             <button onClick={handleAdd} className="btn-primary-action">
                                 <Plus size={20} />
                                 Nova Sala
@@ -391,7 +398,7 @@ const Salas = () => {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                                                    {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
                                                         <button
                                                             onClick={() => handleEdit(s)}
                                                             className="btn-edit-sala"

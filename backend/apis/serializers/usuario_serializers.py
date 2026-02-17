@@ -14,7 +14,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
         write_only=True
     )
     img_path = serializers.ImageField(source='profile.img_path', read_only=True)
-    permissoes = serializers.JSONField(source='profile.permissoes', required=False)
+    permissoes = serializers.JSONField(source='profile.permissoes', read_only=True)
     is_online = serializers.BooleanField(source='profile.is_online', read_only=True)
     cargo_nome = serializers.SerializerMethodField()
     id_usuario = serializers.IntegerField(source='id', read_only=True)
@@ -37,10 +37,32 @@ class UsuarioSerializer(serializers.ModelSerializer):
         full = obj.get_full_name()
         return full if full else obj.username
 
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("O email é obrigatório.")
+            
+        # Check if email exists in Usuario table (since it has independent unique constraint)
+        # We need to handle Update vs Create scenarios
+        usuario_qs = Usuario.objects.filter(email=value)
+        
+        if self.instance:
+            # Updating existing user - exclude current user's profile
+            if hasattr(self.instance, 'profile'):
+                usuario_qs = usuario_qs.exclude(pk=self.instance.profile.pk)
+        
+        if usuario_qs.exists():
+            raise serializers.ValidationError("Este endereço de email já está sendo usado por outro usuário. Por favor, utilize um email diferente.")
+            
+        return value
+
     def get_papel(self, obj):
         if obj.is_superuser:
             return 'Admin'
-        # Check profile logic or other permission logic if needed
+        
+        # Tentar obter do perfil Usuario (profile)
+        if hasattr(obj, 'profile') and obj.profile.papel:
+            return obj.profile.papel
+            
         if obj.is_staff:
             return 'Equipe'
         return 'Comum'
@@ -61,34 +83,38 @@ class UsuarioSerializer(serializers.ModelSerializer):
             for key in ['cargo', 'papel']:
                 if key in data and (data[key] == 'null' or data[key] == 'undefined' or data[key] == ''):
                     data[key] = None
+            
+            # Tratar permissões se vierem como string JSON (comum em FormData)
+            if 'permissoes' in data and isinstance(data['permissoes'], str):
+                import json
+                try:
+                    data['permissoes'] = json.loads(data['permissoes'])
+                except:
+                    pass
                     
         return super().to_internal_value(data)
     
     def create(self, validated_data):
         senha = validated_data.pop('senha_hash', None)
         cargo = validated_data.pop('cargo', None)
-        papel = self.initial_data.get('papel', 'Comum') # Get papel from raw input
+        papel = self.initial_data.get('papel', 'Comum') 
         
         nome_completo = self.initial_data.get('nome_completo', '')
         
-        # Split nome to first/last
         names = nome_completo.split(' ', 1)
         if len(names) > 0:
             validated_data['first_name'] = names[0]
         if len(names) > 1:
             validated_data['last_name'] = names[1]
             
-        # Default username to email if not provided
         if 'username' not in validated_data and 'email' in validated_data:
             validated_data['username'] = validated_data['email']
 
-        # Handle Admin Status based on 'papel'
         if papel == 'Admin':
             validated_data['is_superuser'] = True
             validated_data['is_staff'] = True
         else:
             validated_data['is_superuser'] = False
-            # validated_data['is_staff'] = False # Keep default or specific logic
 
         user = super().create(validated_data)
         
@@ -96,15 +122,25 @@ class UsuarioSerializer(serializers.ModelSerializer):
             user.set_password(senha)
             user.save()
             
+        # Obter permissões do validated_data (processado pelo source ou manualmente)
+        # Se source='profile.permissoes' estiver funcionando, ele não estará no root do validated_data.
+        # Mas como usamos source, o DRF tenta mapear. Vamos pegar de onde ele estiver.
         permissoes = self.initial_data.get('permissoes', [])
-        # Create Profile (Usuario model)
+        if isinstance(permissoes, str):
+             import json
+             try: permissoes = json.loads(permissoes)
+             except: permissoes = []
+             
+        img_path = self.initial_data.get('img_path', None)
+        
         Usuario.objects.create(
             user=user,
             email=user.email,
             nome_completo=user.get_full_name(),
             cargo=cargo,
-            papel=papel, # Store legacy papel field too
-            permissoes=permissoes
+            papel=papel,
+            permissoes=permissoes,
+            img_path=img_path
         )
             
         return user
@@ -112,7 +148,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         senha = validated_data.pop('senha_hash', None)
         cargo = validated_data.pop('cargo', None)
-        papel = self.initial_data.get('papel', None) # Get papel from raw input
+        papel = self.initial_data.get('papel', None)
         
         nome_completo = self.initial_data.get('nome_completo', None)
         
@@ -125,39 +161,48 @@ class UsuarioSerializer(serializers.ModelSerializer):
             else:
                 instance.last_name = ''
 
-        # Handle Role update
         if papel:
             if papel == 'Admin':
                 instance.is_superuser = True
                 instance.is_staff = True
             else:
                 instance.is_superuser = False
-                instance.is_staff = False
 
-        # Prevent nested write errors by popping 'profile' if it exists (due to permissoes field)
-        validated_data.pop('profile', None)
-
-        user = super().update(instance, validated_data)
-        
         if senha:
-            user.set_password(senha)
-            user.save()
+            instance.set_password(senha)
             
-        permissoes = self.initial_data.get('permissoes', None)
+        instance.save()
+        
         # Update Profile
-        profile, created = Usuario.objects.get_or_create(user=user)
-        if cargo:
-            profile.cargo = cargo
+        profile, created = Usuario.objects.get_or_create(user=instance)
+        
+        if cargo is not None:
+             profile.cargo = cargo
+        
         if papel:
-            profile.papel = papel # Keep synced
+             profile.papel = papel
+             
+        # Tentar pegar permissões do root (devido ao tratamento em to_internal_value)
+        # Se vier como string JSON no initial_data, o to_internal_value já deve ter colocado no local certo,
+        # mas por segurança, verificamos ambos.
+        permissoes = self.initial_data.get('permissoes')
         if permissoes is not None:
+             if isinstance(permissoes, str):
+                 import json
+                 try: permissoes = json.loads(permissoes)
+                 except: pass
              profile.permissoes = permissoes
-        # Sync basic fields to profile for fallback usage
-        profile.nome_completo = user.get_full_name()
-        profile.email = user.email
+             
+        img_path = self.initial_data.get('img_path', None)
+        if img_path:
+             profile.img_path = img_path
+             
+        if nome_completo:
+            profile.nome_completo = nome_completo
+            
         profile.save()
         
-        return user
+        return instance
         
     def to_representation(self, instance):
         ret = super().to_representation(instance)

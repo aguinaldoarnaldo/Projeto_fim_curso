@@ -83,7 +83,20 @@ class Candidato(BaseModel):
         # Auto-assign active year if not provided
         if not self.ano_lectivo:
             self.ano_lectivo = AnoLectivo.get_active_year()
+        
+        # Se for string (ex: enviado via API como nome em vez de ID)
+        if isinstance(self.ano_lectivo, str):
+            if self.ano_lectivo.isdigit():
+                 self.ano_lectivo = AnoLectivo.objects.get(pk=int(self.ano_lectivo))
+            else:
+                 self.ano_lectivo = AnoLectivo.objects.filter(nome=self.ano_lectivo).first()
             
+        if not self.ano_lectivo:
+             raise ValidationError("Não existe um Ano Lectivo Ativo no sistema. É necessário abrir um novo ano lectivo para realizar candidaturas.")
+
+        if self.ano_lectivo and not self.ano_lectivo.activo:
+             raise ValidationError(f"O Ano Lectivo '{self.ano_lectivo.nome}' está encerrado. Não são permitidas novas candidaturas ou alterações.")
+
         if not self.numero_inscricao:
             import datetime
             year = datetime.datetime.now().year
@@ -166,6 +179,16 @@ class RupeCandidato(BaseModel):
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=[('Pendente', 'Pendente'), ('Pago', 'Pago')], default='Pendente')
     data_pagamento = models.DateTimeField(null=True, blank=True)
+    
+    @property
+    def is_expired(self):
+        """Um RUPE expira após 48 horas se não for pago"""
+        if self.status == 'Pago':
+            return False
+            
+        from django.utils import timezone
+        from datetime import timedelta
+        return timezone.now() > (self.criado_em + timedelta(hours=48))
     
     class Meta:
         db_table = 'rupe_candidato'

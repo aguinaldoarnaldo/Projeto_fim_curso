@@ -210,21 +210,28 @@ const Cursos = () => {
         }
     ], [courses]);
 
-    const filteredCourses = (Array.isArray(courses) ? courses : []).filter(course => {
-        if (!course) return false;
-        const search = searchTerm.toLowerCase();
-        const matchesSearch = (
-            (course.nome && String(course.nome).toLowerCase().includes(search)) ||
-            (course.id && String(course.id).toLowerCase().includes(search)) ||
-            (course.coordenador && String(course.coordenador).toLowerCase().includes(search))
-        );
+    const filteredCourses = React.useMemo(() => {
+        let sortableItems = (Array.isArray(courses) ? courses : []).filter(course => {
+            if (!course) return false;
+            const search = searchTerm.toLowerCase();
+            const matchesSearch = (
+                (course.nome && String(course.nome).toLowerCase().includes(search)) ||
+                (course.id && String(course.id).toLowerCase().includes(search)) ||
+                (course.coordenador && String(course.coordenador).toLowerCase().includes(search))
+            );
 
-        const matchesFilters = 
-            (filters.area === '' || course.area === filters.area) &&
-            (filters.duracao === '' || course.duracao === filters.duracao);
+            const matchesFilters = 
+                (filters.area === '' || course.area === filters.area) &&
+                (filters.duracao === '' || course.duracao === filters.duracao);
 
-        return matchesSearch && matchesFilters;
-    });
+            return matchesSearch && matchesFilters;
+        });
+
+        // Default sort by ID descending (newest first)
+        sortableItems.sort((a, b) => (b.id || 0) - (a.id || 0));
+
+        return sortableItems;
+    }, [courses, searchTerm, filters]);
 
     return (
         <div className="page-container">
@@ -235,7 +242,7 @@ const Cursos = () => {
                         <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
                     <div className="page-header-actions">
-                        {hasPermission(PERMISSIONS.MANAGE_TURMAS) && ( // Using MANAGE_TURMAS as proxy for general academic config or we can use a generic one
+                        {hasPermission(PERMISSIONS.MANAGE_CURSOS) && ( 
                             <button className="btn-primary-action" onClick={() => { resetForm(); setShowCreateModal(true); }}>
                                 <Plus size={18} />
                                 Novo Curso
@@ -351,7 +358,7 @@ const Cursos = () => {
                                             </td>
                                             <td style={{textAlign: 'center'}}>{course.totalTurmas}</td>
                                             <td style={{ textAlign: 'center' }}>
-                                                {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                                                {hasPermission(PERMISSIONS.MANAGE_CURSOS) && (
                                                     <button
                                                         onClick={() => handleEdit(course)}
                                                         className="btn-edit-course"

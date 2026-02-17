@@ -1,25 +1,79 @@
-# Django
-*.log
-*.pot
-*.pyc
+# --- Python ---
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Django
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
 backups/
 staticfiles/
-
-# Node
-node_modules/
-dist/
-dist-ssr
-*.local
-.env
-.DS_Store
+*.log
 
 # Environments
-.venv/
+.env
+.venv
 env/
 venv/
 ENV/
+env.bak/
+venv.bak/
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# React/Vite/Build
+dist/
+dist-ssr/
+build/
+*.local
+.eslintcache
+.stylelintcache
+
+# --- IDEs/Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+
+# --- Operating Systems ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Project Specific ---
+test_api.py
+test_matriculas.py

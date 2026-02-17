@@ -37,6 +37,17 @@ class Fatura(BaseModel):
     data_vencimento = models.DateField(null=True, blank=True, verbose_name='Data de Vencimento')
     data_pagamento = models.DateField(null=True, blank=True, verbose_name='Data de Pagamento')
     
+    # Campos para Integração com RUPE / Pagamentos Externos
+    referencia_pagamento = models.CharField(
+        max_length=50, 
+        null=True, 
+        blank=True, 
+        unique=True, 
+        verbose_name='Referência RUPE/Pagamento'
+    )
+    data_emissao_referencia = models.DateTimeField(null=True, blank=True, verbose_name='Data de Emissão da Referência')
+    referencia_expirada = models.BooleanField(default=False, verbose_name='Referência Expirada')
+    
     class Meta:
         db_table = 'fatura'
         verbose_name = 'Fatura'

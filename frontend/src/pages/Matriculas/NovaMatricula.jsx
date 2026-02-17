@@ -17,13 +17,24 @@ import api from '../../services/api';
 import FilterModal from '../../components/Common/FilterModal';
  // Added FilterModal import
 import { getClasses } from '../../services/classService';
+import { usePermission } from '../../hooks/usePermission';
+import { PERMISSIONS } from '../../utils/permissions';
 
 
 import './Matriculas.css';
 
 const NovaMatricula = () => {
+    const { hasPermission } = usePermission();
+
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Permission Check
+    useEffect(() => {
+        if (!hasPermission(PERMISSIONS.CREATE_MATRICULA)) {
+            navigate('/dashboard');
+        }
+    }, [hasPermission, navigate]);
     const queryParams = new URLSearchParams(location.search);
     const aluno_id_param = queryParams.get('aluno_id');
     const tipo_param = queryParams.get('tipo');
@@ -266,6 +277,9 @@ const NovaMatricula = () => {
             const response = await api.get('turmas/');
             let data = response.data.results || response.data;
             
+            // Filter by Active Status (Critical: Hide concluded classes from past years)
+            data = data.filter(t => t.status === 'Ativa');
+            
             // Filter by the selected course
             const currentCourse = cursoFilter || formData.curso;
             if (currentCourse) {
@@ -439,20 +453,21 @@ const NovaMatricula = () => {
         // The original isReadOnly blocked EVERYTHING. We want to unblock everything except specific logic.
         // So we won't use a global isReadOnly for the inputs.
         const isConfirming = tipo_param === 'Confirmacao' || (location.state && location.state.tipo === 'Confirmacao');
-        const isStrictlyReadOnly = false; // logic changed: allow editing always
-        const isReadOnly = isStrictlyReadOnly; // Compatibility with existing code
+        const isStrictlyReadOnly = isConfirming; 
+        const isReadOnly = isStrictlyReadOnly;
 
+
+        let imagePreview = null;
+        if (formData.novo_aluno_foto) {
+             if (typeof formData.novo_aluno_foto === 'string') {
+                 imagePreview = formData.novo_aluno_foto; 
+             } else if (formData.novo_aluno_foto instanceof File || formData.novo_aluno_foto instanceof Blob) {
+                 imagePreview = URL.createObjectURL(formData.novo_aluno_foto);
+             }
+        }
 
         switch (step) {
             case 1:
-                let imagePreview = null;
-                if (formData.novo_aluno_foto) {
-                     if (typeof formData.novo_aluno_foto === 'string') {
-                         imagePreview = formData.novo_aluno_foto; 
-                     } else if (formData.novo_aluno_foto instanceof File || formData.novo_aluno_foto instanceof Blob) {
-                         imagePreview = URL.createObjectURL(formData.novo_aluno_foto);
-                     }
-                }
 
                 return (
                     <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
@@ -463,26 +478,46 @@ const NovaMatricula = () => {
 
                         <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
                             {/* Coluna da Foto (Esquerda) */}
-                            <div style={{ width: '150px', flexShrink: 0, textAlign: 'center' }}>
+                            <div style={{ width: '180px', flexShrink: 0, textAlign: 'center', background: '#f8fafc', padding: '20px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
                                 <div style={{ 
-                                    width: '120px', height: '120px', borderRadius: '50%', background: '#f1f5f9', 
+                                    width: '120px', height: '120px', borderRadius: '30px', background: 'white', 
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                    overflow: 'hidden', border: '3px solid #cbd5e1', margin: '0 auto 10px' 
+                                    overflow: 'hidden', border: '3px solid white', 
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+                                    margin: '0 auto 15px',
+                                    position: 'relative'
                                 }}>
                                     {imagePreview ? (
                                         <img src={imagePreview} alt="Preview" style={{width:'100%', height:'100%', objectFit:'cover'}} />
                                     ) : (
-                                        <User size={48} color="#94a3b8" />
+                                        <div style={{ textAlign: 'center' }}>
+                                            <User size={40} color="#cbd5e1" />
+                                            <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '5px', fontWeight: '600' }}>SEM FOTO</p>
+                                        </div>
                                     )}
                                 </div>
                                 
-                                {!isReadOnly && (
-                                    <label className="btn-secondary-action" style={{ fontSize: '13px', padding: '5px 10px', display: 'inline-block', cursor: 'pointer' }}>
-                                        Alterar Foto
-                                        <input type="file" name="novo_aluno_foto" onChange={handleFileChange} accept="image/*" style={{display:'none'}} />
-                                    </label>
-                                )}
-                                <p style={{fontSize:'10px', color:'#94a3b8', marginTop:'5px'}}>Quadrado, Fundo Branco</p>
+                                <label className="photo-upload-btn" style={{ 
+                                    fontSize: '13px', 
+                                    padding: '10px 15px', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    cursor: 'pointer',
+                                    background: 'var(--primary-color)',
+                                    color: 'white',
+                                    borderRadius: '12px',
+                                    fontWeight: '700',
+                                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+                                    transition: 'all 0.2s',
+                                    width: '100%'
+                                }}>
+                                    <Upload size={16} />
+                                    {imagePreview ? 'Trocar Foto' : 'Anexar Foto'}
+                                    <input type="file" name="novo_aluno_foto" onChange={handleFileChange} accept="image/*" style={{display:'none'}} />
+                                </label>
+                                <p style={{fontSize:'10px', color:'#64748b', marginTop:'8px', fontWeight: '500'}}>Fundo Branco, 3x4</p>
                             </div>
 
                             {/* Coluna dos Campos (Direita) - Ocupa o resto */}
@@ -751,9 +786,9 @@ const NovaMatricula = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' }}>
                             
                             {/* Coluna 1: Curso */}
-                            <div style={{ gridColumn: isReadOnly && formData.curso_primario ? 'span 2' : 'span 1' }}>
+                            <div style={{ gridColumn: (formData.curso_primario && formData.curso_secundario) ? 'span 2' : 'span 1' }}>
                                 <label className="field-label">Curso</label>
-                                {isReadOnly && formData.curso_primario && formData.curso_secundario ? (
+                                {formData.curso_primario && formData.curso_secundario ? (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
                                             type="button"
@@ -1026,10 +1061,22 @@ const NovaMatricula = () => {
                             <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: '#334155', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <CheckCircle size={18} color="#16a34a" /> Resumo da Matrícula
                             </h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '14px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: '25px', fontSize: '14px', alignItems: 'center' }}>
+                                {/* Foto no Resumo */}
+                                <div style={{ 
+                                    width: '80px', height: '80px', borderRadius: '12px', background: '#fff', 
+                                    border: '2px solid #e2e8f0', overflow: 'hidden', display: 'flex', 
+                                    alignItems: 'center', justifyContent: 'center' 
+                                }}>
+                                    {imagePreview ? (
+                                        <img src={imagePreview} alt="Final" style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                                    ) : (
+                                        <User size={30} color="#cbd5e1" />
+                                    )}
+                                </div>
                                 <div>
                                     <p style={{ color: '#64748b', marginBottom: '4px' }}>Aluno</p>
-                                    <p style={{ fontWeight: 600, color: '#0f172a' }}>{formData.nome_completo}</p>
+                                    <p style={{ fontWeight: 600, color: '#0f172a', fontSize: '16px' }}>{formData.nome_completo}</p>
                                     <p style={{ fontSize: '12px', color: '#64748b' }}>BI: {formData.numero_bi}</p>
                                 </div>
                                 <div style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: '20px' }}>

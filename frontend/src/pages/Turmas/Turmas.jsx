@@ -107,6 +107,7 @@ const Turmas = () => {
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano_lectivo_nome || t.ano || '---',
                 ano_lectivo_id: t.ano_lectivo,
+                ano_lectivo_ativo: t.ano_lectivo_ativo, // Mapped from backend
                 id_turma: t.id_turma, // Ensure ID is mapped if missing
                 turno: t.periodo_nome,
                 qtdAlunos: t.total_alunos || 0,
@@ -174,6 +175,7 @@ const Turmas = () => {
                 coordenador: t.responsavel_nome || 'Sem Coordenador',
                 ano: t.ano_lectivo_nome || t.ano || '---',
                 ano_lectivo_id: t.ano_lectivo,
+                ano_lectivo_ativo: t.ano_lectivo_ativo, // Mapped from backend
                 id_turma: t.id_turma,
                 turno: t.periodo_nome,
                 qtdAlunos: t.total_alunos || 0,
@@ -234,22 +236,11 @@ const Turmas = () => {
                 return;
             }
 
-            // VALIDATION: Active Year Only
-            const selectedYearObj = anosDisponiveis.find(a => a.nome === formData.ano);
-            if (selectedYearObj) {
-                const today = new Date();
-                today.setHours(0,0,0,0); // Reset time for accurate date comparison
-                const start = new Date(selectedYearObj.data_inicio);
-                const end = new Date(selectedYearObj.data_fim);
-                
-                // Check if today is OUTSIDE the year range
-                if (today < start || today > end) {
-                    alert(`🚫 Ação Bloqueada:\n\nO Ano Lectivo selecionado (${formData.ano}) não está ativo no momento.\n\nPor favor, selecione o ano corrente para criar ou editar turmas.`);
-                    return; // Blocks the save
-                }
-            } else {
-                 // Fallback if year object not found (shouldn't happen with select)
-                 console.warn("Ano selecionado não encontrado na lista de referência.");
+            // VALIDATION: Active Year status check (Relies on 'activo' flag from backend)
+            const selectedYearObj = anosDisponiveis.find(a => (a.id || a.id_ano) == formData.ano_lectivo_id);
+            if (selectedYearObj && !selectedYearObj.activo) {
+                alert(`🚫 Ação Bloqueada:\n\nO Ano Lectivo selecionado (${selectedYearObj.nome}) está ENCERRADO no sistema.\n\nPor favor, selecione o ano corrente/ativo para criar ou editar turmas.`);
+                return;
             }
 
             const payload = {
@@ -293,6 +284,17 @@ const Turmas = () => {
         }
     };
 
+    // Sorting State
+    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'desc' });
+
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
     const handleFilterChange = (key, value) => {
         setFilters({ ...filters, [key]: value });
         setCurrentPage(1);
@@ -304,6 +306,11 @@ const Turmas = () => {
     };
 
     const handleEdit = (turma) => {
+        if (turma.ano_lectivo_ativo === false) {
+             alert("Esta turma pertence a um Ano Lectivo Encerrado e não pode ser editada.");
+             return;
+        }
+
         setSelectedTurma(turma);
         setFormData({
             codigo_turma: turma.turma,
@@ -314,7 +321,6 @@ const Turmas = () => {
             ano: turma.ano,
             ano_lectivo_id: turma.ano_lectivo_id || '',
             responsavel_nome: turma.coordenador,
-            status: turma.status,
             status: turma.status,
             capacidade: (turma.capacidade !== null && turma.capacidade > 0) ? turma.capacidade : (turma.sala_capacidade || 55)
         });
@@ -344,19 +350,36 @@ const Turmas = () => {
         setShowModal(true);
     };
 
-    const filteredData = turmas.filter(item => {
-        const matchesSearch = item.turma.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.coordenador.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            String(item.id).toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesAno = filters.ano === '' || String(item.ano) === filters.ano;
-        const matchesCurso = filters.curso === '' || item.curso === filters.curso;
-        const matchesClasse = filters.classe === '' || (item.classe && item.classe.includes(filters.classe));
-        const matchesSala = filters.sala === '' || item.sala.includes(filters.sala); 
-        const matchesTurno = filters.turno === '' || item.turno === filters.turno;
-        const matchesStatus = filters.status === '' || item.status === filters.status;
+    const filteredData = React.useMemo(() => {
+        let sortableItems = turmas.filter(item => {
+            const matchesSearch = item.turma.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.coordenador.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                String(item.id).toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesAno = filters.ano === '' || String(item.ano) === filters.ano;
+            const matchesCurso = filters.curso === '' || item.curso === filters.curso;
+            const matchesClasse = filters.classe === '' || (item.classe && item.classe.includes(filters.classe));
+            const matchesSala = filters.sala === '' || item.sala.includes(filters.sala); 
+            const matchesTurno = filters.turno === '' || item.turno === filters.turno;
+            const matchesStatus = filters.status === '' || item.status === filters.status;
 
-        return matchesSearch && matchesAno && matchesCurso && matchesClasse && matchesSala && matchesTurno && matchesStatus;
-    });
+            return matchesSearch && matchesAno && matchesCurso && matchesClasse && matchesSala && matchesTurno && matchesStatus;
+        });
+
+        if (sortConfig.key) {
+            sortableItems.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+                
+                if (aValue === null) aValue = '';
+                if (bValue === null) bValue = '';
+                
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [turmas, searchTerm, filters, sortConfig]);
 
     // Pagination Slicing
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -540,7 +563,9 @@ const Turmas = () => {
                                                     <button
                                                         onClick={() => handleEdit(t)}
                                                         className="btn-edit-turma"
-                                                        title="Editar Turma"
+                                                        title={t.ano_lectivo_ativo === false ? "Ano Lectivo Encerrado (Somente Leitura)" : "Editar Turma"}
+                                                        disabled={t.ano_lectivo_ativo === false}
+                                                        style={t.ano_lectivo_ativo === false ? { opacity: 0.5, cursor: 'not-allowed', background: '#ccc' } : {}}
                                                     >
                                                         <Edit3 size={18} />
                                                     </button>

@@ -12,6 +12,14 @@ class Configuracao(models.Model):
         verbose_name="Mensagem de Encerramento",
         blank=True
     )
+    data_fim_candidatura = models.DateTimeField(
+        null=True, blank=True, 
+        verbose_name="Data de Término das Candidaturas"
+    )
+    fechamento_automatico = models.BooleanField(
+        default=False, 
+        verbose_name="Fechar Automaticamente no Limite"
+    )
     nome_escola = models.CharField(max_length=200, default="Sistema Gestão de Matricula", verbose_name="Nome da Escola")
     logo = models.ImageField(upload_to='branding/', blank=True, null=True, verbose_name="Logotipo")
     

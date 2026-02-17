@@ -973,7 +973,7 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .inscritos-page .profile-avatar-large {
     width: 180px; /* Increased from 140px for better visibility */
     height: 180px;
-    border-radius: 40px;
+    border-radius: 50%; /* Circular */
     background: rgba(255,255,255,0.1);
     backdrop-filter: blur(10px);
     display: flex;

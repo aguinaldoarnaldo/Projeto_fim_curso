@@ -29,6 +29,9 @@ const PermutaModal = ({ isOpen, onClose, onSuccess }) => {
             const response = await api.get(`matriculas/?search=${term}`);
             let data = response.data.results || response.data;
             
+            // Filter only Active matriculas for swapping
+            data = data.filter(s => s.status === 'Ativa');
+            
             // Exclude already selected student (if any)
             if (excludeId) {
                 data = data.filter(s => s.id_matricula !== excludeId);

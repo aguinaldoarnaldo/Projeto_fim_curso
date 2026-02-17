@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 
 from apis.models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
@@ -36,14 +36,67 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def encerrar(self, request, pk=None):
-        """Encerra o ano lectivo (desativa)"""
+        """Encerra o ano lectivo (desativa) e atualiza matrículas"""
         ano_lectivo = self.get_object()
         if not ano_lectivo.activo:
             return Response({"detail": "O ano lectivo já está encerrado."}, status=400)
         
+        # 1. Update active status
         ano_lectivo.activo = False
         ano_lectivo.save()
-        return Response({"detail": f"Ano lectivo {ano_lectivo.nome} encerrado com sucesso."}, status=200)
+        
+        # 2. Bulk update matriculas e Turmas to 'Concluida'
+        from apis.models import Matricula, Turma
+        
+        updated_matriculas = Matricula.objects.filter(
+            ano_lectivo=ano_lectivo,
+            status__in=['Ativa', 'Confirmada']
+        ).update(status='Concluida')
+        
+        updated_turmas = Turma.objects.filter(
+            ano_lectivo=ano_lectivo, 
+            status='Ativa'
+        ).update(status='Concluida')
+        
+        return Response({
+            "detail": f"Ano lectivo {ano_lectivo.nome} encerrado com sucesso.",
+            "matriculas_atualizadas": updated_matriculas,
+            "turmas_encerradas": updated_turmas
+        }, status=200)
+
+    def perform_update(self, serializer):
+        # Check if reopening (setting activo=True)
+        # Note: This runs before save()
+        if 'activo' in serializer.validated_data and serializer.validated_data['activo'] is True:
+             user = self.request.user
+             is_admin = user.is_superuser or (
+                 hasattr(user, 'profile') and 
+                 user.profile.papel and 
+                 any(role in user.profile.papel.lower() for role in ['admin', 'diretor'])
+             )
+             
+             if not is_admin:
+                  from rest_framework.exceptions import PermissionDenied
+                  raise PermissionDenied("Apenas administradores podem reabrir um ano lectivo.")
+
+             # Reabertura do Ano Lectivo: Reverter matrículas 'Concluida' para 'Ativa'
+             instance = serializer.instance
+             if instance and not instance.activo:
+                 from apis.models import Matricula
+                 updated_count = Matricula.objects.filter(
+                    ano_lectivo=instance,
+                    status='Concluida'
+                 ).update(status='Ativa')
+                 
+                 from apis.models import Turma
+                 updated_turmas = Turma.objects.filter(
+                    ano_lectivo=instance, 
+                    status='Concluida'
+                 ).update(status='Ativa')
+                 
+                 print(f"Ano Lectivo {instance.nome} reaberto: {updated_count} matrículas e {updated_turmas} turmas revertidas para 'Ativa'.")
+        
+        serializer.save()
 
     @action(detail=True, methods=['get'])
     def stats_by_year(self, request, pk=None):
@@ -207,7 +260,7 @@ class TurmaViewSet(viewsets.ModelViewSet):
     """ViewSet para Turma"""
     queryset = Turma.objects.select_related('id_sala', 'id_curso', 'id_classe', 'id_periodo', 'id_responsavel').all()
     serializer_class = TurmaSerializer
-    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     permission_map = {
         # 'list': 'view_turmas',
         # 'retrieve': 'view_turmas',

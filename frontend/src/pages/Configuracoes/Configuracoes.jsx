@@ -29,7 +29,7 @@ import {
     BookOpen,
     Archive
 } from 'lucide-react';
-import { PERMISSIONS, PERMISSIONS_PT, PERMISSION_GROUPS } from '../../utils/permissions';
+import { PERMISSIONS, PERMISSIONS_PT, PERMISSION_GROUPS, ROLES, ROLE_PERMISSIONS } from '../../utils/permissions';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext'; // Assuming AuthContext exists
 import api from '../../services/api';
@@ -38,16 +38,25 @@ const Configuracoes = () => {
     const { themeColor, changeColor } = useTheme();
     // Try to get auth context, fallback to mock if not available
     const auth = useAuth() || {}; 
-    const { user } = auth;
+    const { user, refreshUser } = auth;
     
     // Permissões
     const canViewConfig = auth.hasPermission && auth.hasPermission(PERMISSIONS.VIEW_CONFIGURACOES);
     const canManageUsers = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_USUARIOS);
-    const canManageAcademic = auth.hasPermission && (auth.hasPermission(PERMISSIONS.MANAGE_TURMAS) || auth.hasPermission(PERMISSIONS.VIEW_CONFIGURACOES));
+    // Acadêmico requires specific Management permission, not just View Config
+    const canManageAcademic = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_CONFIGURACOES);
+    // Maintenance requires Backup permission
+    const canManageMaintenance = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_BACKUP);
     // Fallback for admin legacy check if needed, but prefer permissions
-    const isAdmin = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_USUARIOS);
+    const isAdmin = (auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_USUARIOS)) || (user && user.role === 'Admin') || (user?.cargo?.toLowerCase().includes('admin'));
 
-    const [activeTab, setActiveTab] = useState('manutencao');
+    const [activeTab, setActiveTab] = useState(() => {
+        if (canManageMaintenance) return 'manutencao';
+        if (canViewConfig) return 'personalizacao';
+        if (canManageUsers) return 'seguranca';
+        if (canManageAcademic) return 'academico';
+        return 'ajuda';
+    });
     const [selectedUser, setSelectedUser] = useState(null);
     const [backupStatus, setBackupStatus] = useState('idle');
 
@@ -65,6 +74,13 @@ const Configuracoes = () => {
     const [editingYearId, setEditingYearId] = useState(null);
     const [backupsList, setBackupsList] = useState([]);
 
+    // Redirect if permission is lost dynamically
+    useEffect(() => {
+        if (activeTab === 'manutencao' && !canManageMaintenance) setActiveTab(canViewConfig ? 'personalizacao' : 'ajuda');
+        if (activeTab === 'seguranca' && !canManageUsers) setActiveTab('ajuda');
+        if (activeTab === 'academico' && !canManageAcademic) setActiveTab('ajuda');
+    }, [activeTab, canManageMaintenance, canManageUsers, canManageAcademic, canViewConfig]);
+
     
     // Modal State
     const [showUserModal, setShowUserModal] = useState(false);
@@ -75,7 +91,9 @@ const Configuracoes = () => {
     // Global Config State
     const [config, setConfig] = useState({
         candidaturas_abertas: true,
-        mensagem_candidaturas_fechadas: ''
+        mensagem_candidaturas_fechadas: '',
+        data_fim_candidatura: '',
+        fechamento_automatico: false
     });
     const [configLoading, setConfigLoading] = useState(false);
     const [newUserEncoded, setNewUserEncoded] = useState({
@@ -83,7 +101,6 @@ const Configuracoes = () => {
         email: '',
         senha_hash: '', 
         papel: 'Comum',
-        cargo: '',
         is_active: true
     });
     
@@ -235,15 +252,17 @@ const Configuracoes = () => {
             formData.append('nome_completo', newUserEncoded.nome_completo);
             formData.append('email', newUserEncoded.email);
             formData.append('papel', newUserEncoded.papel);
-            formData.append('cargo', newUserEncoded.cargo);
             formData.append('is_active', newUserEncoded.is_active);
+            
+            // Novos usuários agora começam com acesso ao painel principal por padrão
+            formData.append('permissoes', JSON.stringify([PERMISSIONS.VIEW_DASHBOARD]));
             
             if (newUserEncoded.senha_hash) {
                 formData.append('senha_hash', newUserEncoded.senha_hash);
             }
             
             if (userPhoto) {
-                formData.append('foto', userPhoto);
+                formData.append('img_path', userPhoto);
             }
 
             if (isEditingUser && selectedUser) {
@@ -266,16 +285,42 @@ const Configuracoes = () => {
                 email: '',
                 senha_hash: '',
                 papel: 'Comum',
-                cargo: '',
                 is_active: true
             });
             setUserPhoto(null);
             setIsEditingUser(false);
             fetchSecurityData(true); // Refresh list
+            
+            // Se o usuário editado for o usuário logado, atualize a sessão em tempo real
+            if (isEditingUser && selectedUser && user && selectedUser.id_usuario === user.id) {
+                if (refreshUser) refreshUser();
+            }
         } catch (error) {
             console.error("Erro ao salvar usuário:", error);
-            const msg = error.response?.data?.detail || JSON.stringify(error.response?.data) || "Erro ao processar.";
-            alert(`Erro: ${msg}`);
+            
+            let msg = "Erro ao processar a solicitação.";
+            
+            if (error.response?.data) {
+                const data = error.response.data;
+                
+                // DRF Standart Error Format: { "field": ["Error message"] }
+                if (typeof data === 'object') {
+                    // Check for specific field errors first
+                    if (data.email) {
+                        msg = `Erro no Email: ${data.email[0] || data.email}`;
+                    } else if (data.username) {
+                         msg = `Erro no Usuário: ${data.username[0] || data.username}`;
+                    } else if (data.detail) {
+                        msg = data.detail;
+                    } else {
+                        // Gather all errors
+                        const errors = Object.values(data).flat();
+                        if (errors.length > 0) msg = errors[0];
+                    }
+                }
+            }
+            
+            alert(`${msg}`);
         }
     };
     
@@ -286,7 +331,6 @@ const Configuracoes = () => {
             nome_completo: selectedUser.nome_completo,
             email: selectedUser.email || '',
             papel: selectedUser.papel || 'Comum',
-            cargo: selectedUser.cargo || '', // Get cargo from profile response
             senha_hash: '',
             is_active: selectedUser.is_active
         });
@@ -320,7 +364,20 @@ const Configuracoes = () => {
 
     const handleManagePermissions = () => {
         if (!selectedUser) return;
-        setEditingPermissions(selectedUser.permissoes || []);
+        
+        let currentPerms = [];
+        
+        // Carregar lista de permissões se existir (mesmo se vazia [])
+        if (selectedUser.permissoes && Array.isArray(selectedUser.permissoes)) {
+            currentPerms = [...selectedUser.permissoes];
+        } else if (selectedUser.permissoes_adicionais && Array.isArray(selectedUser.permissoes_adicionais)) {
+            currentPerms = [...selectedUser.permissoes_adicionais];
+        } else {
+            // Caso raro onde o campo não existe (nenhuma permissão concedida)
+            currentPerms = [];
+        }
+        
+        setEditingPermissions(currentPerms);
         setShowPermissionsModal(true);
     };
 
@@ -332,6 +389,34 @@ const Configuracoes = () => {
                 return [...prev, perm];
             }
         });
+    };
+
+    const applyRolePreset = (roleKey) => {
+        if (ROLE_PERMISSIONS[roleKey]) {
+            setEditingPermissions([...ROLE_PERMISSIONS[roleKey]]);
+        }
+    };
+
+    const toggleAllPermissions = (selectAll = true) => {
+        if (selectAll) {
+            setEditingPermissions(Object.values(PERMISSIONS));
+        } else {
+            setEditingPermissions([]);
+        }
+    };
+
+    const toggleGroupPermissions = (groupPerms) => {
+        const allSelected = groupPerms.every(p => editingPermissions.includes(p));
+        if (allSelected) {
+            // Deselect all in group
+            setEditingPermissions(prev => prev.filter(p => !groupPerms.includes(p)));
+        } else {
+            // Select all in group (keeping others)
+            setEditingPermissions(prev => {
+                const uniqueNew = groupPerms.filter(p => !prev.includes(p));
+                return [...prev, ...uniqueNew];
+            });
+        }
     };
 
     const handleSavePermissions = async () => {
@@ -353,6 +438,12 @@ const Configuracoes = () => {
             
             alert("Permissões atualizadas com sucesso!");
             fetchSecurityData(true); // Force refresh from backend
+            
+            // Se o usuário editado for o usuário logado, atualize a sessão em tempo real
+            if (user && selectedUser.id_usuario === user.id) {
+                if (refreshUser) refreshUser();
+            }
+            
             setShowPermissionsModal(false);
         } catch (error) {
             console.error("Erro ao salvar permissões:", error);
@@ -502,9 +593,14 @@ const Configuracoes = () => {
         try {
             await api.patch(`anos-lectivos/${id}/`, { activo: true });
             fetchAcademicYears(); // Refresh to see updates
+            alert("Ano lectivo reaberto com sucesso!");
         } catch (error) {
             console.error("Erro ao activar ano:", error);
-            alert("Erro ao mudar status do ano.");
+            if (error.response?.status === 403) {
+                 alert("Permissão negada: Apenas administradores podem reabrir um ano lectivo.");
+            } else {
+                 alert("Erro ao mudar status do ano.");
+            }
         }
     };
 
@@ -514,8 +610,9 @@ const Configuracoes = () => {
         }
 
         try {
-            await api.post(`anos-lectivos/${id}/encerrar/`);
-            alert("Ano Lectivo encerrado com sucesso.");
+            const response = await api.post(`anos-lectivos/${id}/encerrar/`);
+            const count = response.data.matriculas_atualizadas;
+            alert(`Ano Lectivo encerrado com sucesso.\n\n${count !== undefined ? `${count} matrículas foram marcadas como CONCLUÍDAS.` : ''}`);
             fetchAcademicYears();
         } catch (error) {
             console.error("Erro ao encerrar ano:", error);
@@ -809,19 +906,6 @@ const Configuracoes = () => {
                                         </div>
                                     </div>
 
-                                    <div className="config-group-v2">
-                                        <label>Cargo / Função</label>
-                                        <select 
-                                            className="input-v2"
-                                            value={newUserEncoded.cargo}
-                                            onChange={e => setNewUserEncoded({...newUserEncoded, cargo: e.target.value})}
-                                        >
-                                            <option value="">Selecione um cargo...</option>
-                                            {cargos.map(c => (
-                                                <option key={c.id_cargo} value={c.id_cargo}>{c.nome_cargo}</option>
-                                            ))}
-                                        </select>
-                                    </div>
 
                                     <div className="config-group-v2">
                                         <label>Definir Senha {isEditingUser && <span style={{fontWeight: 400, color: '#94a3b8'}}>(Opcional)</span>}</label>
@@ -885,44 +969,56 @@ const Configuracoes = () => {
                                 </div>
 
                                 <div className="user-grid-v2">
-                                    {filteredUsuarios.map(u => (
-                                        <div 
-                                            key={u.id_usuario} 
-                                            className={`user-card-v2 ${selectedUser?.id_usuario === u.id_usuario ? 'selected' : ''}`}
-                                            onClick={() => setSelectedUser(u)}
-                                        >
-                                            <div className="user-card-header">
-                                                <div className="user-avatar-v2">
-                                                    {u.img_path ? <img src={u.img_path} alt="" style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}} /> : u.nome_completo.charAt(0)}
-                                                </div>
-                                                <div className="user-info-v2">
-                                                    <h4>{u.nome_completo}</h4>
-                                                    <p>{u.cargo_nome || u.papel}</p>
-                                                </div>
-                                            </div>
-                                            <div className="user-card-footer">
-                                                <span style={{ 
-                                                    fontSize: '11px', 
-                                                    fontWeight: 700, 
-                                                    color: u.is_active ? 'var(--success)' : 'var(--danger)',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px'
-                                                }}>
-                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.is_active ? 'var(--success)' : 'var(--danger)' }}></div>
-                                                    {u.is_active ? 'ATIVO' : 'INATIVO'}
-                                                </span>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleEditSelectedUser(); }} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748b' }}>
-                                                        <Edit size={14} />
-                                                    </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleManagePermissions(); }} style={{ background: 'var(--primary-light-bg)', border: '1px solid var(--config-accent)', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'var(--primary-color)' }}>
-                                                        <ShieldCheck size={14} />
-                                                    </button>
-                                                </div>
-                                            </div>
+                                    {loading && usuarios.length === 0 ? (
+                                        <div style={{gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                            <div className="spinner"></div>
+                                            <p style={{marginTop: '10px'}}>Carregando usuários...</p>
                                         </div>
-                                    ))}
+                                    ) : filteredUsuarios.length > 0 ? (
+                                        filteredUsuarios.map(u => (
+                                            <div 
+                                                key={u.id_usuario} 
+                                                className={`user-card-v2 ${selectedUser?.id_usuario === u.id_usuario ? 'selected' : ''}`}
+                                                onClick={() => setSelectedUser(u)}
+                                            >
+                                                <div className="user-card-header">
+                                                    <div className="user-avatar-v2">
+                                                        {u.img_path ? <img src={u.img_path} alt="" style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}} /> : u.nome_completo.charAt(0)}
+                                                    </div>
+                                                    <div className="user-info-v2">
+                                                        <h4>{u.nome_completo}</h4>
+                                                        <p>{u.cargo_nome || u.papel}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="user-card-footer">
+                                                    <span style={{ 
+                                                        fontSize: '11px', 
+                                                        fontWeight: 700, 
+                                                        color: u.is_active ? 'var(--success)' : 'var(--danger)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: u.is_active ? 'var(--success)' : 'var(--danger)' }}></div>
+                                                        {u.is_active ? 'ATIVO' : 'INATIVO'}
+                                                    </span>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleEditSelectedUser(); }} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748b' }}>
+                                                            <Edit size={14} />
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); setSelectedUser(u); handleManagePermissions(); }} style={{ background: 'var(--primary-light-bg)', border: '1px solid var(--config-accent)', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'var(--primary-color)' }}>
+                                                            <ShieldCheck size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{gridColumn: '1/-1', textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0'}}>
+                                            <p style={{color: '#64748b', fontWeight: 600}}>Nenhum usuário encontrado.</p>
+                                            <p style={{fontSize: '12px', color: '#94a3b8'}}>Tente ajustar sua pesquisa ou adicione um novo usuário.</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {selectedUser && (
@@ -960,70 +1056,113 @@ const Configuracoes = () => {
                                         <div className="modal-icon-badge">
                                             <ShieldCheck size={28} />
                                         </div>
-                                        <h3>Permissões de {selectedUser?.nome_completo}</h3>
-                                        <p>Selecione as permissões adicionais para este usuário. Estas permissões somam-se às do cargo.</p>
+                                        <h3>Gestão de Acessos Individuais</h3>
+                                        <p>Ative o que {selectedUser?.nome_completo} pode acessar. Use os atalhos para preenchimento rápido.</p>
+                                    </div>
+
+                                    {/* MÉTODOS RÁPIDOS DE ATRIBUIÇÃO */}
+                                    <div className="permission-presets-section" style={{
+                                        padding: '15px',
+                                        background: '#f8fafc',
+                                        borderRadius: '12px',
+                                        marginBottom: '20px',
+                                        border: '1px solid #e2e8f0'
+                                    }}>
+                                        <span style={{fontSize: '12px', fontWeight: 'bold', color: '#64748b', display:'block', marginBottom: '10px'}}>
+                                            ATRIBUIÇÃO RÁPIDA (PRESETS):
+                                        </span>
+                                        <div className="presets-grid" style={{display:'flex', gap: '8px', flexWrap:'wrap'}}>
+                                            <button onClick={() => applyRolePreset('ADMIN')} className="btn-preset admin" style={{padding:'6px 12px', borderRadius:'20px', fontSize:'11px', border:'1px solid #94a3b8', background:'white', cursor:'pointer'}}>Admin Total</button>
+                                            <button onClick={() => applyRolePreset('SECRETARIA')} className="btn-preset" style={{padding:'6px 12px', borderRadius:'20px', fontSize:'11px', border:'1px solid #94a3b8', background:'white', cursor:'pointer'}}>Secretaria</button>
+                                            <button onClick={() => applyRolePreset('PROFESSOR')} className="btn-preset" style={{padding:'6px 12px', borderRadius:'20px', fontSize:'11px', border:'1px solid #94a3b8', background:'white', cursor:'pointer'}}>Professor</button>
+                                            <button onClick={() => applyRolePreset('ALUNO')} className="btn-preset" style={{padding:'6px 12px', borderRadius:'20px', fontSize:'11px', border:'1px solid #94a3b8', background:'white', cursor:'pointer'}}>Aluno (Consulta)</button>
+                                            <div style={{width:'1px', height: '20px', background: '#cbd5e1', margin: '0 5px'}}></div>
+                                            <button onClick={() => toggleAllPermissions(true)} className="btn-preset" style={{padding:'6px 12px', borderRadius:'20px', fontSize:'11px', border:'1px solid #2563eb', color:'#2563eb', background:'white', cursor:'pointer'}}>Selecionar Tudo</button>
+                                            <button onClick={() => toggleAllPermissions(false)} className="btn-preset" style={{padding:'6px 12px', borderRadius:'20px', fontSize:'11px', border:'1px solid #dc2626', color:'#dc2626', background:'white', cursor:'pointer'}}>Limpar Tudo</button>
+                                        </div>
                                     </div>
                                     
                                     <div className="permissions-scroll-container">
-                                        {PERMISSION_GROUPS.map((group) => (
-                                            <div key={group.name} className="permission-group-block">
-                                                <div className="permission-group-header">
-                                                    <div className="group-title-row">
-                                                        <div className="group-indicator"></div>
-                                                        <h4>{group.name}</h4>
-                                                    </div>
-                                                    <div className="group-actions">
+                                        {PERMISSION_GROUPS.map((group) => {
+                                            const allGroupSelected = group.permissions.every(p => editingPermissions.includes(p));
+                                            return (
+                                                <div key={group.name} className="permission-group">
+                                                    <div className="group-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #f1f5f9', paddingBottom:'8px', marginBottom:'15px'}}>
+                                                        <h4 className="group-title" style={{margin:0}}>{group.name}</h4>
                                                         <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const allInGroup = group.permissions;
-                                                                setEditingPermissions(prev => [...new Set([...prev, ...allInGroup])]);
+                                                            onClick={() => toggleGroupPermissions(group.permissions)}
+                                                            className="btn-group-toggle"
+                                                            style={{
+                                                                fontSize: '11px',
+                                                                color: '#3b82f6',
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                cursor: 'pointer',
+                                                                fontWeight: '600'
                                                             }}
-                                                            className="link-btn-blue"
                                                         >
-                                                            Selecionar Tudo
-                                                        </button>
-                                                        <div className="separator-dot"></div>
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const allInGroup = group.permissions;
-                                                                setEditingPermissions(prev => prev.filter(p => !allInGroup.includes(p)));
-                                                            }}
-                                                            className="link-btn-red"
-                                                        >
-                                                            Limpar
+                                                            {allGroupSelected ? 'Desmarcar Grupo' : 'Marcar Grupo'}
                                                         </button>
                                                     </div>
-                                                </div>
-
-                                                <div className="permission-items-grid">
+                                                    <div className="permission-items-grid">
                                                     {group.permissions.map((perm) => {
                                                         const isSelected = editingPermissions.includes(perm);
                                                         return (
                                                             <div 
                                                                 key={perm} 
                                                                 onClick={() => togglePermission(perm)}
-                                                                className={`permission-item-card ${isSelected ? 'active' : ''}`}
+                                                                className={`permission-item-card toggle-style ${isSelected ? 'active' : ''}`}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    padding: '12px 16px',
+                                                                    border: isSelected ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                                                                    background: isSelected ? '#eff6ff' : 'white',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '8px',
+                                                                    transition: 'all 0.2s'
+                                                                }}
                                                             >
-                                                                <div className={`custom-checkbox ${isSelected ? 'checked' : ''}`}>
-                                                                    {isSelected && <CheckSquare size={16} />}
-                                                                </div>
                                                                 <div className="perm-text-content">
-                                                                    <span className="perm-label">
+                                                                    <span className="perm-label" style={{fontWeight: '600', display:'block', color:'#334155'}}>
                                                                         {PERMISSIONS_PT[perm] || perm}
                                                                     </span>
-                                                                    <span className="perm-code">
+                                                                    <span className="perm-code" style={{fontSize:'10px', color:'#94a3b8'}}>
                                                                         {perm}
                                                                     </span>
+                                                                </div>
+                                                                
+                                                                {/* TOGGLE SWITCH VISUAL */}
+                                                                <div style={{
+                                                                    width: '40px',
+                                                                    height: '22px',
+                                                                    background: isSelected ? '#2563eb' : '#cbd5e1',
+                                                                    borderRadius: '20px',
+                                                                    position: 'relative',
+                                                                    transition: 'background 0.3s'
+                                                                }}>
+                                                                    <div style={{
+                                                                        width: '18px',
+                                                                        height: '18px',
+                                                                        background: 'white',
+                                                                        borderRadius: '50%',
+                                                                        position: 'absolute',
+                                                                        top: '2px',
+                                                                        left: isSelected ? '20px' : '2px',
+                                                                        transition: 'left 0.3s',
+                                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                                    }}></div>
                                                                 </div>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
+                                </div>
+
 
                                     <div className="sidebar-modal-actions">
                                         <button className="btn-modal-cancel" onClick={() => setShowPermissionsModal(false)}>
@@ -1287,10 +1426,10 @@ const Configuracoes = () => {
                                             <td>{new Date(year.data_fim).toLocaleDateString()}</td>
                                             <td>
                                                 <span className="info-badge" style={{ 
-                                                    background: year.activo ? '#dcfce7' : '#f1f5f9',
-                                                    color: year.activo ? '#15803d' : '#64748b'
+                                                    background: year.activo ? '#dcfce7' : '#fee2e2',
+                                                    color: year.activo ? '#15803d' : '#ef4444'
                                                 }}>
-                                                    {year.activo ? 'ACTIVO' : 'INACTIVO'}
+                                                    {year.activo ? 'ACTIVO' : 'ENCERRADO'}
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
@@ -1299,9 +1438,11 @@ const Configuracoes = () => {
                                                         <button 
                                                             onClick={() => handleToggleActiveYear(year.id_ano, year.activo)}
                                                             className="btn-premium btn-secondary-premium"
-                                                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                                                            style={{ padding: '6px 12px', fontSize: '12px', opacity: isAdmin ? 1 : 0.5, cursor: isAdmin ? 'pointer' : 'not-allowed' }}
+                                                            title={isAdmin ? "Reabrir Ano Lectivo" : "Apenas Administradores podem reabrir este ano"}
+                                                            disabled={!isAdmin}
                                                         >
-                                                            Ativar
+                                                            Reabrir
                                                         </button>
                                                     ) : (
                                                         <button 
@@ -1347,7 +1488,7 @@ const Configuracoes = () => {
                         </div>
 
                         <div className="info-card-v2">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <div>
                                     <p className="info-value" style={{ 
                                         color: config.candidaturas_abertas ? '#15803d' : '#dc2626',
@@ -1370,17 +1511,45 @@ const Configuracoes = () => {
                                             : 'O portal está exibindo a mensagem de encerramento abaixo.'}
                                     </p>
                                 </div>
-                                <button 
-                                    onClick={handleTogglePortal}
-                                    className="btn-premium"
-                                    style={{
-                                        background: config.candidaturas_abertas ? '#fee2e2' : '#dcfce7',
-                                        color: config.candidaturas_abertas ? '#b91c1c' : '#15803d',
-                                        fontWeight: '600'
-                                    }}
-                                >
-                                    {config.candidaturas_abertas ? 'Suspender Portal' : 'Abrir Candidaturas'}
-                                </button>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button 
+                                        onClick={handleTogglePortal}
+                                        className="btn-premium"
+                                        style={{
+                                            background: config.candidaturas_abertas ? '#fee2e2' : '#dcfce7',
+                                            color: config.candidaturas_abertas ? '#b91c1c' : '#15803d',
+                                            fontWeight: '600'
+                                        }}
+                                    >
+                                        {config.candidaturas_abertas ? 'Suspender Portal' : 'Abrir Candidaturas'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px', background: '#f8fafc', padding: '20px', borderRadius: '16px' }}>
+                                <div className="config-group-v2" style={{ marginBottom: 0 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                        <Calendar size={16} /> Data Limite de Candidatura
+                                    </label>
+                                    <input 
+                                        type="datetime-local" 
+                                        className="input-v2"
+                                        value={config.data_fim_candidatura ? config.data_fim_candidatura.slice(0, 16) : ''}
+                                        onChange={e => setConfig({...config, data_fim_candidatura: e.target.value})}
+                                    />
+                                </div>
+                                <div className="config-group-v2" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '24px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="auto-close"
+                                        checked={config.fechamento_automatico}
+                                        onChange={e => setConfig({...config, fechamento_automatico: e.target.checked})}
+                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="auto-close" style={{ cursor: 'pointer', fontWeight: '600', color: '#1e293b' }}>
+                                        Fechar automaticamente ao atingir o prazo
+                                    </label>
+                                </div>
                             </div>
                             
                             {/* Mensagem de Encerramento - Design Premium */}
@@ -1552,7 +1721,7 @@ const Configuracoes = () => {
             <div className="config-layout-v2">
                 {/* Sidebar V2 */}
                 <aside className="config-sidebar-v2">
-                    {canViewConfig && (
+                    {canManageMaintenance && (
                         <button
                             className={`config-nav-item ${activeTab === 'manutencao' ? 'active' : ''}`}
                             onClick={() => setActiveTab("manutencao")}

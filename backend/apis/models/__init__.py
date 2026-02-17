@@ -8,8 +8,6 @@ from .academico import (
 )
 
 from .avaliacoes import TipoDisciplina, Disciplina, DisciplinaCurso, ProfessorDisciplina, Nota, FaltaAluno
-from .documentos import Documento, SolicitacaoDocumento
-from .biblioteca import Categoria, Livro
 from .financeiro import Fatura, Pagamento
 from .matriculas import Inscricao, Matricula
 from .historico import HistoricoEscolar
@@ -25,8 +23,6 @@ __all__ = [
     'Sala', 'Classe', 'Departamento', 'Seccao', 'AreaFormacao', 'Curso', 'Periodo', 'Turma', 'AnoLectivo',
 
     'TipoDisciplina', 'Disciplina', 'DisciplinaCurso', 'ProfessorDisciplina', 'Nota', 'FaltaAluno',
-    'Documento', 'SolicitacaoDocumento',
-    'Categoria', 'Livro',
     'Fatura', 'Pagamento',
     'Inscricao', 'Matricula',
     'Historico', 'HistoricoLogin',

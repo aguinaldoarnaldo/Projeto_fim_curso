@@ -4,5 +4,5 @@ from apis.models import Configuracao
 class ConfiguracaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Configuracao
-        fields = ['id_config', 'candidaturas_abertas', 'mensagem_candidaturas_fechadas', 'nome_escola', 'logo']
+        fields = ['id_config', 'candidaturas_abertas', 'mensagem_candidaturas_fechadas', 'data_fim_candidatura', 'fechamento_automatico', 'nome_escola', 'logo']
         read_only_fields = ['id_config']

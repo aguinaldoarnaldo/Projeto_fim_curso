@@ -1,15 +1,17 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
+from django.core.exceptions import ValidationError
+import json
 
 from apis.models import Matricula
 from apis.serializers.matricula_serializers import MatriculaSerializer
 
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 
 class MatriculaViewSet(viewsets.ModelViewSet):
     """ViewSet para Matricula"""
@@ -25,7 +27,7 @@ class MatriculaViewSet(viewsets.ModelViewSet):
         'id_aluno__alunoencarregado_set__id_encarregado'
     ).all()
     serializer_class = MatriculaSerializer
-    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     
     # Mapeamento de permissões por ação
     permission_map = {
@@ -51,6 +53,7 @@ class MatriculaViewSet(viewsets.ModelViewSet):
         Recebe dados completos do aluno + turma + histórico escolar.
         """
         from apis.models import Aluno, Turma, Encarregado, AlunoEncarregado, Matricula, HistoricoEscolar, AnoLectivo, Candidato
+        import json
         
         data = request.data
         
@@ -73,6 +76,10 @@ class MatriculaViewSet(viewsets.ModelViewSet):
             ano_lectivo = AnoLectivo.objects.filter(activo=True).first()
             if not ano_lectivo:
                 return Response({'erro': 'Nenhum Ano Lectivo ativo encontrado. Configure um Ano Lectivo primeiro.'}, status=400)
+        
+        # Validation: prevent enrollment in closed year
+        if not ano_lectivo.activo:
+             return Response({'erro': f'O Ano Lectivo {ano_lectivo.nome} está encerrado. Não é possível realizar matrículas.'}, status=403)
             
         try:
             with transaction.atomic():
@@ -111,50 +118,44 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     # Verificar se já existe por BI 
                     aluno_exists = Aluno.objects.filter(numero_bi=data.get('numero_bi')).first()
                     if aluno_exists:
-                        return Response({'erro': 'Já existe um aluno com este Número de BI.'}, status=400)
-                    
-                    import datetime
-                    year = datetime.datetime.now().year
-                    last = Aluno.objects.order_by('-numero_matricula').first()
-                    new_num = (last.numero_matricula + 1) if last and last.numero_matricula else int(f"{year}0001")
-                    
-                    foto = request.FILES.get('novo_aluno_foto')
-                    
-                    aluno = Aluno.objects.create(
-                        nome_completo=data.get('nome_completo'),
-                        data_nascimento=data.get('data_nascimento'),
-                        genero=data.get('genero'),
-                        numero_bi=data.get('numero_bi'),
-                        nacionalidade=data.get('nacionalidade', 'Angolana'),
-                        naturalidade=data.get('naturalidade'),
-                        deficiencia=data.get('deficiencia', 'Não'),
-                        email=data.get('email'),
-                        telefone=data.get('telefone', '000000000'),
-                        provincia_residencia=data.get('provincia'),
-                        municipio_residencia=data.get('municipio'),
-                        bairro_residencia=data.get('bairro'),
-                        numero_casa=data.get('numero_casa'),
-                        numero_matricula=new_num,
-                        senha_hash='123456',
-                        status_aluno='Activo',
-                        id_turma=turma,
-                        img_path=foto if foto else None
-                    )
-
-                    # Se não veio foto nova, mas tem do candidato, vamos copiar FISICAMENTE
-                    if not foto and candidato and candidato.foto_passe:
-                        try:
-                            from django.core.files.base import ContentFile
-                            import os
-                            content = candidato.foto_passe.read()
-                            filename = os.path.basename(candidato.foto_passe.name)
-                            aluno.img_path.save(filename, ContentFile(content), save=True)
-                        except Exception as e:
-                            print(f"Erro ao copiar foto do candidato: {e}")
+                         # Se já existe, usar este aluno (mas avisar user seria ideal)
+                         aluno = aluno_exists
+                    else:
+                        foto = request.FILES.get('novo_aluno_foto')
+                        
+                        aluno = Aluno.objects.create(
+                            nome_completo=data.get('nome_completo'),
+                            data_nascimento=data.get('data_nascimento'),
+                            genero=data.get('genero'),
+                            numero_bi=data.get('numero_bi'),
+                            nacionalidade=data.get('nacionalidade', 'Angolana'),
+                            naturalidade=data.get('naturalidade'),
+                            deficiencia=data.get('deficiencia', 'Não'),
+                            email=data.get('email'),
+                            telefone=data.get('telefone', '000000000'),
+                            provincia_residencia=data.get('provincia'),
+                            municipio_residencia=data.get('municipio'),
+                            bairro_residencia=data.get('bairro'),
+                            numero_casa=data.get('numero_casa'),
+                            senha_hash='123456',
+                            status_aluno='Activo',
+                            id_turma=turma,
+                            img_path=foto if foto else None
+                        )
+    
+                        # Se não veio foto nova, mas tem do candidato, vamos copiar FISICAMENTE
+                        if not foto and candidato and candidato.foto_passe:
+                            try:
+                                from django.core.files.base import ContentFile
+                                import os
+                                content = candidato.foto_passe.read()
+                                filename = os.path.basename(candidato.foto_passe.name)
+                                aluno.img_path.save(filename, ContentFile(content), save=True)
+                            except Exception as e:
+                                print(f"Erro ao copiar foto do candidato: {e}")
                 else:
-                    # Atualizar dados do aluno existente se necessário (ex: mudança de morada, telefone)
+                    # Atualizar dados do aluno existente
                     aluno.id_turma = turma
-                    aluno.nome_completo = data.get('nome_completo', aluno.nome_completo)
                     aluno.status_aluno = 'Activo'
                     
                     # Campos de Endereço/Contato
@@ -181,9 +182,8 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                             aluno.img_path.save(filename, ContentFile(content), save=False)
                         except Exception:
                             pass
-
                     aluno.save()
-                
+
                 # 3. Vínculo Encarregado
                 if encarregado:
                     AlunoEncarregado.objects.create(
@@ -193,30 +193,49 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     )
                     
                 # 4. Matrícula
+                db_bi = request.FILES.get('doc_bi')
+                db_cert = request.FILES.get('doc_certificado')
+
+                # Se não foram enviados agora, tentar herdar do candidato
+                if candidato:
+                    if not db_bi and candidato.comprovativo_bi:
+                        db_bi = candidato.comprovativo_bi
+                    if not db_cert and candidato.certificado:
+                        db_cert = candidato.certificado
+
                 Matricula.objects.create(
                      id_aluno=aluno,
                      id_turma=turma,
-                     ano_lectivo=ano_lectivo,  # Usar a variável que foi validada
+                     ano_lectivo=ano_lectivo,
                      ativo=True,
                      tipo=data.get('tipo', 'Novo'),
-                     status='Ativo',
-                     doc_bi=request.FILES.get('doc_bi'),
-                     doc_certificado=request.FILES.get('doc_certificado')
+                     status='Ativa',
+                     doc_bi=db_bi,
+                     doc_certificado=db_cert
                 )
                 
-                # 4.1 Atualizar Status do Candidato (se originário de uma inscrição)
-                candidato_id = data.get('candidato_id')
-                if candidato_id:
-                    Candidato.objects.filter(pk=candidato_id).update(status='Matriculado')
+                # 4.1 Atualizar Status do Candidato
+                if candidato:
+                    candidato.status = 'Matriculado'
+                    candidato.save()
 
                 # 5. Histórico Escolar (se houver)
                 historico_list = data.get('historico_escolar', [])
+                
+                if isinstance(historico_list, str):
+                    try:
+                        historico_list = json.loads(historico_list)
+                    except json.JSONDecodeError:
+                         historico_list = []
+
                 if historico_list and isinstance(historico_list, list):
                     for item in historico_list:
+                        ano_hist = item.get('ano', '')
+                        
                         HistoricoEscolar.objects.create(
                             aluno=aluno,
                             escola_origem=item.get('escola'),
-                            ano_lectivo=item.get('ano'),
+                            ano_lectivo=str(ano_hist), 
                             classe=item.get('classe'),
                             turma_origem=item.get('turma_antiga'),
                             numero_processo_origem=item.get('num_processo'),
@@ -230,9 +249,11 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     'matricula': aluno.numero_matricula
                 }, status=201)
 
+        except ValidationError as e:
+            return Response({'erro': e.message_dict if hasattr(e, 'message_dict') else str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # import traceback
-            # traceback.print_exc()
+            import traceback
+            traceback.print_exc()
             return Response({'erro': f'Erro ao processar matrícula: {str(e)}'}, status=500)
 
     @action(detail=False, methods=['get'])
@@ -278,6 +299,10 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     mat2 = Matricula.objects.select_related('id_turma', 'id_aluno').get(pk=id2)
                 except Matricula.DoesNotExist:
                      return Response({'erro': f'Matrícula {id2} não encontrada.'}, status=404)
+                
+                # Validar se o Ano Lectivo está ativo
+                if (mat1.ano_lectivo and not mat1.ano_lectivo.activo) or (mat2.ano_lectivo and not mat2.ano_lectivo.activo):
+                     return Response({'erro': 'Não é possível permutar matrículas de um Ano Lectivo encerrado.'}, status=403)
                 
                 # Armazenar turmas para a troca
                 turma1 = mat1.id_turma

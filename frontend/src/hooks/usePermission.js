@@ -11,8 +11,22 @@ export const usePermission = () => {
     const role = user?.cargo || user?.tipo;
     
     const checkPermission = (permission) => {
-        // Agora hasPermission aceita o objeto user completo para verificar cargo e permissoes_adicionais
-        return hasPermission(user, permission);
+        // DEBUG: Log completo do usuário e da verificação
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 [usePermission] Verificando permissão:', permission);
+            console.log('👤 [usePermission] Usuário:', user);
+            console.log('📜 [usePermission] Permissões do usuário:', user?.permissoes);
+            console.log('🎭 [usePermission] Papel:', user?.papel);
+            console.log('🔐 [usePermission] is_superuser:', user?.is_superuser);
+        }
+        
+        const result = hasPermission(user, permission);
+        
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`${result ? '✅' : '❌'} [usePermission] Resultado para "${permission}":`, result);
+        }
+        
+        return result;
     };
 
     return {

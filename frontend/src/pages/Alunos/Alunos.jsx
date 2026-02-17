@@ -107,16 +107,19 @@ const Alunos = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [activeMenuId]);
 
-    // Close menu on scroll - DISABLED to prevent accidental closing
-    /*
+    // Close menu on scroll to prevent floating menu - ENABLED for better UX
     useEffect(() => {
         const handleScroll = () => {
-             // ... logic removed ...
+             if (activeMenuId) {
+                 setActiveMenuId(null);
+                 setMenuStudent(null);
+                 setShowStatusSubmenu(false);
+             }
         };
+        // Listen on capturing phase to catch scrolls in nested containers
         window.addEventListener('scroll', handleScroll, true);
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [activeMenuId]);
-    */
 
     // Scroll to top on page change
     useEffect(() => {
@@ -167,8 +170,10 @@ const Alunos = () => {
                 if (salasRes.data?.results || Array.isArray(salasRes.data)) 
                     setSalasDisponiveis(salasRes.data?.results || salasRes.data);
 
-                if (turmasRes.data?.results || Array.isArray(turmasRes.data)) 
-                    setTurmasDisponiveis(turmasRes.data?.results || turmasRes.data);
+                if (turmasRes.data?.results || Array.isArray(turmasRes.data)) {
+                    const allTurmas = turmasRes.data?.results || turmasRes.data;
+                    setTurmasDisponiveis(allTurmas.filter(t => t.status === 'Ativa'));
+                }
 
             } catch (err) {
                 console.error("Erro ao buscar opções de filtros:", err);
@@ -212,6 +217,7 @@ const Alunos = () => {
             nome: student.nome_completo,
             foto: student.img_path,
             anoLectivo: student.ano_lectivo || '2024/2025',
+            anoLectivoAtivo: student.ano_lectivo_ativo, // Mapped from backend
             classe: student.classe_nivel ? `${student.classe_nivel}ª Classe` : 'N/A',
             curso: student.curso_nome || 'N/A',
             sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
@@ -365,12 +371,29 @@ const Alunos = () => {
             refresh(true); // Silent refresh
         } catch (err) {
             console.error("Erro ao salvar aluno:", err);
-            alert("Erro ao salvar. Verifique os dados.");
+            
+            let msg = "Erro ao salvar. Verifique os dados.";
+            
+             if (err.response?.data) {
+                const data = err.response.data;
+                // DRF Standard Error Format
+                if (typeof data === 'object') {
+                    if (data.detail) {
+                         msg = data.detail;
+                    } else {
+                        // Gather all errors
+                        const errors = Object.values(data).flat();
+                        if (errors.length > 0) msg = errors[0];
+                    }
+                }
+            }
+            
+            alert(`Erro: ${msg}`);
         }
     };
 
     // Sorting State
-    const [sortConfig, setSortConfig] = useState({ key: 'nome', direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'desc' });
 
     const requestSort = (key) => {
         let direction = 'asc';
@@ -642,7 +665,7 @@ const Alunos = () => {
                                                         justifyContent: 'center',
                                                         flexShrink: 0,
                                                         overflow: 'hidden',
-                                                        borderRadius: '10px',
+                                                        borderRadius: '50%', // Perfectly circular
                                                         background: s.foto ? 'white' : 'var(--primary-light-bg)',
                                                         border: s.foto ? '1px solid #e2e8f0' : 'none'
                                                     }}>
@@ -652,7 +675,12 @@ const Alunos = () => {
                                                             <User size={18} color="var(--primary-color)" />
                                                         )}
                                                     </div>
-                                                    <span className="student-name" style={{ fontWeight: 600, color: '#1e293b' }}>{s.nome}</span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                                                        <span className="student-name" style={{ fontWeight: 700, color: '#0f172a' }}>{s.nome}</span>
+                                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, fontFamily: 'monospace', marginTop: '2px' }}>
+                                                            {s.detalhes?.bi || 'Nº BI PENDENTE'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td>{s.anoLectivo}</td>
@@ -797,7 +825,7 @@ const Alunos = () => {
                                         <div><p className="info-label">Morada</p><p className="info-value">{selectedStudent.detalhes.endereco}</p></div>
                                     </div>
                                 </div>
-
+                                
                                 {/* 2. Dados Académicos */}
                                 <div className="info-section">
                                     <h3 className="section-title" style={{ color: '#b45309' }}>
@@ -820,6 +848,22 @@ const Alunos = () => {
                                         </div>
                                     </div>
                                 </div>
+                                
+                                {/* 3. Contactos & Encarregado */}
+                                <div className="info-section">
+                                    <h3 className="section-title" style={{ color: '#0ea5e9' }}>
+                                        <Phone size={20} color="#0ea5e9" /> Contactos & Encarregado
+                                    </h3>
+                                    <div className="info-grid-2">
+                                        <div><p className="info-label">Telefone</p><p className="info-value">{selectedStudent.detalhes.telefone}</p></div>
+                                        <div><p className="info-label">Email</p><p className="info-value">{selectedStudent.detalhes.email || 'N/A'}</p></div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <p className="info-label">Encarregado Principal</p>
+                                            <p className="info-value" style={{ fontSize: '15px' }}>{selectedStudent.detalhes.encarregado}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div style={{ height: '50px' }}></div>
                             </div>
                         </div>
@@ -842,10 +886,20 @@ const Alunos = () => {
                             left: menuPosition.left, 
                         }}
                     >
+                        {/* Warning info if closed year */}
+                        {menuStudent.anoLectivoAtivo === false && (
+                             <div style={{ padding: '8px 12px', fontSize: '11px', color: '#dc2626', background: '#fef2f2', borderBottom: '1px solid #fee2e2' }}>
+                                 <AlertCircle size={12} style={{display:'inline', marginRight:'4px'}}/>
+                                 Ano Lectivo Encerrado
+                             </div>
+                        )}
+
                         {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
                             <button 
                                 onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); }}
                                 className="dropdown-item-btn"
+                                disabled={menuStudent.anoLectivoAtivo === false}
+                                style={menuStudent.anoLectivoAtivo === false ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                             >
                                 <div style={{ color: '#64748b' }}><Edit size={16} /></div>
                                 Editar Aluno
@@ -855,8 +909,9 @@ const Alunos = () => {
                         {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
                             <div 
                                 className="submenu-trigger"
-                                onMouseEnter={handleStatusEnter}
-                                onMouseLeave={handleStatusLeave}
+                                onMouseEnter={menuStudent.anoLectivoAtivo !== false ? handleStatusEnter : undefined}
+                                onMouseLeave={menuStudent.anoLectivoAtivo !== false ? handleStatusLeave : undefined}
+                                style={menuStudent.anoLectivoAtivo === false ? { pointerEvents: 'none', opacity: 0.5 } : {}}
                             >
                                 <button 
                                     className={`trigger-btn ${showStatusSubmenu ? 'active' : ''}`}

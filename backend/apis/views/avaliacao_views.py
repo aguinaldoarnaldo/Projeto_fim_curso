@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 from apis.services.academic_service import AcademicService
 
 from apis.models import (
@@ -68,7 +68,7 @@ class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
         'id_funcionario', 'id_disciplina', 'id_turma'
     ).all()
     serializer_class = ProfessorDisciplinaSerializer
-    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     permission_map = {'list': 'view_turmas', 'create': 'manage_turmas'}
     filter_backends = [DjangoFilterBackend]
 
@@ -78,7 +78,7 @@ class NotaViewSet(viewsets.ModelViewSet):
     queryset = Nota.objects.select_related(
         'id_aluno', 'id_disciplina', 'id_professor', 'id_turma'
     ).all()
-    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     permission_map = {
         'list': 'view_notas',
         'retrieve': 'view_notas',
@@ -111,6 +111,14 @@ class NotaViewSet(viewsets.ModelViewSet):
             try:
                 from apis.models import Nota, Aluno, Disciplina, Funcionario, Turma
                 turma = Turma.objects.get(id_turma=id_turma)
+                
+                # Check active year
+                if turma.ano_lectivo and not turma.ano_lectivo.activo:
+                    return Response(
+                        {'error': f'O Ano Lectivo {turma.ano_lectivo.nome} está encerrado. Não é possível lançar notas.'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
                 disciplina = Disciplina.objects.get(id_disciplina=id_disciplina)
                 professor = Funcionario.objects.get(id_funcionario=id_professor)
                 
@@ -142,7 +150,7 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
     queryset = FaltaAluno.objects.select_related(
         'id_aluno', 'id_disciplina', 'id_turma'
     ).all()
-    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     permission_map = {
         'list': 'view_faltas',
         'create': 'manage_faltas',
@@ -168,6 +176,14 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
         observacao = request.data.get('observacao')
         
         try:
+            from apis.models import Turma
+            turma = Turma.objects.get(pk=turma_id)
+            if turma.ano_lectivo and not turma.ano_lectivo.activo:
+                 return Response(
+                    {'error': f'O Ano Lectivo {turma.ano_lectivo.nome} está encerrado. Não é possível registrar faltas.'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
             total = AcademicService.registrar_falta_lote(
                 aluno_ids, disciplina_id, turma_id, data_falta, observacao
             )
