@@ -349,9 +349,33 @@
     color: #1e293b;
 }
 
-.chart-header p {
+.chart-filter-select {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+    color: #1e293b;
     font-size: 13px;
-    color: #64748b;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.chart-filter-select:hover {
+    border-color: #3b82f6;
+    background-color: #ffffff;
+}
+
+.chart-filter-select option {
+    font-weight: normal;
+    padding: 8px;
+}
+
+/* Estilo visual para destacar o ano ativo na lista */
+.chart-filter-select option[value*="(Ativo)"],
+.chart-filter-select option:checked {
+    font-weight: bold;
 }
 
 /* DASHBOARD CHARTS ROW */
@@ -361,9 +385,13 @@
     gap: 24px;
 }
 
-.gender-chart-body, 
-.course-chart-body {
+.gender-chart-body {
     height: 300px;
+}
+
+.course-chart-body {
+    height: auto;
+    min-height: 300px;
 }
 
 @media (max-width: 1200px) {

@@ -41,22 +41,29 @@ const Dashboard = () => {
   };
 
   // 1. GLOBAL DASHBOARD DATA CACHE
-  const fetchDashboardStats = async () => {
-       const [
-           responseCursos,
-           responseClasses,
-           responseSalas,
-           responseAlunoStats, // CHANGED: now fetching stats directly
-           responseTurmas,
-           responseAnos
-       ] = await Promise.all([
-           api.get('cursos/').catch(e => ({ data: [] })),
-           api.get('classes/').catch(e => ({ data: [] })),
-           api.get('salas/').catch(e => ({ data: [] })),
-           api.get('alunos/stats/').catch(e => ({ data: { total: 0, ativos: 0, genero: [], cursos: [] } })),
-           api.get('turmas/summary/').catch(e => ({ data: { total: 0, ativas: 0, concluidas: 0 } })),
-           api.get('anos-lectivos/').catch(e => ({ data: [] }))
-       ]);
+   const fetchDashboardStats = async (yearName = null) => {
+        const queryParams = yearName ? `?ano=${yearName}` : '';
+        
+        // Carregamento Estratégico em duas fases para não engasgar o navegador
+        
+        // Fase 1: Essencial (Anos Lectivos completos e Estatísticas para os Gráficos circulares)
+        const [responseAnos, responseAlunoStats] = await Promise.all([
+            api.get('anos-lectivos/?all=true').catch(e => ({ data: [] })),
+            api.get(`alunos/stats/${queryParams}`).catch(e => ({ data: { total: 0, ativos: 0, genero: [], cursos: [] } }))
+        ]);
+
+        // Fase 2: Secundário (Contadores dos mini-cards)
+        const [
+            responseCursos,
+            responseClasses,
+            responseSalas,
+            responseTurmas
+        ] = await Promise.all([
+            api.get('cursos/').catch(e => ({ data: [] })),
+            api.get('classes/').catch(e => ({ data: [] })),
+            api.get('salas/').catch(e => ({ data: [] })),
+            api.get('turmas/summary/').catch(e => ({ data: { total: 0, ativas: 0, concluidas: 0 } }))
+        ]);
 
        // Process Counts
        const dataCursos = responseCursos.data?.results || responseCursos.data || [];
@@ -114,7 +121,14 @@ const Dashboard = () => {
        };
   };
 
-  const { data: dashboardStats, loading: loadingStats, refresh: refreshStats } = useDataCache('dashboard_stats', fetchDashboardStats);
+   const currentYearStr = new Date().getFullYear().toString();
+   const [selectedYear, setSelectedYear] = useState(currentYearStr);
+
+   const { data: dashboardStats, loading: loadingStats, refresh: refreshStats } = useDataCache(
+     `dashboard_stats_${selectedYear || 'initial'}`, 
+     () => fetchDashboardStats(selectedYear),
+     false // Desativa auto-carregamento paralelo
+   );
 
   // Default values from cache or initial
   const kpiData = dashboardStats?.kpi || { alunos: { total: 0, ativos: 0, trancados: 0 }, turmas: { total: 0, ativas: 0, concluidas: 0 } };
@@ -124,39 +138,27 @@ const Dashboard = () => {
   const genderData = dashboardStats?.gender || [{ name: 'Masculino', value: 0 }, { name: 'Feminino', value: 0 }];
   const courseData = dashboardStats?.courses || [];
   const academicYears = dashboardStats?.years || [];
-  const COLORS_GENDER = ['#3b82f6', '#ec4899'];
+   const COLORS_GENDER = ['#3b82f6', '#ec4899'];
+   const [hasSyncActiveYear, setHasSyncActiveYear] = useState(false);
 
-   const currentYearStr = new Date().getFullYear().toString();
-   const [selectedYear, setSelectedYear] = useState(currentYearStr);
+    // 1. Sincronização Inteligente Inicial
+    // Se o ano atual (ex: 2026) não for encontrado exatamente, mas houver um ano ATIVO,
+    // sincronizamos para o ano ativo apenas na primeira vez que os dados chegam.
+    useEffect(() => {
+        if (academicYears.length > 0 && !hasSyncActiveYear) {
+            const hasExactMatch = academicYears.find(y => y.nome === selectedYear);
+            if (!hasExactMatch) {
+                const activeYear = academicYears.find(y => y.activo);
+                if (activeYear) {
+                    setSelectedYear(activeYear.nome);
+                }
+            }
+            setHasSyncActiveYear(true);
+        }
+    }, [academicYears, selectedYear, hasSyncActiveYear]);
 
-   // Auto-select: prioriza ANO ATUAL, depois ano ativo, depois o mais recente
-   useEffect(() => {
-     if (academicYears.length > 0) {
-         // 1. Prioridade: Ano atual (ex: 2026)
-         const currentYear = academicYears.find(a => a.nome === currentYearStr);
-         if (currentYear) {
-             setSelectedYear(currentYear.nome);
-             return;
-         }
-         
-         // 2. Se não houver ano atual, tenta o ano marcado como "ativo"
-         const activeYear = academicYears.find(a => a.activo);
-         if (activeYear) {
-             setSelectedYear(activeYear.nome);
-             return;
-         }
-         
-         // 3. Fallback: pega o mais recente que NÃO seja futuro
-         const currentYearNum = parseInt(currentYearStr);
-         const validYear = academicYears.find(a => parseInt(a.nome) <= currentYearNum);
-         if (validYear) {
-             setSelectedYear(validYear.nome);
-         } else {
-             // Se todos forem futuros, pega o primeiro mesmo
-             setSelectedYear(academicYears[0].nome);
-         }
-     }
-   }, [academicYears, currentYearStr]);
+   // REGRAS: Removido o auto-selecionamento para que a escolha do usuário seja mantida.
+   // O valor inicial é definido na criação do estado (currentYearStr).
 
 
 
@@ -178,17 +180,32 @@ const Dashboard = () => {
     };
   }, [selectedYear, academicYears]);
 
-  const { data: chartData = [], loading: loadingChart, refresh: refreshChart } = useDataCache(
-    `dashboard_chart_${selectedYear}`, 
-    fetchChartStats
-  );
+   const { data: chartData = [], loading: loadingChart, refresh: refreshChart } = useDataCache(
+     `dashboard_chart_${selectedYear}`, 
+     fetchChartStats,
+     false // Desativa auto-carregamento paralelo
+   );
 
-  // Force refresh when year changes (silent to use cache first)
-  useEffect(() => {
-    if (selectedYear && academicYears.length > 0) {
-      refreshChart(true); // silent = usa cache primeiro, atualiza depois
-    }
-  }, [selectedYear, academicYears]);
+   // CARREGAMENTO SEQUENCIAL: Um de cada vez para não sobrecarregar
+   useEffect(() => {
+     const loadSequence = async () => {
+       if (!selectedYear) return;
+
+       // Passo 1: Carrega estatísticas básicas e contadores (KPIs + Gênero + Cursos)
+       await refreshStats(false); 
+     };
+     loadSequence();
+   }, [selectedYear]);
+
+   // Passo 2: Só dispara o gráfico de fluxo DEPOIS que as estatísticas básicas (que trazem a lista de anos) terminarem
+   useEffect(() => {
+     if (selectedYear && academicYears.length > 0) {
+       const loadFlowChart = async () => {
+         await refreshChart(false);
+       };
+       loadFlowChart();
+     }
+   }, [selectedYear, academicYears.length > 0]);
 
   // Silent refresh interval for everything (Real-time update simulation)
   useEffect(() => {
@@ -295,9 +312,27 @@ const Dashboard = () => {
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
-                {academicYears.length > 0 ? academicYears.map(year => (
-                  <option key={year.nome} value={year.nome}>{year.nome}</option>
-                )) : (
+                {academicYears.length > 0 ? (
+                  <>
+                    <optgroup label="Anos Principais">
+                      {academicYears.filter(y => y.activo || parseInt(y.nome) >= new Date().getFullYear() - 2).map(year => (
+                        <option key={year.nome} value={year.nome}>
+                          {year.nome} {year.activo ? '(Ativo)' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                    
+                    {academicYears.filter(y => !y.activo && parseInt(y.nome) < new Date().getFullYear() - 2).length > 0 && (
+                      <optgroup label="Histórico / Anos Anteriores">
+                        {academicYears.filter(y => !y.activo && parseInt(y.nome) < new Date().getFullYear() - 2).map(year => (
+                          <option key={year.nome} value={year.nome}>
+                            {year.nome}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </>
+                ) : (
                      <option value="2024">2024</option>
                 )}
               </select>
@@ -407,17 +442,24 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="chart-body course-chart-body">
-                <ResponsiveContainer width="100%" height="100%" debounce={300}>
+                <ResponsiveContainer width="100%" height={Math.max(280, courseData.length * 45)} debounce={300}>
                   <AreaChart
                     layout="vertical"
                     data={courseData.length > 0 ? courseData : [
                       { name: 'Sem dados', qnty: 0 }
                     ]}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                     <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 13 }} />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      width={140}
+                    />
                     <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
                     <Area
                       type="monotone"

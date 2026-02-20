@@ -23,6 +23,7 @@ import {
 import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
@@ -41,14 +42,7 @@ const Turmas = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(24);
 
-    // Scroll to top on page change
-    useEffect(() => {
-        if (tableRef.current) {
-            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            const tableWrapper = tableRef.current.querySelector('.table-wrapper');
-            if (tableWrapper) tableWrapper.scrollTop = 0;
-        }
-    }, [currentPage]);
+
 
     const [filters, setFilters] = useState({
         ano: '',
@@ -280,7 +274,8 @@ const Turmas = () => {
             fetchData(true); // Refresh list to ensure consistency
         } catch (err) {
             console.error("Erro ao salvar turma:", err);
-            alert("Erro ao salvar turma. Verifique os dados.");
+            const msg = parseApiError(err, "Erro ao salvar turma.");
+            alert(msg);
         }
     };
 

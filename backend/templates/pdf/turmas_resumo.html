@@ -1,0 +1,51 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Relatório Geral de Turmas</div>
+
+<div style="margin-bottom: 20px;">
+    <p>Lista de turmas registradas no sistema.
+    {% if ano_filtrado %}
+        <br><strong>Filtrado por: {{ ano_filtrado.nome }}</strong>
+    {% else %}
+        <br><strong>Mostrando todas as turmas</strong>
+    {% endif %}
+    </p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt;">
+    <thead>
+        <tr style="background-color: #4b5563; color: white;">
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">CÓDIGO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">ANO LECTIVO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">CURSO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">PERÍODO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">ALUNOS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for turma in turmas %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.codigo_turma }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_ano_lectivo.nome }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_curso.nome_curso }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_periodo.nome_periodo }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">{{ turma.total_alunos }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="border: 1px solid #ddd; padding: 10px; text-align: center;">Nenhuma turma encontrada.</td>
+        </tr>
+        {% endfor %}
+        <tr style="background-color: #f1f5f9; font-weight: bold;">
+            <td colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: right;">TOTAL DE TURMAS:</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ total }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>A Direção Académica</p>
+</div>
+{% endblock %}

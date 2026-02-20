@@ -196,14 +196,14 @@ class IsActiveYearOrReadOnly(permissions.BasePermission):
                         # Se for texto (ex: "2026/2027"), buscar por nome
                         ano = AnoLectivo.objects.filter(nome=ano_id).first()
                     
-                    if ano and not ano.activo:
+                    if ano and ano.status != 'Activo':
                         return False
                 except (AnoLectivo.DoesNotExist, ValueError):
                     pass 
             else:
                  # Se não especificou ano, assume o ano ativo
                  active_year = AnoLectivo.get_active_year()
-                 if active_year and not active_year.activo:
+                 if active_year and active_year.status != 'Activo':
                       # Isso teoricamente nunca acontece se active_year retorna filter(activo=True)
                       # Mas se retornar None (sem ano ativo), pode ser um problema.
                       pass
@@ -237,7 +237,7 @@ class IsActiveYearOrReadOnly(permissions.BasePermission):
              
         # Se encontrou um ano associado, verifica se está activo
         if ano:
-            if not ano.activo:
+            if ano.status != 'Activo':
                 return False # 403 Forbidden
         
         return True

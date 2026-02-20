@@ -70,6 +70,22 @@ const CandidateDetailModal = ({
                   }}>
                       {candidate.status}
                   </div>
+                  
+                  {candidate.anoLectivoAtivo === false && (
+                      <div style={{
+                          marginTop: '8px',
+                          padding: '4px 8px',
+                          backgroundColor: '#fef2f2',
+                          color: '#dc2626',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          textAlign: 'center',
+                          border: '1px solid #fee2e2'
+                      }}>
+                          ANO LECTIVO ENCERRADO
+                      </div>
+                  )}
 
                   <div className="profile-footer">
                     <div className="profile-footer-item">
@@ -210,9 +226,15 @@ const CandidateDetailModal = ({
                               
                               {/* Admin Button to Confirm Payment */}
                               {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && candidate.rupe.status !== 'Pago' && (
-                                  <button className="btn-finish" onClick={() => onConfirmPayment(candidate)} style={{width: 'auto', background: '#059669'}}>
-                                    <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Confirmar Pagamento
-                                  </button>
+                                  candidate.anoLectivoAtivo === false ? (
+                                      <button className="btn-finish" disabled style={{width: 'auto', background: '#9ca3af', cursor: 'not-allowed'}}>
+                                        <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Pagamento Bloqueado
+                                      </button>
+                                  ) : (
+                                      <button className="btn-finish" onClick={() => onConfirmPayment(candidate)} style={{width: 'auto', background: '#059669'}}>
+                                        <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Confirmar Pagamento
+                                      </button>
+                                  )
                               )}
                           </div>
                         </div>
@@ -221,9 +243,15 @@ const CandidateDetailModal = ({
                             <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', textAlign: 'center' }}>
                               <p style={{marginBottom: '16px', color: '#475569'}}>Este candidato ainda não tem Referência de Pagamento.</p>
                               {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                                <button className="btn-finish" onClick={onGenerateRUP} style={{maxWidth: '400px', margin: '0 auto'}}>
-                                  <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Validar Inscrição e Gerar RUP
-                                </button>
+                                candidate.anoLectivoAtivo === false ? (
+                                    <button className="btn-finish" disabled style={{maxWidth: '400px', margin: '0 auto', background: '#9ca3af', cursor: 'not-allowed'}}>
+                                      <ShieldAlert size={18} style={{marginRight: '8px'}}/> Ano Lectivo Encerrado
+                                    </button>
+                                ) : (
+                                    <button className="btn-finish" onClick={onGenerateRUP} style={{maxWidth: '400px', margin: '0 auto'}}>
+                                      <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Validar Inscrição e Gerar RUP
+                                    </button>
+                                )
                               )}
                             </div>
                           ) : (

@@ -242,8 +242,8 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         if not data_inicio_str:
             return Response({'erro': 'Informe a data de início (data_inicio)'}, status=400)
             
-        # 1. Obter Candidatos Pagos que não possuem exame agendado
-        candidatos_qs = Candidato.objects.filter(status='Pago').order_by('id_candidato')
+        # 1. Obter Candidatos Pagos que não possuem exame agendado em anos ativos
+        candidatos_qs = Candidato.objects.filter(status='Pago', ano_lectivo__status='Activo').order_by('id_candidato')
         
         # Se houver um limite definido pelo usuário
         if limite_candidatos:

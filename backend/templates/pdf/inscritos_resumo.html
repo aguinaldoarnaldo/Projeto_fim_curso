@@ -4,7 +4,13 @@
 <div class="title">Relatório de Candidatos Inscritos</div>
 
 <div style="margin-bottom: 20px;">
-    <p>Lista total de candidatos registrados para o processo de admissão, incluindo status e cursos pretendidos.</p>
+    <p>Lista total de candidatos registrados para o processo de admissão, incluindo status e cursos pretendidos.
+    {% if ano_filtrado %}
+        <br><strong>Filtrado por: {{ ano_filtrado.nome }}</strong>
+    {% else %}
+        <br><strong>Mostrando todos os anos</strong>
+    {% endif %}
+    </p>
 </div>
 
 <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt;">

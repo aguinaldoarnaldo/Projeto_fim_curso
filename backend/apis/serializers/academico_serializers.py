@@ -8,7 +8,7 @@ from apis.models import (
 class AnoLectivoSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnoLectivo
-        fields = ['id_ano', 'nome', 'data_inicio', 'data_fim', 'activo']
+        fields = ['id_ano', 'nome', 'data_inicio', 'data_fim', 'status', 'activo']
 
 
 
@@ -158,6 +158,24 @@ class TurmaSerializer(serializers.ModelSerializer):
     def get_total_alunos(self, obj):
         from apis.models import Aluno
         return Aluno.objects.filter(id_turma=obj, status_aluno__in=['Ativo', 'Activo']).count()
+
+    def validate(self, data):
+        """Validação personalizada para Turmas"""
+        id_sala = data.get('id_sala')
+        capacidade = data.get('capacidade')
+
+        # Se for um UPDATE (PATCH/PUT), buscar valores existentes se não enviados
+        if self.instance:
+            id_sala = id_sala or self.instance.id_sala
+            capacidade = capacidade if capacidade is not None else self.instance.capacidade
+
+        if id_sala and capacidade:
+            if capacidade > id_sala.capacidade_alunos:
+                raise serializers.ValidationError({
+                    'capacidade': f"Lotação Excessiva: A Sala {id_sala.numero_sala} só suporta {id_sala.capacidade_alunos} alunos, mas está a tentar definir uma capacidade de {capacidade}. Por favor, reduza a lotação da turma ou selecione uma sala maior."
+                })
+        
+        return data
 
 
 class TurmaListSerializer(serializers.ModelSerializer):

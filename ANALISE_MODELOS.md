@@ -56,7 +56,7 @@ Identificar modelos (tabelas) que **NÃO estão sendo usados** no sistema para l
 - ⚠️ **DisciplinaCurso** - Relacionamento disciplina-curso
 - ⚠️ **ProfessorDisciplina** - Vinculação professor-disciplina-turma
 - ⚠️ **Nota** - Usado em:
-  - `academic_service.py` (cálculo de médias)
+  - `academic_service.py` (cálculo de médias) 21
   - `aluno_views.py` (endpoint `/alunos/{id}/notas/`)
   - `avaliacao_views.py` (CRUD de notas)
 - ⚠️ **FaltaAluno** - Usado em `academic_service.py`

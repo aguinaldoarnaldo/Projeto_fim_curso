@@ -16,11 +16,22 @@ from apis.serializers.academico_serializers import (
     PeriodoSerializer, TurmaSerializer, TurmaListSerializer, AnoLectivoSerializer
 )
 
+from rest_framework.pagination import PageNumberPagination
+
+class AnoLectivoPagination(PageNumberPagination):
+    page_size = 6
+
 class AnoLectivoViewSet(viewsets.ModelViewSet):
     """ViewSet para AnoLectivo"""
     queryset = AnoLectivo.objects.all()
     serializer_class = AnoLectivoSerializer
+    pagination_class = AnoLectivoPagination
     ordering = ['-nome']
+
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get('all') == 'true':
+            return None
+        return super().paginate_queryset(queryset)
     
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
     permission_map = {
@@ -38,10 +49,11 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
     def encerrar(self, request, pk=None):
         """Encerra o ano lectivo (desativa) e atualiza matrículas"""
         ano_lectivo = self.get_object()
-        if not ano_lectivo.activo:
+        if ano_lectivo.status == 'Encerrado':
             return Response({"detail": "O ano lectivo já está encerrado."}, status=400)
         
         # 1. Update active status
+        ano_lectivo.status = 'Encerrado'
         ano_lectivo.activo = False
         ano_lectivo.save()
         
@@ -65,9 +77,13 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
         }, status=200)
 
     def perform_update(self, serializer):
-        # Check if reopening (setting activo=True)
-        # Note: This runs before save()
-        if 'activo' in serializer.validated_data and serializer.validated_data['activo'] is True:
+        # Check if reopening (setting status='Activo' or activo=True)
+        is_reopening = (
+            ('status' in serializer.validated_data and serializer.validated_data['status'] == 'Activo') or
+            ('activo' in serializer.validated_data and serializer.validated_data['activo'] is True)
+        )
+        
+        if is_reopening:
              user = self.request.user
              is_admin = user.is_superuser or (
                  hasattr(user, 'profile') and 
@@ -81,7 +97,7 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
 
              # Reabertura do Ano Lectivo: Reverter matrículas 'Concluida' para 'Ativa'
              instance = serializer.instance
-             if instance and not instance.activo:
+             if instance and instance.status != 'Activo':
                  from apis.models import Matricula
                  updated_count = Matricula.objects.filter(
                     ano_lectivo=instance,

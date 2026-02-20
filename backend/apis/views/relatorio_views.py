@@ -40,6 +40,34 @@ class RelatorioViewSet(viewsets.ViewSet):
         })
 
     @action(detail=False, methods=['get'])
+    def relatorio_turmas(self, request):
+        """Relatório geral de turmas, opcionalmente filtrado por ano"""
+        ano_id = request.query_params.get('ano_id')
+        turmas = Turma.objects.select_related('id_curso', 'id_classe', 'id_periodo', 'id_sala', 'ano_lectivo').all().order_by('ano_lectivo', 'codigo_turma')
+        
+        if ano_id and ano_id != 'all':
+            turmas = turmas.filter(ano_lectivo_id=ano_id)
+            
+        # Adicionar contagem de alunos para cada turma
+        for turma in turmas:
+            turma.total_alunos = Aluno.objects.filter(id_turma=turma).count()
+            
+        from django.utils import timezone
+        context = {
+            'turmas': turmas,
+            'total': turmas.count(),
+            'ano_filtrado': AnoLectivo.objects.filter(id_ano_lectivo=ano_id).first() if (ano_id and ano_id != 'all') else None,
+            'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'escola_nome': 'Complexo Escolar Politécnico'
+        }
+        
+        response = self._render_pdf('pdf/turmas_resumo.html', context)
+        if response:
+            response['Content-Disposition'] = 'attachment; filename="relatorio_turmas.pdf"'
+            return response
+        return Response({'erro': 'Erro ao gerar PDF'}, status=500)
+
+    @action(detail=False, methods=['get'])
     def alunos_por_turma(self, request):
         """Gera PDF da lista nominal de uma turma específica"""
         turma_id = request.query_params.get('turma_id')
@@ -47,7 +75,7 @@ class RelatorioViewSet(viewsets.ViewSet):
             return Response({'erro': 'turma_id é obrigatório'}, status=400)
             
         try:
-            turma = Turma.objects.select_related('id_curso', 'id_classe', 'id_periodo', 'id_sala').get(id_turma=turma_id)
+            turma = Turma.objects.select_related('id_curso', 'id_classe', 'id_periodo', 'id_sala', 'ano_lectivo').get(id_turma=turma_id)
             alunos = Aluno.objects.filter(id_turma=turma).order_by('nome_completo')
             
             from django.utils import timezone
@@ -55,10 +83,9 @@ class RelatorioViewSet(viewsets.ViewSet):
                 'turma': turma,
                 'alunos': alunos,
                 'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
-                'escola_nome': 'Complexo Escolar Politécnico - Projecto Fim de Curso'
+                'escola_nome': 'Complexo Escolar Politécnico'
             }
             
-            # TODO: Create templates/pdf/lista_alunos_turma.html
             response = self._render_pdf('pdf/lista_alunos_turma.html', context)
             if response:
                 response['Content-Disposition'] = f'attachment; filename="lista_alunos_{turma.codigo_turma}.pdf"'
@@ -93,14 +120,16 @@ class RelatorioViewSet(viewsets.ViewSet):
     def inscritos_por_ano(self, request):
         """Relatório de inscritos (candidatos)"""
         ano_lectivo_id = request.query_params.get('ano_id')
-        candidatos = Candidato.objects.all().order_by('nome_completo')
-        if ano_lectivo_id:
+        candidatos = Candidato.objects.select_related('curso_primeira_opcao', 'ano_lectivo').all().order_by('nome_completo')
+        
+        if ano_lectivo_id and ano_lectivo_id != 'all' and ano_lectivo_id != '':
             candidatos = candidatos.filter(ano_lectivo_id=ano_lectivo_id)
             
         from django.utils import timezone
         context = {
             'candidatos': candidatos,
             'total': candidatos.count(),
+            'ano_filtrado': AnoLectivo.objects.filter(id_ano_lectivo=ano_lectivo_id).first() if (ano_lectivo_id and ano_lectivo_id != 'all' and ano_lectivo_id != '') else None,
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
             'escola_nome': 'Complexo Escolar Politécnico'
         }
@@ -108,6 +137,25 @@ class RelatorioViewSet(viewsets.ViewSet):
         response = self._render_pdf('pdf/inscritos_resumo.html', context)
         if response:
             response['Content-Disposition'] = 'attachment; filename="relatorio_inscritos.pdf"'
+            return response
+        return Response({'erro': 'Erro ao gerar PDF'}, status=500)
+
+    @action(detail=False, methods=['get'])
+    def relatorio_ano_lectivo(self, request):
+        """Relatório geral de Anos Lectivos"""
+        anos = AnoLectivo.objects.all().order_by('-data_inicio')
+        
+        from django.utils import timezone
+        context = {
+            'anos': anos,
+            'total': anos.count(),
+            'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'escola_nome': 'Complexo Escolar Politécnico'
+        }
+        
+        response = self._render_pdf('pdf/anos_lectivos_resumo.html', context)
+        if response:
+            response['Content-Disposition'] = 'attachment; filename="relatorio_anos_lectivos.pdf"'
             return response
         return Response({'erro': 'Erro ao gerar PDF'}, status=500)
 

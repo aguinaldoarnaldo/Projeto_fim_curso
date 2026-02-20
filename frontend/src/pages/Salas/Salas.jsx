@@ -17,6 +17,7 @@ import {
 import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
@@ -120,7 +121,8 @@ const Salas = () => {
             fetchData(true); // Force refresh to update cache
         } catch (err) {
             console.error("Erro ao salvar sala:", err);
-            alert("Erro ao salvar. Verifique os dados e tente novamente.");
+            const msg = parseApiError(err, "Erro ao salvar sala.");
+            alert(msg);
         }
     };
 

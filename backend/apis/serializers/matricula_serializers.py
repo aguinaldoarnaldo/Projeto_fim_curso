@@ -41,6 +41,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
     curso_nome = serializers.SerializerMethodField()
     sala_numero = serializers.SerializerMethodField()
     periodo_nome = serializers.SerializerMethodField()
+    id_classe = serializers.SerializerMethodField()
 
     class Meta:
         model = Matricula
@@ -54,6 +55,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'nacionalidade', 'naturalidade', 'deficiencia',
             'provincia_residencia', 'municipio_residencia', 'bairro_residencia', 'numero_casa',
             'id_turma', 'turma_codigo', 
+            'id_classe',
             'ano_lectivo', 'ano_lectivo_nome',
             'classe_nome',
             'curso_nome',
@@ -287,3 +289,6 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
     def get_periodo_nome(self, obj):
         return obj.id_turma.id_periodo.periodo if obj.id_turma and obj.id_turma.id_periodo else "N/A"
+
+    def get_id_classe(self, obj):
+        return obj.id_turma.id_classe.id_classe if obj.id_turma and obj.id_turma.id_classe else None

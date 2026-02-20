@@ -51,6 +51,14 @@ const Relatorios = () => {
 
     const reportsData = [
         {
+            id: 'relatorio_turmas',
+            titulo: 'Relatório Geral de Turmas',
+            descricao: 'Lista todas as turmas do sistema com respectivo curso, período e número de alunos.',
+            categoria: 'Académico',
+            formato: 'PDF',
+            requiresConfig: true
+        },
+        {
             id: 'alunos_por_turma',
             titulo: 'Lista Nominal de Alunos por Turma',
             descricao: 'Gera a pauta nominal completa de uma turma específica com número de processo e status.',
@@ -75,6 +83,14 @@ const Relatorios = () => {
             formato: 'PDF',
             requiresConfig: true,
             permission: PERMISSIONS.VIEW_INSCRITOS
+        },
+        {
+            id: 'relatorio_ano_lectivo',
+            titulo: 'Relatório de Anos Lectivos',
+            descricao: 'Histórico de anos lectivos registrados, datas de vigência e estado actual.',
+            categoria: 'Administrativo',
+            formato: 'PDF',
+            requiresConfig: false
         },
         {
             id: 'stats_ocupacao',
@@ -146,6 +162,10 @@ const Relatorios = () => {
             handleGenerateReport(report.id);
         } else {
             setSelectedReportTemplate(report);
+            setConfigData({
+                turma_id: '',
+                ano_id: 'all'
+            });
             setShowConfigModal(true);
         }
     };
@@ -302,6 +322,23 @@ const Relatorios = () => {
                                 <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{selectedReportTemplate?.descricao}</p>
                             </div>
 
+                            {selectedReportTemplate?.id === 'relatorio_turmas' && (
+                                <div className="form-group" style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Filtrar por Ano Lectivo</label>
+                                    <select 
+                                        className="form-select"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                        value={configData.ano_id} 
+                                        onChange={(e) => setConfigData({...configData, ano_id: e.target.value})}
+                                    >
+                                        <option value="all">Todos os anos</option>
+                                        {auxData.anos.map(a => (
+                                            <option key={a.id_ano_lectivo} value={a.id_ano_lectivo}>{a.nome}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             {selectedReportTemplate?.id === 'alunos_por_turma' && (
                                 <div className="form-group" style={{ marginBottom: '16px' }}>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Selecione a Turma</label>
@@ -328,7 +365,7 @@ const Relatorios = () => {
                                         value={configData.ano_id} 
                                         onChange={(e) => setConfigData({...configData, ano_id: e.target.value})}
                                     >
-                                        <option value="">Todos os anos</option>
+                                        <option value="all">Todos os anos</option>
                                         {auxData.anos.map(a => (
                                             <option key={a.id_ano_lectivo} value={a.id_ano_lectivo}>{a.nome}</option>
                                         ))}

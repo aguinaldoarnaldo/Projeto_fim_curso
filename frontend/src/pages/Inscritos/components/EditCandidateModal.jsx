@@ -65,6 +65,10 @@ const EditCandidateModal = ({
   }, [initialData]);
 
   const handleSubmit = () => {
+    if (formData.anoLectivoAtivo === false) {
+        alert("Não é possível editar dados de um Ano Lectivo encerrado.");
+        return;
+    }
     onSave(formData);
   };
 
@@ -78,6 +82,23 @@ const EditCandidateModal = ({
            <button onClick={onClose} className="btn-close-modal" style={{ position: 'static' }}>
              <X size={20} color="#64748b" />
            </button>
+           
+           {formData.anoLectivoAtivo === false && (
+             <div style={{
+                 marginLeft: '20px',
+                 padding: '6px 12px',
+                 backgroundColor: '#fee2e2',
+                 color: '#b91c1c',
+                 borderRadius: '6px',
+                 fontSize: '13px',
+                 fontWeight: '600',
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: '6px'
+             }}>
+                 <ShieldAlert size={16} /> EDIÇÃO BLOQUEADA (ANO LECTIVO ENCERRADO)
+             </div>
+           )}
          </div>
 
          <div className="evaluation-body" style={{overflowY: 'auto', padding: '20px', flex: 1}}>
@@ -317,13 +338,20 @@ const EditCandidateModal = ({
 
          </div>
 
-         <div className="evaluation-actions" style={{padding: '20px', borderTop: '1px solid #e2e8f0', background: 'white'}}>
+          <div className="evaluation-actions" style={{padding: '20px', borderTop: '1px solid #e2e8f0', background: 'white'}}>
            <button onClick={onClose} className="btn-cancel">
              Cancelar
            </button>
-           <button onClick={handleSubmit} className="btn-confirm">
-             Salvar Alterações
-           </button>
+        
+            {formData.anoLectivoAtivo === false ? (
+               <button disabled className="btn-confirm" style={{background: '#94a3b8', cursor: 'not-allowed'}}>
+                 Salvar Alterações
+               </button>
+            ) : (
+               <button onClick={handleSubmit} className="btn-confirm">
+                 Salvar Alterações
+               </button>
+            )}
          </div>
       </div>
     </div>

@@ -90,3 +90,6 @@ Comandos úteis para verificar a saúde do projeto:
 python manage.py check          # Verifica integridade dos modelos
 python manage.py test apis      # Roda a suíte de testes
 ```
+- python manage.py check
+- python manage.py test apis
+- python manage.py runserver

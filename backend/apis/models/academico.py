@@ -6,11 +6,19 @@ import datetime
 
 class AnoLectivo(BaseModel):
     """Ano Lectivo da Instituição"""
+    STATUS_CHOICES = [
+        ('Planeado', 'Planeado'),
+        ('Activo', 'Activo'),
+        ('Encerrado', 'Encerrado'),
+        ('Suspenso', 'Suspenso'),
+    ]
+
     id_ano = models.AutoField(primary_key=True)
     nome = models.CharField(max_length=20, verbose_name='Ano Lectivo', unique=True, help_text="Ex: 2025/2026")
     data_inicio = models.DateField(verbose_name='Data de Início')
     data_fim = models.DateField(verbose_name='Data de Fim')
-    activo = models.BooleanField(default=False, verbose_name='Activo?')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Planeado', verbose_name='Estado')
+    activo = models.BooleanField(default=False, verbose_name='Activo?') # Mantido para compatibilidade
     
     class Meta:
         db_table = 'ano_lectivo'
@@ -19,35 +27,58 @@ class AnoLectivo(BaseModel):
         ordering = ['-nome']
         
     def save(self, *args, **kwargs):
-        if self.activo:
-            # Se este ano for marcado como activo:
-            # 1. Encontrar o ano ativo anterior (excluindo este se já existir)
+        # 1. Lógica para novos registros (Auto-seleção se não houver um activo)
+        if not self.pk:
+            if not AnoLectivo.objects.filter(status='Activo').exists():
+                self.status = 'Activo'
+            else:
+                # O status default já é 'Planeado', mas garantimos aqui
+                if not self.status or self.status == 'Activo': 
+                    self.status = 'Planeado'
+        
+        # 2. Sincronização Bidirecional (Campo antigo 'activo' vs novo 'status')
+        # Se o usuário marcar 'activo=True' via interface antiga ou código, o status deve mudar para 'Activo'
+        if self.activo and self.status != 'Activo':
+            self.status = 'Activo'
+        
+        # Se o status for 'Activo', 'activo' DEVE ser True
+        if self.status == 'Activo':
+            self.activo = True
+            
+            # 1. Encontrar o ano activo anterior (excluindo este se já existir)
             from django.apps import apps
             Turma = apps.get_model('apis', 'Turma')
+            Matricula = apps.get_model('apis', 'Matricula')
             
-            old_active = AnoLectivo.objects.filter(activo=True).exclude(pk=self.pk).first()
+            old_active = AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).first()
             if old_active:
-                # 2. Marcar Turmas do ano anterior como Concluídas
+                # 2. Marcar Turmas e Matrículas do ano anterior como Concluídas
                 Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
+                Matricula.objects.filter(ano_lectivo=old_active, status__in=['Ativa', 'Confirmada']).update(status='Concluida')
+                
+                # 3. Mudar status do anterior para Encerrado
+                AnoLectivo.objects.filter(pk=old_active.pk).update(status='Encerrado', activo=False)
             
-            # 3. Desactivar todos os outros anos
-            AnoLectivo.objects.filter(activo=True).exclude(pk=self.pk).update(activo=False)
+            # 4. Garantir que outros anos em estado 'Activo' sejam desactivados (segurança extra)
+            AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).update(status='Encerrado', activo=False)
+        else:
+            self.activo = False
             
         super().save(*args, **kwargs)
         
     def __str__(self):
-        return f"{self.nome} ({'Activo' if self.activo else 'Inactivo'})"
+        return f"{self.nome} ({self.status})"
 
     @staticmethod
     def get_active_year():
         """Retorna o ano lectivo actualmente activo"""
-        return AnoLectivo.objects.filter(activo=True).first()
+        return AnoLectivo.objects.filter(status='Activo').first()
 
 
 class Sala(BaseModel):
     """Salas de aula"""
     id_sala = models.AutoField(primary_key=True)
-    numero_sala = models.SmallIntegerField(verbose_name='Número da Sala')
+    numero_sala = models.SmallIntegerField(verbose_name='Número da Sala', unique=True)
     capacidade_alunos = models.IntegerField(verbose_name='Capacidade')
     bloco = models.CharField(max_length=50, verbose_name='Bloco', null=True, blank=True, default='')
 
@@ -149,7 +180,7 @@ class AreaFormacao(BaseModel):
 class Curso(BaseModel):
     """Cursos oferecidos"""
     id_curso = models.AutoField(primary_key=True)
-    nome_curso = models.CharField(max_length=150, verbose_name='Nome do Curso')
+    nome_curso = models.CharField(max_length=150, verbose_name='Nome do Curso', unique=True)
     id_area_formacao = models.ForeignKey(
         AreaFormacao,
         on_delete=models.PROTECT,
@@ -252,6 +283,12 @@ class Turma(BaseModel):
 
         if self.ano_lectivo and not self.ano_lectivo.activo:
              raise ValidationError(f"O Ano Lectivo '{self.ano_lectivo.nome}' está encerrado. Não são permitidas alterações ou criações neste ano.")
+        
+        # Validação de Capacidade vs Sala
+        if self.id_sala and self.capacidade > self.id_sala.capacidade_alunos:
+            raise ValidationError({
+                'capacidade': f"Erro de Lotação: A capacidade definida para esta turma ({self.capacidade} alunos) ultrapassa o limite máximo da Sala {self.id_sala.numero_sala}, que suporta apenas {self.id_sala.capacidade_alunos} alunos. Por favor, ajuste a lotação ou troque de sala."
+            })
 
         if self.id_sala and self.id_curso and self.id_classe and self.id_periodo:
             sala = str(self.id_sala.numero_sala)

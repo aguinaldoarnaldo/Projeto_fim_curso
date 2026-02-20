@@ -1,0 +1,45 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Relatório de Anos Lectivos</div>
+
+<div style="margin-bottom: 20px;">
+    <p>Histórico e estado dos anos lectivos registrados no sistema.</p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt;">
+    <thead>
+        <tr style="background-color: #4b5563; color: white;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ANO LECTIVO</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">INÍCIO</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">FIM</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">ESTADO</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ano in anos %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{{ ano.nome }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ano.data_inicio|date:"d/m/Y" }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ano.data_fim|date:"d/m/Y" }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                {% if ano.activo %}
+                    <span style="color: #16a34a; font-weight: bold;">ACTIVO</span>
+                {% else %}
+                    <span style="color: #dc2626;">ENCERRADO</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div style="margin-top: 20px; font-size: 9pt; color: #64748b;">
+    <p>Total de registros: {{ total }}</p>
+</div>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>Secretaria Geral</p>
+</div>
+{% endblock %}

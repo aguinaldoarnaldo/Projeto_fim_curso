@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
@@ -126,7 +127,8 @@ const Cursos = () => {
             fetchCourses(true); // Auto-refresh!
         } catch (error) {
             console.error("Erro ao salvar curso:", error);
-            alert("Erro ao salvar curso. " + (error.response?.data?.detail || ""));
+            const msg = parseApiError(error, "Erro ao salvar curso.");
+            alert(msg);
         }
     };
 

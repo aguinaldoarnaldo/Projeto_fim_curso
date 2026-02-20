@@ -68,21 +68,38 @@ class AlunoViewSet(viewsets.ModelViewSet):
     def stats(self, request):
         """Retorna estatísticas gerais dos alunos para o dashboard"""
         from django.db.models import Count
+        from apis.models import AnoLectivo, Turma
         
-        # 1. Total e Ativos
+        # 1. Obter ano para filtragem (Query param ou Ativo)
+        year_name = request.query_params.get('ano')
+        active_year = AnoLectivo.objects.filter(activo=True).first()
+        
+        if year_name:
+            target_year = AnoLectivo.objects.filter(nome=year_name).first()
+        else:
+            target_year = active_year
+
+        # Filtro base para os gráficos (Alunos associados a turmas daquele ano)
+        # Nota: total/ativos continuam globais para os cards, 
+        # mas gênero/cursos serão filtrados pelo ano se disponível
+        aluno_filter = {}
+        if target_year:
+            aluno_filter['id_turma__ano_lectivo'] = target_year
+        
+        # 1. Total e Ativos (Globais ou por Ano?) 
+        # Vamos manter globais para os contadores principais, mas filtrados para os gráficos
         total = Aluno.objects.count()
         ativos = Aluno.objects.filter(status_aluno='Activo').count()
         
-        # 2. Por Gênero
-        genero = Aluno.objects.values('genero').annotate(total=Count('id_aluno'))
+        # 2. Por Gênero (Filtrado por Ano)
+        genero = Aluno.objects.filter(**aluno_filter).values('genero').annotate(total=Count('id_aluno'))
         
-        # 3. Por Curso (Top 5)
-        # Assumindo que o aluno tem uma turma e a turma tem um curso
-        cursos = Aluno.objects.values(
+        # 3. Por Curso (Filtrado por Ano)
+        cursos = Aluno.objects.filter(**aluno_filter).values(
             'id_turma__id_curso__nome_curso'
         ).annotate(
             total=Count('id_aluno')
-        ).order_by('-total')[:5]
+        ).order_by('-total')
         
         return Response({
             'total': total,
@@ -94,7 +111,8 @@ class AlunoViewSet(viewsets.ModelViewSet):
                     'total': c['total']
                 } 
                 for c in cursos
-            ]
+            ],
+            'ano_filtrado': target_year.nome if target_year else 'Todos'
         })
     
     @action(detail=True, methods=['get'])

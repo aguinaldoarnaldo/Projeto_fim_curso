@@ -23,13 +23,17 @@ import {
     ArrowUp,
     ArrowDown,
     ChevronRight,
-    MapPin, // Added for Sala
-    Users, // Added for Turma
-    Lock
+    ChevronLeft,
+    MapPin, 
+    Users, 
+    Lock,
+    ShieldCheck,
+    GraduationCap
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import PermutaModal from './PermutaModal';
@@ -44,30 +48,31 @@ const Matriculas = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedMatricula, setSelectedMatricula] = useState(null);
     const [showPermutaModal, setShowPermutaModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editingMatriculaId, setEditingMatriculaId] = useState(null);
+
+    const [showStatusSubmenu, setShowStatusSubmenu] = useState(false);
+    const statusMenuTimeoutRef = useRef(null);
+
+    const handleStatusEnter = () => {
+        if (statusMenuTimeoutRef.current) {
+            clearTimeout(statusMenuTimeoutRef.current);
+        }
+        setShowStatusSubmenu(true);
+    };
+
+    const handleStatusLeave = () => {
+        statusMenuTimeoutRef.current = setTimeout(() => {
+            setShowStatusSubmenu(false);
+        }, 300);
+    };
+
     const filterButtonRef = useRef(null);
-    const [modalFormData, setModalFormData] = useState({
-        status: '',
-        id_sala: '',
-        id_classe: '',
-        id_periodo: '',
-        id_turma: ''
-    });
     const tableRef = useRef(null);
     
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(24);
 
-    // Scroll to top on page change
-    useEffect(() => {
-        if (tableRef.current) {
-            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            const tableWrapper = tableRef.current.querySelector('.table-wrapper');
-            if (tableWrapper) tableWrapper.scrollTop = 0;
-        }
-    }, [currentPage]);
+
 
     // Menu States
     const [activeMenuId, setActiveMenuId] = useState(null);
@@ -117,6 +122,13 @@ const Matriculas = () => {
     const [salasDisponiveis, setSalasDisponiveis] = useState([]);
     const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
 
+    // 0. Active Year Logic (Moved to Top)
+    const activeYear = useMemo(() => {
+        return anosDisponiveis.find(a => a.activo) || null;
+    }, [anosDisponiveis]);
+
+    const isYearClosed = !activeYear;
+
     // 1. Define Fetch Function for Matriculas ONLY
     const fetchMatriculasData = async () => {
         const response = await api.get('matriculas/');
@@ -138,6 +150,8 @@ const Matriculas = () => {
             status: item.status || 'Ativa',
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
             alunoId: item.id_aluno, // Use correct ID field from serializer
+            id_turma: item.id_turma || '',
+            id_classe: item.id_classe || '',
             detalhes: {
                 bi: item.aluno_bi || item.bi || item.numero_bi || 'N/A', 
                 genero: item.aluno_genero || item.genero || 'N/A',
@@ -146,6 +160,7 @@ const Matriculas = () => {
                 encarregado: item.encarregado_nome || 'N/A', 
                 parentesco: item.encarregado_parentesco || 'N/A',
                 telefoneEncarregado: item.encarregado_telefone || 'N/A',
+                telefoneAluno: item.telefone || 'N/A',
                 email: item.email || 'N/A', 
                 endereco: item.endereco || 'N/A',
                 nacionalidade: item.nacionalidade || 'Angolana',
@@ -212,7 +227,9 @@ const Matriculas = () => {
         };
 
         fetchFilters();
-    }, []);
+        // Force refresh when component mounts to ensure we don't show stale data after edit
+        refresh(true);
+    }, [refresh]);
 
     // 4. Polling (Silent Refresh)
     useEffect(() => {
@@ -233,43 +250,31 @@ const Matriculas = () => {
     };
 
     const handleEdit = (m) => {
-        setEditingMatriculaId(m.real_id);
-        setModalFormData({
-            status: m.status,
-            id_sala: '', // Would need IDs from mapping
-            id_classe: '',
-            id_periodo: '',
-            id_turma: ''
+        if (isYearClosed) {
+            alert("Não é possível editar matrículas de anos lectivos encerrados.");
+            return;
+        }
+        
+        // Navigate to NovaMatricula wizard in Edit mode
+        navigate('/matriculas/nova', { 
+            state: { 
+                matricula: m, 
+                tipo: 'Edicao' 
+            } 
         });
-        setShowEditModal(true);
     };
 
-    const handleUpdate = async (e) => {
-        e.preventDefault();
+    const handleUpdateStatus = async (matriculaId, newStatus) => {
         try {
-            const payload = {
-                status: modalFormData.status
-                // Add more fields if logic implemented in backend
-            };
-
-            await api.patch(`matriculas/${editingMatriculaId}/`, payload);
-            alert("Matrícula atualizada com sucesso!");
-            setShowEditModal(false);
+            await api.patch(`matriculas/${matriculaId}/`, { status: newStatus });
+            alert("Estado da matrícula atualizado!");
+            setActiveMenuId(null);
+            setMenuMatricula(null);
+            setShowStatusSubmenu(false);
             refresh(true);
         } catch (err) {
-            console.error("Erro ao atualizar matrícula:", err);
-            
-            let msg = "Erro ao atualizar matrícula.";
-             if (err.response?.data) {
-                const data = err.response.data;
-                if (data.detail) {
-                     msg = data.detail;
-                } else if (typeof data === 'object') {
-                    const errors = Object.values(data).flat();
-                    if (errors.length > 0) msg = errors[0];
-                }
-            }
-            alert(`Erro: ${msg}`);
+            console.error("Erro ao atualizar estado:", err);
+            alert(parseApiError(err, "Erro ao atualizar estado."));
         }
     };
 
@@ -287,7 +292,8 @@ const Matriculas = () => {
             link.remove();
         } catch (error) {
             console.error("Erro ao baixar PDF", error);
-            alert("Erro ao baixar o documento.");
+            const msg = parseApiError(error, "Erro ao baixar o documento.");
+            alert(msg);
         }
     };
 
@@ -375,17 +381,9 @@ const Matriculas = () => {
         );
     };
 
-    // Get current items
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredMatriculas.slice(indexOfFirstItem, indexOfLastItem);
-
-    // 5. Active Year Logic
-    const activeYear = useMemo(() => {
-        return anosDisponiveis.find(a => a.activo) || null;
-    }, [anosDisponiveis]);
-
-    const isYearClosed = !activeYear; // Or if we need to check specifically against selected year filter
 
     // Filter Configurations
     const filterConfigs = useMemo(() => [
@@ -839,18 +837,14 @@ const Matriculas = () => {
                                     </div>
                                 </div>
                                 
-                                {/* 3. Contactos & Encarregado */}
+                                {/* 3. Contactos do Aluno */}
                                 <div className="info-section">
                                     <div className="section-title" style={{ color: '#0ea5e9' }}>
-                                        <Phone size={20} color="#0ea5e9" /> Contactos & Encarregado
+                                        <Phone size={20} color="#0ea5e9" /> Contactos do Aluno
                                     </div>
                                     <div className="info-grid-2">
-                                        <div><p className="info-label">Telefone</p><p className="info-value">{selectedMatricula.detalhes.telefoneEncarregado || 'N/A'}</p></div>
-                                        <div><p className="info-label">Encarregado (Vínculo)</p><p className="info-value">{selectedMatricula.detalhes.encarregado}</p></div>
-                                        <div style={{ gridColumn: 'span 2' }}>
-                                            <p className="info-label">Grau de Parentesco</p>
-                                            <p className="info-value" style={{ fontSize: '15px' }}>{selectedMatricula.detalhes.parentesco}</p>
-                                        </div>
+                                        <div><p className="info-label">Telefone do Aluno</p><p className="info-value">{selectedMatricula.detalhes.telefoneAluno || 'N/A'}</p></div>
+                                        <div><p className="info-label">Email Principal</p><p className="info-value">{selectedMatricula.detalhes.email || 'N/A'}</p></div>
                                     </div>
                                 </div>
 
@@ -884,13 +878,38 @@ const Matriculas = () => {
                                     </div>
                                 )}
 
-                                {/* 3. Encarregado */}
-                                <div className="info-section">
-                                    <div className="section-title"><User size={20} color="#b45309" /> Encarregado de Educação</div>
+                                {/* 4. Encarregado de Educação */}
+                                <div className="info-section" style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <div className="section-title" style={{ border: 'none', marginBottom: '15px' }}>
+                                        <Users size={20} color="#b45309" /> Encarregado de Educação
+                                    </div>
                                     <div className="info-grid-2">
-                                        <div><p className="info-label">Nome do Encarregado</p><p className="info-value">{selectedMatricula.detalhes.encarregado}</p></div>
-                                        <div><p className="info-label">Parentesco</p><p className="info-value">{selectedMatricula.detalhes.parentesco}</p></div>
-                                        <div><p className="info-label">Contacto Telefónico</p><p className="info-value">{selectedMatricula.detalhes.telefoneEncarregado}</p></div>
+                                        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                            <p className="info-label">NOME COMPLETO</p>
+                                            <p className="info-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <User size={14} color="#64748b" /> {selectedMatricula.detalhes.encarregado}
+                                            </p>
+                                        </div>
+                                        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                            <p className="info-label">GRAU DE PARENTESCO</p>
+                                            <p className="info-value">{selectedMatricula.detalhes.parentesco}</p>
+                                        </div>
+                                        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                            <p className="info-label">CONTACTO DO ENCARREGADO</p>
+                                            <p className="info-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Phone size={14} color="#64748b" /> {selectedMatricula.detalhes.telefoneEncarregado}
+                                            </p>
+                                        </div>
+                                        <div style={{ background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                            <p className="info-label">BILHETE DE IDENTIDADE</p>
+                                            <p className="info-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <CreditCard size={14} color="#64748b" /> {selectedMatricula.detalhes.bi_encarregado || 'N/A'}
+                                            </p>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2', background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                                            <p className="info-label">PROFISSÃO / OCUPAÇÃO</p>
+                                            <p className="info-value">{selectedMatricula.detalhes.profissao_encarregado || 'N/A'}</p>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -986,70 +1005,7 @@ const Matriculas = () => {
                 onSuccess={() => { setShowPermutaModal(false); refresh(true); }}
             />
 
-            {/* EDIT MATRICULA MODAL */}
-            {showEditModal && (
-                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-                    <div className="form-modal-card" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px'}}>
-                        <div className="form-modal-header">
-                            <div>
-                                <h2>Editar Matrícula</h2>
-                                <p>Atualize o estado e vínculo acadêmico.</p>
-                            </div>
-                            <button onClick={() => setShowEditModal(false)} className="btn-close-form">
-                                <X size={24} color="#64748b" />
-                            </button>
-                        </div>
 
-                        <form className="form-container" onSubmit={handleUpdate}>
-                            <div className="form-grid">
-                                <div className="form-group form-group-full">
-                                    <label>Estado da Matrícula</label>
-                                    <select 
-                                        className="form-select"
-                                        value={modalFormData.status}
-                                        onChange={e => setModalFormData({...modalFormData, status: e.target.value})}
-                                    >
-                                        <option value="Ativa">Ativa</option>
-                                        <option value="Confirmada">Confirmada</option>
-                                        <option value="Concluida">Concluída</option>
-                                        <option value="Transferido">Transferido</option>
-                                        <option value="Desistente">Desistente</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Sala</label>
-                                    <select 
-                                        className="form-select"
-                                        value={modalFormData.id_sala}
-                                        onChange={e => setModalFormData({...modalFormData, id_sala: e.target.value})}
-                                    >
-                                        <option value="">Manter Atual</option>
-                                        {salasDisponiveis.map(s => <option key={s.id_sala} value={s.id_sala}>Sala {s.numero_sala}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Turma</label>
-                                    <select 
-                                        className="form-select"
-                                        value={modalFormData.id_turma}
-                                        onChange={e => setModalFormData({...modalFormData, id_turma: e.target.value})}
-                                    >
-                                        <option value="">Manter Atual / Sem Turma</option>
-                                        {turmasDisponiveis.map(t => <option key={t.id_turma} value={t.id_turma}>{t.codigo_turma}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="form-actions">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="btn-cancel">Cancelar</button>
-                                <button type="submit" className="btn-confirm">
-                                    Salvar Alterações <ChevronRight size={20} />
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
 
             {/* Portal-like Actions Dropdown */}
             {activeMenuId && menuMatricula && (
@@ -1108,6 +1064,99 @@ const Matriculas = () => {
                         >
                             <Edit size={16} color={(!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? "#64748b" : "#cbd5e1"} /> Editar Matrícula
                         </button>
+                    )}
+
+                    {hasPermission(PERMISSIONS.EDIT_MATRICULA) && (
+                        <div 
+                            className={`submenu-trigger ${showStatusSubmenu ? 'active' : ''}`}
+                            onMouseEnter={() => {
+                                if (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) {
+                                    handleStatusEnter();
+                                }
+                            }}
+                            onMouseLeave={handleStatusLeave}
+                            style={{ position: 'relative' }}
+                        >
+                            <button 
+                                className="dropdown-item" 
+                                style={{
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    padding: '10px 12px',
+                                    background: showStatusSubmenu ? '#f8fafc' : 'transparent',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? 'pointer' : 'not-allowed',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    color: (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? '#1e293b' : '#94a3b8',
+                                    fontSize: '14px',
+                                    fontWeight: 500,
+                                    opacity: (!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? 1 : 0.6
+                                }}
+                                title={(!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? "" : "Ano Encerrado"}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <ArrowRightLeft size={16} color={(!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? "#64748b" : "#cbd5e1"} /> Alterar Estado
+                                </div>
+                                <ChevronLeft size={14} color={(!isYearClosed && menuMatricula.anoLectivo === activeYear?.nome) ? "#94a3b8" : "#cbd5e1"} />
+                            </button>
+
+                            {/* Submenu Vertical (tipo Alunos) */}
+                            {showStatusSubmenu && (
+                                <div 
+                                    className="status-submenu-vertical"
+                                    style={{
+                                        position: 'absolute',
+                                        right: '100%',
+                                        top: '0',
+                                        marginRight: '4px',
+                                        background: 'white',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                        border: '1px solid #e2e8f0',
+                                        padding: '6px',
+                                        minWidth: '180px',
+                                        zIndex: 10001
+                                    }}
+                                >
+                                    {[
+                                        { value: 'Ativa', label: 'Ativa / Ativo', icon: CheckCircle, color: '#16a34a' },
+                                        { value: 'Confirmada', label: 'Confirmada', icon: ShieldCheck, color: '#0369a1' },
+                                        { value: 'Concluida', label: 'Concluída', icon: GraduationCap, color: '#1e40af' },
+                                        { value: 'Transferido', label: 'Transferido', icon: ArrowRightLeft, color: '#c2410c' },
+                                        { value: 'Suspensa', label: 'Suspensa', icon: Lock, color: '#b91c1c' },
+                                        { value: 'Desistente', label: 'Desistente', icon: X, color: '#64748b' }
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => handleUpdateStatus(menuMatricula.real_id, opt.value)}
+                                            style={{
+                                                width: '100%',
+                                                textAlign: 'left',
+                                                padding: '8px 10px',
+                                                background: menuMatricula.status === opt.value ? '#f8fafc' : 'transparent',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                color: '#475569',
+                                                fontSize: '13px',
+                                                fontWeight: 600,
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = menuMatricula.status === opt.value ? '#f8fafc' : 'transparent'}
+                                        >
+                                            <opt.icon size={14} color={opt.color} />
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
 
 

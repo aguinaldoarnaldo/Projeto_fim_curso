@@ -39,6 +39,7 @@ import {
 import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import { useCache } from '../../context/CacheContext';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
@@ -121,14 +122,7 @@ const Alunos = () => {
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [activeMenuId]);
 
-    // Scroll to top on page change
-    useEffect(() => {
-        if (tableRef.current) {
-            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            const tableWrapper = tableRef.current.querySelector('.table-wrapper');
-            if (tableWrapper) tableWrapper.scrollTop = 0;
-        }
-    }, [currentPage]);
+
 
     // Filters State
     const [filters, setFilters] = useState({
@@ -300,8 +294,8 @@ const Alunos = () => {
             // Revert optimistic update
             refresh(); 
             
-            const errorMessage = err.response?.data?.detail || err.message || "Erro desconhecido";
-            alert(`Erro ao atualizar estado do aluno no servidor:\n${errorMessage}`);
+            const msg = parseApiError(err, "Erro ao atualizar estado do aluno.");
+            alert(msg);
         }
     };
 
@@ -371,24 +365,8 @@ const Alunos = () => {
             refresh(true); // Silent refresh
         } catch (err) {
             console.error("Erro ao salvar aluno:", err);
-            
-            let msg = "Erro ao salvar. Verifique os dados.";
-            
-             if (err.response?.data) {
-                const data = err.response.data;
-                // DRF Standard Error Format
-                if (typeof data === 'object') {
-                    if (data.detail) {
-                         msg = data.detail;
-                    } else {
-                        // Gather all errors
-                        const errors = Object.values(data).flat();
-                        if (errors.length > 0) msg = errors[0];
-                    }
-                }
-            }
-            
-            alert(`Erro: ${msg}`);
+            const msg = parseApiError(err, "Erro ao salvar aluno.");
+            alert(msg);
         }
     };
 

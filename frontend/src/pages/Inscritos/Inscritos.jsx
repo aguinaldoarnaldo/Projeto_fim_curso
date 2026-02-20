@@ -13,6 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
@@ -39,14 +40,7 @@ const Inscritos = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(24);
 
-  // Scroll to top on page change
-  useEffect(() => {
-    if (tableRef.current) {
-      tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const tableWrapper = tableRef.current.querySelector('.table-wrapper');
-      if (tableWrapper) tableWrapper.scrollTop = 0;
-    }
-  }, [currentPage]);
+
 
   // Evaluation States
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
@@ -107,6 +101,7 @@ const Inscritos = () => {
           municipioEscola: c.municipio_escola || 'N/A',
           anoConclusao: c.ano_conclusao,
           anoInscricao: c.ano_lectivo_nome || (c.criado_em ? new Date(c.criado_em).getFullYear().toString() : '2026'),
+          anoLectivoAtivo: c.ano_lectivo_ativo, // Status of the academic year
           nota9: parseFloat(c.media_final) || 0,
           notaExame: c.nota_exame,
           curso1: c.curso1_nome || 'N/A',
@@ -227,7 +222,8 @@ const Inscritos = () => {
         alert(`Avaliação registrada com sucesso! Candidato ${status}.`);
     } catch (err) {
         console.error("Erro ao avaliar:", err);
-        alert("Erro ao salvar avaliação.");
+        const msg = parseApiError(err, "Erro ao salvar avaliação.");
+        alert(msg);
     }
 
     handleCloseEvaluation();
@@ -270,9 +266,11 @@ const Inscritos = () => {
           notaExame: candidato.notaExame || '',
           status: candidato.status,
           foto: candidato.files?.foto,
+          foto: candidato.files?.foto,
           // Extra props used by modal logic but not part of 'candidato' directly
           foto_preview: null,
-          foto_file: null
+          foto_file: null,
+          anoLectivoAtivo: candidato.anoLectivoAtivo
       });
       setShowEditModal(true);
   };
@@ -332,8 +330,9 @@ const Inscritos = () => {
           alert("Dados atualizados com sucesso!");
           setShowEditModal(false);
       } catch (error) {
-          alert("Erro ao salvar alterações. Verifique os dados.");
-          console.error(error);
+          console.error("Erro ao salvar alterações:", error);
+          const msg = parseApiError(error, "Erro ao salvar alterações.");
+          alert(msg);
       }
   };
 
@@ -349,7 +348,8 @@ const Inscritos = () => {
           closeDetail(); 
       } catch (error) {
           console.error("Erro ao confirmar pagamento:", error);
-          alert("Erro ao confirmar pagamento.");
+          const msg = parseApiError(error, "Erro ao confirmar pagamento.");
+          alert(msg);
       }
   };
 

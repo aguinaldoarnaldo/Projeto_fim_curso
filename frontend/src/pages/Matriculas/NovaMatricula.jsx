@@ -10,10 +10,12 @@ import {
     CheckCircle,
     ShieldAlert,
     Filter, // Added Filter icon
-    MapPin
+    MapPin,
+    Phone
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 import FilterModal from '../../components/Common/FilterModal';
  // Added FilterModal import
 import { getClasses } from '../../services/classService';
@@ -21,10 +23,12 @@ import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
 
 
+import { useCache } from '../../context/CacheContext';
 import './Matriculas.css';
 
 const NovaMatricula = () => {
     const { hasPermission } = usePermission();
+    const { clearCache } = useCache();
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -84,10 +88,12 @@ const NovaMatricula = () => {
         ano_lectivo: '',
         // Arquivos e Extras
         novo_aluno_foto: null,
-        doc_bi: null,
         doc_certificado: null,
-        tipo: 'Novo'
+        tipo: 'Novo',
+        matricula_id: ''
     });
+
+    const [editStepChoice, setEditStepChoice] = useState(null); // 'pessoais', 'academicos', 'documentos'
 
     const filterButtonRef = useRef(null);
 
@@ -209,8 +215,9 @@ const NovaMatricula = () => {
                 deficiencia: d.deficiencia || 'Não',
                 curso: m.curso || '',
                 tipo: location.state.tipo || 'Confirmacao',
+                matricula_id: m.real_id || '',
                 novo_aluno_foto: m.foto || null,
-                
+
                 // Encarregado
                 nome_encarregado: d.encarregado !== 'N/A' ? (d.encarregado || '') : '',
                 telefone_encarregado: d.telefoneEncarregado !== 'N/A' ? (d.telefoneEncarregado || '') : '',
@@ -218,12 +225,20 @@ const NovaMatricula = () => {
                 numero_bi_encarregado: d.bi_encarregado || '',
                 profissao_encarregado: d.profissao_encarregado || '',
 
+                // Academico
+                classe: m.id_classe || d.id_classe || '',
+                turma_id: m.id_turma || '',
+                turno: m.turno || '',
+                ano_lectivo: m.anoLectivo || '',
+
                 // Documentos existentes
-                doc_bi_url: d.documentos?.find(doc => doc.toLowerCase().includes('bi')) || null,
-                doc_certificado_url: d.documentos?.find(doc => doc.toLowerCase().includes('certificado')) || null
+                doc_bi_url: d.doc_bi || d.documentos?.find(doc => doc.toLowerCase().includes('bi')) || null,
+                doc_certificado_url: d.doc_cert || d.documentos?.find(doc => doc.toLowerCase().includes('certificado')) || null,
+                documentos_lista: d.documentos || []
             }));
 
-            fetchTurmas(m.curso, m.turno);
+            // Fetch turmas relevant to this course/turn
+            fetchTurmas(m.curso, m.turno, m.detalhes?.id_classe || m.id_classe);
         } else {
              fetchTurmas();
         }
@@ -399,6 +414,9 @@ const NovaMatricula = () => {
             } else if (formData.aluno_id) {
                  data.append('tipo', formData.tipo);
                  data.append('id_aluno', formData.aluno_id);
+                 if (formData.matricula_id) {
+                     data.append('matricula_id', formData.matricula_id);
+                 }
             } else {
                  data.append('tipo', 'Novo');
             }
@@ -422,25 +440,30 @@ const NovaMatricula = () => {
             // nome_completo, numero_bi, genero, id_turma (as turma_id in payload), etc.
             // Our payload builder above does most of it.
             
-            await api.post('matriculas/matricular_novo_aluno/', data, {
+            const response = await api.post('matriculas/matricular_novo_aluno/', data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
             
+            const successMsg = response.data?.mensagem || "Operação realizada com sucesso!";
+            
             const turmaObj = turmasDisponiveis.find(t => t.id_turma == formData.turma_id);
             const statusFinal = 'Ativa';
 
-            alert(`✅ Matrícula Realizada com Sucesso!\n\n` + 
+            alert(`✅ ${successMsg}\n\n` + 
                   `👤 Aluno: ${formData.nome_completo}\n` +
                   `🏫 Turma: ${turmaObj ? turmaObj.codigo_turma : 'N/A'}\n` + 
-                  `📍 Sala: ${turmaObj?.sala_numero ? `Sala ${turmaObj.sala_numero}` : 'Sem Sala Definida'}\n` +
                   `📊 Estado: ${statusFinal}`);
+            
+            // Invalida o cache para forçar atualização na lista
+            clearCache('matriculas');
                   
             navigate('/matriculas');
         } catch (error) {
             console.error("Erro na matrícula:", error);
-            alert(error.response?.data?.erro || "Erro ao realizar matrícula. Tente novamente.");
+            const msg = parseApiError(error, "Erro ao realizar matrícula. Tente novamente.");
+            alert(msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -453,9 +476,76 @@ const NovaMatricula = () => {
         // The original isReadOnly blocked EVERYTHING. We want to unblock everything except specific logic.
         // So we won't use a global isReadOnly for the inputs.
         const isConfirming = tipo_param === 'Confirmacao' || (location.state && location.state.tipo === 'Confirmacao');
-        const isStrictlyReadOnly = isConfirming; 
+        const isEditing = formData.tipo === 'Edicao' || (location.state && location.state.tipo === 'Edicao');
+        const isStrictlyReadOnly = isConfirming && !isEditing; 
         const isReadOnly = isStrictlyReadOnly;
 
+        // Se for edição e ainda não escolheu o que editar, mostra o menu de escolha
+        if (isEditing && !editStepChoice && step === 1) {
+            return (
+                <div className="table-card" style={{ padding: '40px', textAlign: 'center', animation: 'fadeIn 0.4s' }}>
+                    <h2 style={{ color: '#1e293b', marginBottom: '10px' }}>O que deseja editar?</h2>
+                    <p style={{ color: '#64748b', marginBottom: '30px' }}>Selecione a secção que pretende atualizar para {formData.nome_completo}</p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '800px', margin: '0 auto' }}>
+                        <div 
+                            onClick={() => { setEditStepChoice('pessoais'); setStep(1); }}
+                            className="edit-choice-card"
+                            style={{ 
+                                padding: '30px', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', 
+                                cursor: 'pointer', transition: 'all 0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' 
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                            <div style={{ padding: '15px', background: '#eff6ff', borderRadius: '12px', color: 'var(--primary-color)' }}>
+                                <User size={32} />
+                            </div>
+                            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Dados Pessoais & Encarregado</span>
+                        </div>
+
+                        <div 
+                            onClick={() => { setEditStepChoice('academicos'); setStep(2); }}
+                            className="edit-choice-card"
+                            style={{ 
+                                padding: '30px', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', 
+                                cursor: 'pointer', transition: 'all 0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' 
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                            <div style={{ padding: '15px', background: '#f0fdf4', borderRadius: '12px', color: '#16a34a' }}>
+                                <BookOpen size={32} />
+                            </div>
+                            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Dados Académicos & Turma</span>
+                        </div>
+
+                        <div 
+                            onClick={() => { setEditStepChoice('documentos'); setStep(3); }}
+                            className="edit-choice-card"
+                            style={{ 
+                                padding: '30px', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', 
+                                cursor: 'pointer', transition: 'all 0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' 
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                            <div style={{ padding: '15px', background: '#fef2f2', borderRadius: '12px', color: '#dc2626' }}>
+                                <FileText size={32} />
+                            </div>
+                            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Documentos & Anexos</span>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={() => navigate('/matriculas')}
+                        style={{ marginTop: '40px', background: 'none', border: 'none', color: '#64748b', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                        Cancelar e Voltar
+                    </button>
+                </div>
+            );
+        }
 
         let imagePreview = null;
         if (formData.novo_aluno_foto) {
@@ -1057,36 +1147,61 @@ const NovaMatricula = () => {
                         </h3>
 
                         {/* Summary Card */}
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginBottom: '25px' }}>
-                            <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: '#334155', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <CheckCircle size={18} color="#16a34a" /> Resumo da Matrícula
-                            </h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: '25px', fontSize: '14px', alignItems: 'center' }}>
+                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', marginBottom: '25px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CheckCircle size={18} color="#16a34a" /> Resumo da Matrícula
+                                </h4>
+                                {isEditing && <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>MODO EDIÇÃO</span>}
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: '30px', fontSize: '14px' }}>
                                 {/* Foto no Resumo */}
                                 <div style={{ 
-                                    width: '80px', height: '80px', borderRadius: '12px', background: '#fff', 
+                                    width: '100px', height: '100px', borderRadius: '16px', background: '#fff', 
                                     border: '2px solid #e2e8f0', overflow: 'hidden', display: 'flex', 
-                                    alignItems: 'center', justifyContent: 'center' 
+                                    alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.02)'
                                 }}>
                                     {imagePreview ? (
                                         <img src={imagePreview} alt="Final" style={{width:'100%', height:'100%', objectFit:'cover'}} />
                                     ) : (
-                                        <User size={30} color="#cbd5e1" />
+                                        <User size={40} color="#cbd5e1" />
                                     )}
                                 </div>
+
+                                {/* Dados Pessoais & Contactos */}
                                 <div>
-                                    <p style={{ color: '#64748b', marginBottom: '4px' }}>Aluno</p>
-                                    <p style={{ fontWeight: 600, color: '#0f172a', fontSize: '16px' }}>{formData.nome_completo}</p>
-                                    <p style={{ fontSize: '12px', color: '#64748b' }}>BI: {formData.numero_bi}</p>
+                                    <p style={{ color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Identificação & Contacto</p>
+                                    <p style={{ fontWeight: 700, color: '#0f172a', fontSize: '17px', marginBottom: '2px' }}>{formData.nome_completo}</p>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '10px' }}>BI: {formData.numero_bi}</p>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569' }}>
+                                            <User size={14} color="#94a3b8" /> {formData.nome_encarregado || 'N/A'} (Encarregado)
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569' }}>
+                                            <Phone size={14} color="#94a3b8" /> {formData.telefone_encarregado || 'N/A'}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: '20px' }}>
-                                    <p style={{ color: '#64748b', marginBottom: '4px' }}>Destino (Turma)</p>
-                                    {turmaSelecionada ? (
+
+                                {/* Dados Académicos */}
+                                <div style={{ borderLeft: '2px solid #e2e8f0', paddingLeft: '25px' }}>
+                                    <p style={{ color: '#64748b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Vínculo Académico</p>
+                                    
+                                    {turmaSelecionada || (location.state?.matricula) ? (
                                         <>
-                                            <p style={{ fontWeight: 600, color: '#0f172a' }}>{turmaSelecionada.codigo_turma}</p>
-                                            <p style={{ fontSize: '12px', color: '#64748b' }}>{turmaSelecionada.curso_nome} - {turmaSelecionada.periodo_nome}</p>
-                                            <p style={{ fontSize: '12px', fontWeight:'bold', marginTop:'4px', color:'#0369a1' }}>
-                                                📍 Sala: {turmaSelecionada.sala_numero || 'ND'}
+                                            <p style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>
+                                                {turmaSelecionada?.codigo_turma || location.state?.matricula?.turma || 'Carregando...'}
+                                            </p>
+                                            <p style={{ fontSize: '13px', color: '#475569', marginTop: '2px' }}>
+                                                {formData.curso} • {formData.turno}
+                                            </p>
+                                            <p style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '6px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <MapPin size={14} /> Sala: {turmaSelecionada?.sala_numero || location.state?.matricula?.sala || 'N/A'}
+                                            </p>
+                                            <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                                                Ano Lectivo: {formData.ano_lectivo}
                                             </p>
                                         </>
                                     ) : (
@@ -1129,8 +1244,8 @@ const NovaMatricula = () => {
                                     <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px', marginBottom: '10px'}}>
                                         <div style={{background:'#22c55e', borderRadius:'50%', padding:'5px', display:'flex'}}><CheckCircle size={16} color="white"/></div>
                                         <div style={{flex:1}}>
-                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Arquivo já cadastrado</span>
-                                            <span style={{fontSize:'11px', color:'#166534'}}>Disponível no sistema</span>
+                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>BI / Documento de ID</span>
+                                            <a href={formData.doc_bi_url} target="_blank" rel="noreferrer" style={{fontSize:'11px', color:'#166534', textDecoration:'underline'}}>Visualizar Atual</a>
                                         </div>
                                     </div>
                                 ) : null}
@@ -1149,8 +1264,8 @@ const NovaMatricula = () => {
                                     <div className="file-upload-box" style={{border: '2px solid #bbf7d0', background: '#f0fdf4', padding: '15px', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px', marginBottom: '10px'}}>
                                         <div style={{background:'#22c55e', borderRadius:'50%', padding:'5px', display:'flex'}}><CheckCircle size={16} color="white"/></div>
                                         <div style={{flex:1}}>
-                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Arquivo já cadastrado</span>
-                                            <span style={{fontSize:'11px', color:'#166534'}}>Disponível no sistema</span>
+                                            <span style={{display:'block', fontSize:'13px', fontWeight:'600', color:'#15803d'}}>Certificado de Habilitações</span>
+                                            <a href={formData.doc_certificado_url} target="_blank" rel="noreferrer" style={{fontSize:'11px', color:'#166534', textDecoration:'underline'}}>Visualizar Atual</a>
                                         </div>
                                     </div>
                                 ) : null}
@@ -1193,8 +1308,8 @@ const NovaMatricula = () => {
                     >
                         <ArrowLeft size={16} /> Voltar à lista
                     </button>
-                    <h1>Nova Ficha de Matrícula</h1>
-                    <p>Preencha os dados abaixo com precisão para registrar o novo aluno.</p>
+                    <h1>{formData.tipo === 'Edicao' ? 'Editar Matrícula' : 'Nova Ficha de Matrícula'}</h1>
+                    <p>{formData.tipo === 'Edicao' ? `Atualizando informações de ${formData.nome_completo}` : 'Preencha os dados abaixo com precisão para registrar o novo aluno.'}</p>
                 </div>
                 <div className="step-header-actions">
                     {[1, 2, 3].map(s => (
@@ -1212,17 +1327,36 @@ const NovaMatricula = () => {
                 {renderStep()}
 
                 <div className="step-actions">
-                    <button
-                        type="button"
-                        onClick={() => setStep(s => Math.max(1, s - 1))}
-                        disabled={step === 1 || isSubmitting}
-                        className="btn-step-prev"
-                        style={{ cursor: step === 1 ? 'not-allowed' : 'pointer', opacity: step === 1 ? 0.5 : 1 }}
-                    >
-                        Anterior
-                    </button>
+                    {editStepChoice ? (
+                        <button
+                            type="button"
+                            onClick={() => { setEditStepChoice(null); setStep(1); }}
+                            className="btn-step-prev"
+                        >
+                            <ArrowLeft size={16} /> Voltar para Opções
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setStep(s => Math.max(1, s - 1))}
+                            disabled={step === 1 || isSubmitting}
+                            className="btn-step-prev"
+                            style={{ cursor: step === 1 ? 'not-allowed' : 'pointer', opacity: step === 1 ? 0.5 : 1 }}
+                        >
+                            Anterior
+                        </button>
+                    )}
 
-                    {step < 3 ? (
+                    {editStepChoice ? (
+                        <button
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                            className="btn-step-finish"
+                            style={{ background: 'var(--primary-color)' }}
+                        >
+                            {isSubmitting ? 'Processando...' : <><Save size={18} /> Salvar Alterações</>}
+                        </button>
+                    ) : step < 3 ? (
                         <button
                             type="button"
                             onClick={() => setStep(s => s + 1)}

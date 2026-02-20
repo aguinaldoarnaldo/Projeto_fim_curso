@@ -73,12 +73,12 @@ class MatriculaViewSet(viewsets.ModelViewSet):
         ano_lectivo = turma.ano_lectivo
         if not ano_lectivo:
             # Buscar ano letivo ativo
-            ano_lectivo = AnoLectivo.objects.filter(activo=True).first()
+            ano_lectivo = AnoLectivo.objects.filter(status='Activo').first()
             if not ano_lectivo:
                 return Response({'erro': 'Nenhum Ano Lectivo ativo encontrado. Configure um Ano Lectivo primeiro.'}, status=400)
         
         # Validation: prevent enrollment in closed year
-        if not ano_lectivo.activo:
+        if ano_lectivo.status != 'Activo':
              return Response({'erro': f'O Ano Lectivo {ano_lectivo.nome} está encerrado. Não é possível realizar matrículas.'}, status=403)
             
         try:
@@ -89,14 +89,25 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                 tel_enc = data.get('telefone_encarregado')
                 
                 if nome_enc:
-                    # Tentar encontrar por telefone
-                    if tel_enc:
+                    # Tentar encontrar por BI ou telefone
+                    bi_enc = data.get('numero_bi_encarregado')
+                    if bi_enc:
+                        encarregado = Encarregado.objects.filter(numero_bi=bi_enc).first()
+                    elif tel_enc:
                         encarregado = Encarregado.objects.filter(telefone__contains=tel_enc).first()
                     
-                    if not encarregado:
+                    if encarregado:
+                        # Atualizar dados do encarregado existente
+                        encarregado.nome_completo = nome_enc
+                        if bi_enc: encarregado.numero_bi = bi_enc
+                        if tel_enc and tel_enc not in encarregado.telefone:
+                            encarregado.telefone.append(tel_enc)
+                        encarregado.profissao = data.get('profissao_encarregado')
+                        encarregado.save()
+                    else:
                         encarregado = Encarregado.objects.create(
                             nome_completo=nome_enc,
-                            numero_bi=data.get('numero_bi_encarregado'),
+                            numero_bi=bi_enc,
                             profissao=data.get('profissao_encarregado'),
                             telefone=[tel_enc] if tel_enc else [],
                             senha_hash='123456', 
@@ -158,6 +169,12 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     aluno.id_turma = turma
                     aluno.status_aluno = 'Activo'
                     
+                    # Campos de Identidade
+                    if data.get('nome_completo'): aluno.nome_completo = data.get('nome_completo')
+                    if data.get('data_nascimento'): aluno.data_nascimento = data.get('data_nascimento')
+                    if data.get('genero'): aluno.genero = data.get('genero')
+                    if data.get('numero_bi'): aluno.numero_bi = data.get('numero_bi')
+
                     # Campos de Endereço/Contato
                     if data.get('nacionalidade'): aluno.nacionalidade = data.get('nacionalidade')
                     if data.get('naturalidade'): aluno.naturalidade = data.get('naturalidade')
@@ -186,10 +203,10 @@ class MatriculaViewSet(viewsets.ModelViewSet):
 
                 # 3. Vínculo Encarregado
                 if encarregado:
-                    AlunoEncarregado.objects.create(
+                    AlunoEncarregado.objects.update_or_create(
                         id_aluno=aluno,
                         id_encarregado=encarregado,
-                        grau_parentesco=data.get('parentesco_encarregado')
+                        defaults={'grau_parentesco': data.get('parentesco_encarregado', 'Não Especificado')}
                     )
                     
                 # 4. Matrícula
@@ -203,16 +220,31 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                     if not db_cert and candidato.certificado:
                         db_cert = candidato.certificado
 
-                Matricula.objects.create(
-                     id_aluno=aluno,
-                     id_turma=turma,
-                     ano_lectivo=ano_lectivo,
-                     ativo=True,
-                     tipo=data.get('tipo', 'Novo'),
-                     status='Ativa',
-                     doc_bi=db_bi,
-                     doc_certificado=db_cert
-                )
+                matricula_id = data.get('matricula_id')
+                if data.get('tipo') == 'Edicao' and matricula_id:
+                    # UPDATE MODE
+                    try:
+                        matricula = Matricula.objects.get(pk=matricula_id)
+                        matricula.id_aluno = aluno
+                        matricula.id_turma = turma
+                        matricula.ano_lectivo = ano_lectivo
+                        if db_bi: matricula.doc_bi = db_bi
+                        if db_cert: matricula.doc_certificado = db_cert
+                        matricula.save()
+                    except Matricula.DoesNotExist:
+                        return Response({'erro': 'Matrícula não encontrada para edição.'}, status=404)
+                else:
+                    # CREATE MODE
+                    Matricula.objects.create(
+                         id_aluno=aluno,
+                         id_turma=turma,
+                         ano_lectivo=ano_lectivo,
+                         ativo=True,
+                         tipo=data.get('tipo', 'Novo'),
+                         status='Ativa',
+                         doc_bi=db_bi,
+                         doc_certificado=db_cert
+                    )
                 
                 # 4.1 Atualizar Status do Candidato
                 if candidato:
@@ -243,11 +275,12 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                             observacoes=item.get('obs')
                         )
                 
+                is_edit = data.get('tipo') == 'Edicao'
                 return Response({
-                    'mensagem': 'Aluno matriculado com sucesso!',
+                    'mensagem': f'Dados de {aluno.nome_completo} atualizados com sucesso!' if is_edit else 'Aluno matriculado com sucesso!',
                     'aluno_id': aluno.id_aluno,
                     'matricula': aluno.numero_matricula
-                }, status=201)
+                }, status=200 if is_edit else 201)
 
         except ValidationError as e:
             return Response({'erro': e.message_dict if hasattr(e, 'message_dict') else str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -301,7 +334,7 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                      return Response({'erro': f'Matrícula {id2} não encontrada.'}, status=404)
                 
                 # Validar se o Ano Lectivo está ativo
-                if (mat1.ano_lectivo and not mat1.ano_lectivo.activo) or (mat2.ano_lectivo and not mat2.ano_lectivo.activo):
+                if (mat1.ano_lectivo and mat1.ano_lectivo.status != 'Activo') or (mat2.ano_lectivo and mat2.ano_lectivo.status != 'Activo'):
                      return Response({'erro': 'Não é possível permutar matrículas de um Ano Lectivo encerrado.'}, status=403)
                 
                 # Armazenar turmas para a troca

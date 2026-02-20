@@ -5,6 +5,7 @@ class CandidatoSerializer(serializers.ModelSerializer):
     curso1_nome = serializers.CharField(source='curso_primeira_opcao.nome_curso', read_only=True)
     curso2_nome = serializers.CharField(source='curso_segunda_opcao.nome_curso', read_only=True)
     ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
+    ano_lectivo_ativo = serializers.BooleanField(source='ano_lectivo.activo', read_only=True) # Check if year is active
     nota_exame = serializers.SerializerMethodField()
     exame_data = serializers.SerializerMethodField()
     exame_sala = serializers.SerializerMethodField()

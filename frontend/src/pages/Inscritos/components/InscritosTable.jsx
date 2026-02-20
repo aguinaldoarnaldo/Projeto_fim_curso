@@ -128,7 +128,9 @@ const InscritosTable = ({
                     <button
                         className="btn-icon btn-edit"
                         onClick={(e) => { e.stopPropagation(); onEdit(i); }}
-                        title="Editar Candidato"
+                        disabled={i.anoLectivoAtivo === false}
+                        title={i.anoLectivoAtivo === false ? "Edição bloqueada (Ano Lectivo Encerrado)" : "Editar Candidato"}
+                        style={{ opacity: i.anoLectivoAtivo === false ? 0.5 : 1, cursor: i.anoLectivoAtivo === false ? 'not-allowed' : 'pointer' }}
                     >
                         <Edit size={16} />
                     </button>
@@ -139,12 +141,16 @@ const InscritosTable = ({
                         className="btn-icon btn-evaluate"
                         onClick={(e) => { 
                             e.stopPropagation(); 
+                            if (i.anoLectivoAtivo === false) return;
                             if (i.notaExame === null || i.notaExame === undefined || i.notaExame === '') {
                                 onEvaluate(i); 
                             }
                         }}
-                        disabled={i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== ''}
-                        title={ (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? "Candidato já avaliado" : "Avaliar Candidato"}
+                        disabled={(i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') || i.anoLectivoAtivo === false}
+                        title={ 
+                            i.anoLectivoAtivo === false ? "Avaliação bloqueada (Ano Lectivo Encerrado)" :
+                            (i.notaExame !== null && i.notaExame !== undefined && i.notaExame !== '') ? "Candidato já avaliado" : "Avaliar Candidato"
+                        }
                     >
                         <ClipboardCheck size={16} />
                     </button>

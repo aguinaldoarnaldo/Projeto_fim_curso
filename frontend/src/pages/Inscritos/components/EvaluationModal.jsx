@@ -24,6 +24,21 @@ const EvaluationModal = ({
         </div>
 
         <div className="evaluation-body">
+          {candidate.anoLectivoAtivo === false && (
+             <div style={{
+                 marginBottom: '10px',
+                 padding: '6px 12px',
+                 backgroundColor: '#fee2e2',
+                 color: '#b91c1c',
+                 borderRadius: '6px',
+                 fontSize: '13px',
+                 fontWeight: '600',
+                 textAlign: 'center'
+             }}>
+                 AVALIAÇÃO BLOQUEADA (ANO ENCERRADO)
+             </div>
+           )}
+
           <p className="evaluation-info-text">
             Atribuir nota do exame para: <strong>{candidate.nome}</strong>
           </p>
@@ -39,6 +54,7 @@ const EvaluationModal = ({
               placeholder="0"
               className="evaluation-input"
               autoFocus
+              disabled={candidate.anoLectivoAtivo === false}
             />
           </div>
 
@@ -57,6 +73,8 @@ const EvaluationModal = ({
           <button
             onClick={onSubmit}
             className="btn-confirm"
+            disabled={candidate.anoLectivoAtivo === false}
+            style={candidate.anoLectivoAtivo === false ? { background: '#9ca3af', cursor: 'not-allowed' } : {}}
           >
             Confirmar
           </button>

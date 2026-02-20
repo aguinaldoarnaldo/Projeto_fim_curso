@@ -33,6 +33,7 @@ import { PERMISSIONS, PERMISSIONS_PT, PERMISSION_GROUPS, ROLES, ROLE_PERMISSIONS
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext'; // Assuming AuthContext exists
 import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 
 const Configuracoes = () => {
     const { themeColor, changeColor } = useTheme();
@@ -69,9 +70,11 @@ const Configuracoes = () => {
     // Academic Year States
     const [academicYears, setAcademicYears] = useState([]);
     const [yearLoading, setYearLoading] = useState(false);
-    const [newYear, setNewYear] = useState({ nome: '', data_inicio: '', data_fim: '', activo: false });
+    const [newYear, setNewYear] = useState({ nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false });
     const [isEditingYear, setIsEditingYear] = useState(false);
     const [editingYearId, setEditingYearId] = useState(null);
+    const [yearCurrentPage, setYearCurrentPage] = useState(1);
+    const [yearTotalPages, setYearTotalPages] = useState(1);
     const [backupsList, setBackupsList] = useState([]);
 
     // Redirect if permission is lost dynamically
@@ -296,31 +299,8 @@ const Configuracoes = () => {
                 if (refreshUser) refreshUser();
             }
         } catch (error) {
-            console.error("Erro ao salvar usuário:", error);
-            
-            let msg = "Erro ao processar a solicitação.";
-            
-            if (error.response?.data) {
-                const data = error.response.data;
-                
-                // DRF Standart Error Format: { "field": ["Error message"] }
-                if (typeof data === 'object') {
-                    // Check for specific field errors first
-                    if (data.email) {
-                        msg = `Erro no Email: ${data.email[0] || data.email}`;
-                    } else if (data.username) {
-                         msg = `Erro no Usuário: ${data.username[0] || data.username}`;
-                    } else if (data.detail) {
-                        msg = data.detail;
-                    } else {
-                        // Gather all errors
-                        const errors = Object.values(data).flat();
-                        if (errors.length > 0) msg = errors[0];
-                    }
-                }
-            }
-            
-            alert(`${msg}`);
+            const msg = parseApiError(error, "Erro ao processar a solicitação.");
+            alert(msg);
         }
     };
     
@@ -358,7 +338,8 @@ const Configuracoes = () => {
             alert(`Status atualizado para ${isActive ? 'Activo' : 'Inactivo'}`);
         } catch (error) {
             console.error("Erro ao atualizar status:", error);
-            alert("Erro ao atualizar status.");
+            const msg = parseApiError(error, "Erro ao atualizar status.");
+            alert(msg);
         }
     };
 
@@ -447,18 +428,26 @@ const Configuracoes = () => {
             setShowPermissionsModal(false);
         } catch (error) {
             console.error("Erro ao salvar permissões:", error);
-            alert("Erro ao salvar permissões.");
+            const msg = parseApiError(error, "Erro ao salvar permissões.");
+            alert(msg);
         } finally {
             setIsSavingPermissions(false);
         }
     };
 
     // --- ACADEMIC YEAR HANDLERS ---
-    const fetchAcademicYears = async () => {
+    const fetchAcademicYears = async (page = 1) => {
         setYearLoading(true);
         try {
-            const response = await api.get('anos-lectivos/');
+            const response = await api.get(`anos-lectivos/?page=${page}`);
             setAcademicYears(response.data.results || response.data || []);
+            
+            // Update pagination info
+            if (response.data.count) {
+                const total = Math.ceil(response.data.count / 6); 
+                setYearTotalPages(total);
+                setYearCurrentPage(page);
+            }
         } catch (error) {
             console.error("Erro ao buscar anos lectivos:", error);
         } finally {
@@ -486,7 +475,8 @@ const Configuracoes = () => {
             alert("Configurações atualizadas com sucesso!");
         } catch (error) {
             console.error("Erro ao salvar config:", error);
-            alert("Erro ao salvar configurações.");
+            const msg = parseApiError(error, "Erro ao salvar configurações.");
+            alert(msg);
         }
     };
 
@@ -505,7 +495,8 @@ const Configuracoes = () => {
             window.location.reload(); 
         } catch (error) {
             console.error("Erro ao salvar branding:", error);
-            alert("Erro ao salvar alterações.");
+            const msg = parseApiError(error, "Erro ao salvar alterações.");
+            alert(msg);
         }
     };
 
@@ -555,12 +546,13 @@ const Configuracoes = () => {
                 await api.post('anos-lectivos/', newYear);
                 alert("Ano Lectivo criado com sucesso!");
             }
-            setNewYear({ nome: '', data_inicio: '', data_fim: '', activo: false });
+            setNewYear({ nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false });
             setShowYearForm(false);
             fetchAcademicYears();
         } catch (error) {
             console.error("Erro ao salvar ano lectivo:", error);
-            alert("Erro ao salvar ano lectivo.");
+            const msg = parseApiError(error, "Erro ao salvar ano lectivo.");
+            alert(msg);
         }
     };
 
@@ -569,6 +561,7 @@ const Configuracoes = () => {
             nome: year.nome,
             data_inicio: year.data_inicio,
             data_fim: year.data_fim,
+            status: year.status || (year.activo ? 'Activo' : 'Encerrado'),
             activo: year.activo
         });
         setIsEditingYear(true);
@@ -577,7 +570,7 @@ const Configuracoes = () => {
     };
 
     const handleCancelEditYear = () => {
-        setNewYear({ nome: '', data_inicio: '', data_fim: '', activo: false });
+        setNewYear({ nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false });
         setIsEditingYear(false);
         setEditingYearId(null);
         setShowYearForm(false);
@@ -596,11 +589,8 @@ const Configuracoes = () => {
             alert("Ano lectivo reaberto com sucesso!");
         } catch (error) {
             console.error("Erro ao activar ano:", error);
-            if (error.response?.status === 403) {
-                 alert("Permissão negada: Apenas administradores podem reabrir um ano lectivo.");
-            } else {
-                 alert("Erro ao mudar status do ano.");
-            }
+            const msg = parseApiError(error, "Erro ao mudar status do ano.");
+            alert(msg);
         }
     };
 
@@ -616,7 +606,8 @@ const Configuracoes = () => {
             fetchAcademicYears();
         } catch (error) {
             console.error("Erro ao encerrar ano:", error);
-            alert("Erro ao encerrar ano lectivo.");
+            const msg = parseApiError(error, "Erro ao encerrar ano lectivo.");
+            alert(msg);
         }
     };
 
@@ -1426,23 +1417,38 @@ const Configuracoes = () => {
                                             <td>{new Date(year.data_fim).toLocaleDateString()}</td>
                                             <td>
                                                 <span className="info-badge" style={{ 
-                                                    background: year.activo ? '#dcfce7' : '#fee2e2',
-                                                    color: year.activo ? '#15803d' : '#ef4444'
+                                                    background: 
+                                                        year.status === 'Activo' ? '#dcfce7' : 
+                                                        year.status === 'Planeado' ? '#eff6ff' : 
+                                                        year.status === 'Suspenso' ? '#fff7ed' : '#fee2e2',
+                                                    color: 
+                                                        year.status === 'Activo' ? '#15803d' : 
+                                                        year.status === 'Planeado' ? '#2563eb' : 
+                                                        year.status === 'Suspenso' ? '#c2410c' : '#ef4444',
+                                                    fontWeight: '700'
                                                 }}>
-                                                    {year.activo ? 'ACTIVO' : 'ENCERRADO'}
+                                                    {year.status?.toUpperCase() || (year.activo ? 'ACTIVO' : 'ENCERRADO')}
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    {!year.activo ? (
+                                                    {year.status !== 'Activo' ? (
                                                         <button 
                                                             onClick={() => handleToggleActiveYear(year.id_ano, year.activo)}
                                                             className="btn-premium btn-secondary-premium"
-                                                            style={{ padding: '6px 12px', fontSize: '12px', opacity: isAdmin ? 1 : 0.5, cursor: isAdmin ? 'pointer' : 'not-allowed' }}
-                                                            title={isAdmin ? "Reabrir Ano Lectivo" : "Apenas Administradores podem reabrir este ano"}
+                                                            style={{ 
+                                                                padding: '6px 12px', 
+                                                                fontSize: '12px', 
+                                                                opacity: isAdmin ? 1 : 0.5, 
+                                                                cursor: isAdmin ? 'pointer' : 'not-allowed',
+                                                                background: year.status === 'Planeado' ? 'var(--primary-color)' : '',
+                                                                color: year.status === 'Planeado' ? 'white' : ''
+                                                            }}
+                                                            title={isAdmin ? (year.status === 'Planeado' ? "Abrir Ano Lectivo" : "Reabrir Ano Lectivo") : "Apenas Administradores podem realizar esta acção"}
                                                             disabled={!isAdmin}
                                                         >
-                                                            Reabrir
+                                                            {year.status === 'Planeado' ? 'Abrir' : 
+                                                             year.status === 'Suspenso' ? 'Activar' : 'Reabrir'}
                                                         </button>
                                                     ) : (
                                                         <button 
@@ -1476,6 +1482,60 @@ const Configuracoes = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Paginação para Anos Lectivos */}
+                        {yearTotalPages > 1 && (
+                            <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'center', 
+                                alignItems: 'center', 
+                                gap: '15px', 
+                                marginTop: '20px',
+                                background: 'white',
+                                padding: '12px',
+                                borderRadius: '12px',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                            }}>
+                                <button 
+                                    onClick={() => fetchAcademicYears(yearCurrentPage - 1)}
+                                    disabled={yearCurrentPage === 1}
+                                    style={{
+                                        background: yearCurrentPage === 1 ? '#f8fafc' : 'white',
+                                        border: '1px solid #e2e8f0',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        cursor: yearCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        color: yearCurrentPage === 1 ? '#94a3b8' : '#1e293b'
+                                    }}
+                                >
+                                    Anterior
+                                </button>
+                                
+                                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--primary-color)' }}>
+                                    Página {yearCurrentPage} de {yearTotalPages}
+                                </span>
+
+                                <button 
+                                    onClick={() => fetchAcademicYears(yearCurrentPage + 1)}
+                                    disabled={yearCurrentPage === yearTotalPages}
+                                    style={{
+                                        background: yearCurrentPage === yearTotalPages ? '#f8fafc' : 'white',
+                                        border: '1px solid #e2e8f0',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        cursor: yearCurrentPage === yearTotalPages ? 'not-allowed' : 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        color: yearCurrentPage === yearTotalPages ? '#94a3b8' : '#1e293b'
+                                    }}
+                                >
+                                    Próximo
+                                </button>
+                            </div>
+                        )}
 
                         <div className="section-title-v2" style={{ marginTop: '48px', marginBottom: '24px' }}>
                             <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
