@@ -27,64 +27,85 @@ class AnoLectivo(BaseModel):
         ordering = ['-nome']
         
     def save(self, *args, **kwargs):
+        from django.apps import apps
+        Turma = apps.get_model('apis', 'Turma')
+        Matricula = apps.get_model('apis', 'Matricula')
+        Aluno = apps.get_model('apis', 'Aluno')
+
         # 1. Lógica para novos registros (Auto-seleção se não houver um activo)
         if not self.pk:
             if not AnoLectivo.objects.filter(status='Activo').exists():
                 self.status = 'Activo'
             else:
-                # O status default já é 'Planeado', mas garantimos aqui
-                if not self.status or self.status == 'Activo': 
+                if not self.status or self.status == 'Activo':
                     self.status = 'Planeado'
-        
+
         # 2. Sincronização Bidirecional (Campo antigo 'activo' vs novo 'status')
-        # Se o usuário marcar 'activo=True' via interface antiga ou código, o status deve mudar para 'Activo'
         if self.activo and self.status != 'Activo':
             self.status = 'Activo'
-        
-        # Se o status for 'Activo', 'activo' DEVE ser True
+
+        # 3. Detectar a transição de status (para anos já existentes)
+        status_anterior = None
+        if self.pk:
+            status_anterior = AnoLectivo.objects.values_list('status', flat=True).get(pk=self.pk)
+
         if self.status == 'Activo':
             self.activo = True
-            
-            # 1. Encontrar o ano activo anterior (excluindo este se já existir)
-            from django.apps import apps
-            Turma = apps.get_model('apis', 'Turma')
-            Matricula = apps.get_model('apis', 'Matricula')
-            
+
+            # === CASO A: REABERTURA (Encerrado → Activo) ===
+            # Reverter os efeitos do encerramento para este ano
+            if status_anterior == 'Encerrado':
+                # Reverter Turmas deste ano que foram concluídas pelo encerramento
+                Turma.objects.filter(ano_lectivo=self, status='Concluida').update(status='Ativa')
+
+                # Reverter Matrículas deste ano: 'Concluida' → 'Ativa'
+                # ('Transferido' e 'Desistente' são estados finais - não reverter)
+                Matricula.objects.filter(
+                    ano_lectivo=self, status='Concluida'
+                ).update(status='Ativa')
+
+                # Reverter Alunos deste ano: 'Concluido' → 'Activo'
+                # Apenas os que têm matrícula NESTE ano e estão como 'Concluido'
+                ids_alunos = Matricula.objects.filter(
+                    ano_lectivo=self
+                ).values_list('id_aluno_id', flat=True).distinct()
+
+                Aluno.objects.filter(
+                    id_aluno__in=ids_alunos,
+                    status_aluno='Concluido'
+                ).update(status_aluno='Activo')
+
+            # === CASO B: ACTIVAÇÃO NORMAL (outro ano estava activo) ===
+            # Fechar o ano que estava activo antes
             old_active = AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).first()
             if old_active:
-                # 2. Marcar Turmas do ano anterior como Concluídas
+                # Marcar Turmas do ano anterior como Concluídas
                 Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
-                
-                # 3. Marcar Matrículas do ano anterior como Concluídas
-                #    (apenas as 'Ativa' e 'Confirmada' - 'Transferido' e 'Desistente' são estados finais)
-                Matricula.objects.filter(ano_lectivo=old_active, status__in=['Ativa', 'Confirmada']).update(status='Concluida')
-                
-                # 4. Actualizar o status_aluno dos Alunos que pertencem ao ano encerrado
-                #    Apenas os 'Activo' passam a 'Concluido'.
-                #    Estados finais (Inativo, Transferido, Concluido) ficam inalterados.
-                from django.apps import apps
-                Aluno = apps.get_model('apis', 'Aluno')
-                
-                # IDs dos alunos com matrícula activa no ano que está a ser encerrado
+
+                # Marcar Matrículas do ano anterior como Concluídas
+                # ('Transferido' e 'Desistente' são estados finais)
+                Matricula.objects.filter(
+                    ano_lectivo=old_active, status__in=['Ativa', 'Confirmada']
+                ).update(status='Concluida')
+
+                # Actualizar Alunos do ano anterior: 'Activo' → 'Concluido'
                 ids_alunos_do_ano = Matricula.objects.filter(
                     ano_lectivo=old_active
                 ).values_list('id_aluno_id', flat=True).distinct()
-                
-                # Apenas actualiza os que estavam com status 'Activo'
-                # (os com estado 'Inativo', 'Transferido' ou 'Concluido' ficam congelados sem alteração)
+
                 Aluno.objects.filter(
                     id_aluno__in=ids_alunos_do_ano,
                     status_aluno='Activo'
                 ).update(status_aluno='Concluido')
-                
-                # 5. Mudar status do ano anterior para Encerrado
+
+                # Fechar o ano anterior
                 AnoLectivo.objects.filter(pk=old_active.pk).update(status='Encerrado', activo=False)
-            
-            # 4. Garantir que outros anos em estado 'Activo' sejam desactivados (segurança extra)
+
+            # Segurança extra: garantir que não há outro ano Activo além deste
             AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).update(status='Encerrado', activo=False)
         else:
             self.activo = False
-            
+
         super().save(*args, **kwargs)
         
     def __str__(self):
