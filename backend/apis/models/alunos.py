@@ -56,6 +56,22 @@ class Aluno(BaseModel):
         return f"{self.nome_completo} - {self.numero_matricula}"
 
     def save(self, *args, **kwargs):
+        # --- Bloqueio de estados finais (alunos congelados) ---
+        # Se o aluno já existir (pk definida) e o status anterior for um estado final,
+        # impede qualquer alteração para preservar a integridade histórica.
+        ESTADOS_FINAIS = {'Concluido', 'Transferido', 'Inativo'}
+        if self.pk:
+            from django.core.exceptions import ValidationError
+            try:
+                estado_anterior = Aluno.objects.values_list('status_aluno', flat=True).get(pk=self.pk)
+                if estado_anterior in ESTADOS_FINAIS:
+                    raise ValidationError(
+                        f"O aluno encontra-se com o estado '{estado_anterior}' que é um estado final. "
+                        f"Não são permitidas alterações. Contacte o administrador para desbloquear."
+                    )
+            except Aluno.DoesNotExist:
+                pass  # Novo registo, nada a validar
+
         # Gerar número de matrícula se não existir
         if not self.numero_matricula:
             import datetime

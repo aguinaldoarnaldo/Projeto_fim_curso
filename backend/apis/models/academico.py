@@ -52,11 +52,32 @@ class AnoLectivo(BaseModel):
             
             old_active = AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).first()
             if old_active:
-                # 2. Marcar Turmas e Matrículas do ano anterior como Concluídas
+                # 2. Marcar Turmas do ano anterior como Concluídas
                 Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
+                
+                # 3. Marcar Matrículas do ano anterior como Concluídas
+                #    (apenas as 'Ativa' e 'Confirmada' - 'Transferido' e 'Desistente' são estados finais)
                 Matricula.objects.filter(ano_lectivo=old_active, status__in=['Ativa', 'Confirmada']).update(status='Concluida')
                 
-                # 3. Mudar status do anterior para Encerrado
+                # 4. Actualizar o status_aluno dos Alunos que pertencem ao ano encerrado
+                #    Apenas os 'Activo' passam a 'Concluido'.
+                #    Estados finais (Inativo, Transferido, Concluido) ficam inalterados.
+                from django.apps import apps
+                Aluno = apps.get_model('apis', 'Aluno')
+                
+                # IDs dos alunos com matrícula activa no ano que está a ser encerrado
+                ids_alunos_do_ano = Matricula.objects.filter(
+                    ano_lectivo=old_active
+                ).values_list('id_aluno_id', flat=True).distinct()
+                
+                # Apenas actualiza os que estavam com status 'Activo'
+                # (os com estado 'Inativo', 'Transferido' ou 'Concluido' ficam congelados sem alteração)
+                Aluno.objects.filter(
+                    id_aluno__in=ids_alunos_do_ano,
+                    status_aluno='Activo'
+                ).update(status_aluno='Concluido')
+                
+                # 5. Mudar status do ano anterior para Encerrado
                 AnoLectivo.objects.filter(pk=old_active.pk).update(status='Encerrado', activo=False)
             
             # 4. Garantir que outros anos em estado 'Activo' sejam desactivados (segurança extra)
