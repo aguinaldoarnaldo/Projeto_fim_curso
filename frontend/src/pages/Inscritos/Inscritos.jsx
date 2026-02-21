@@ -266,7 +266,6 @@ const Inscritos = () => {
           notaExame: candidato.notaExame || '',
           status: candidato.status,
           foto: candidato.files?.foto,
-          foto: candidato.files?.foto,
           // Extra props used by modal logic but not part of 'candidato' directly
           foto_preview: null,
           foto_file: null,

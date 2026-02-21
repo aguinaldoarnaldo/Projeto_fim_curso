@@ -435,6 +435,30 @@ const Configuracoes = () => {
         }
     };
 
+    const showTransitionStats = (stats) => {
+        if (!stats) return;
+        
+        let message = "";
+        
+        if (stats.closed) {
+            message += `O ano letivo ${stats.closed.nome} foi ENCERRADO.\n`;
+            message += `• ${stats.closed.turmas} turmas concluídas\n`;
+            message += `• ${stats.closed.matriculas} matrículas concluídas\n`;
+            message += `• ${stats.closed.alunos} alunos movidos para 'Concluido'\n\n`;
+        }
+        
+        if (stats.reopened) {
+            message += `O ano letivo ${stats.reopened.nome} foi REABERTO.\n`;
+            message += `• ${stats.reopened.turmas} turmas reactivadas\n`;
+            message += `• ${stats.reopened.matriculas} matrículas reactivadas\n`;
+            message += `• ${stats.reopened.alunos} alunos movidos de volta para 'Activo'`;
+        }
+        
+        if (message) {
+            alert(message);
+        }
+    };
+
     // --- ACADEMIC YEAR HANDLERS ---
     const fetchAcademicYears = async (page = 1) => {
         setYearLoading(true);
@@ -537,8 +561,12 @@ const Configuracoes = () => {
         try {
             if (isEditingYear) {
                 // Update
-                await api.patch(`anos-lectivos/${editingYearId}/`, newYear);
-                alert("Ano Lectivo atualizado com sucesso!");
+                const response = await api.patch(`anos-lectivos/${editingYearId}/`, newYear);
+                if (response.data.stats) {
+                    showTransitionStats(response.data.stats);
+                } else {
+                    alert("Ano Lectivo atualizado com sucesso!");
+                }
                 setIsEditingYear(false);
                 setEditingYearId(null);
             } else {
@@ -584,9 +612,14 @@ const Configuracoes = () => {
         }
 
         try {
-            await api.patch(`anos-lectivos/${id}/`, { activo: true });
+            const response = await api.patch(`anos-lectivos/${id}/`, { activo: true });
             fetchAcademicYears(); // Refresh to see updates
-            alert("Ano lectivo reaberto com sucesso!");
+            
+            if (response.data.stats) {
+                showTransitionStats(response.data.stats);
+            } else {
+                alert("Ano lectivo reaberto com sucesso!");
+            }
         } catch (error) {
             console.error("Erro ao activar ano:", error);
             const msg = parseApiError(error, "Erro ao mudar status do ano.");
@@ -601,8 +634,11 @@ const Configuracoes = () => {
 
         try {
             const response = await api.post(`anos-lectivos/${id}/encerrar/`);
-            const count = response.data.matriculas_atualizadas;
-            alert(`Ano Lectivo encerrado com sucesso.\n\n${count !== undefined ? `${count} matrículas foram marcadas como CONCLUÍDAS.` : ''}`);
+            if (response.data.stats) {
+                showTransitionStats(response.data.stats);
+            } else {
+                alert(`Ano Lectivo encerrado com sucesso.`);
+            }
             fetchAcademicYears();
         } catch (error) {
             console.error("Erro ao encerrar ano:", error);

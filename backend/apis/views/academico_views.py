@@ -52,66 +52,47 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
         if ano_lectivo.status == 'Encerrado':
             return Response({"detail": "O ano lectivo já está encerrado."}, status=400)
         
-        # 1. Update active status
+        # O save() do modelo trata toda a lógica de encerramento
         ano_lectivo.status = 'Encerrado'
         ano_lectivo.activo = False
         ano_lectivo.save()
         
-        # 2. Bulk update matriculas e Turmas to 'Concluida'
-        from apis.models import Matricula, Turma
-        
-        updated_matriculas = Matricula.objects.filter(
-            ano_lectivo=ano_lectivo,
-            status__in=['Ativa', 'Confirmada']
-        ).update(status='Concluida')
-        
-        updated_turmas = Turma.objects.filter(
-            ano_lectivo=ano_lectivo, 
-            status='Ativa'
-        ).update(status='Concluida')
-        
         return Response({
             "detail": f"Ano lectivo {ano_lectivo.nome} encerrado com sucesso.",
-            "matriculas_atualizadas": updated_matriculas,
-            "turmas_encerradas": updated_turmas
+            "stats": getattr(ano_lectivo, '_update_stats', None)
         }, status=200)
 
-    def perform_update(self, serializer):
-        # Check if reopening (setting status='Activo' or activo=True)
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Validar reabertura (apenas Admin)
         is_reopening = (
-            ('status' in serializer.validated_data and serializer.validated_data['status'] == 'Activo') or
-            ('activo' in serializer.validated_data and serializer.validated_data['activo'] is True)
+            ('status' in request.data and request.data['status'] == 'Activo' and instance.status == 'Encerrado') or
+            ('activo' in request.data and request.data['activo'] is True and not instance.activo)
         )
         
         if is_reopening:
-             user = self.request.user
+             user = request.user
              is_admin = user.is_superuser or (
                  hasattr(user, 'profile') and 
                  user.profile.papel and 
                  any(role in user.profile.papel.lower() for role in ['admin', 'diretor'])
              )
-             
              if not is_admin:
                   from rest_framework.exceptions import PermissionDenied
                   raise PermissionDenied("Apenas administradores podem reabrir um ano lectivo.")
 
-             # Reabertura do Ano Lectivo: Reverter matrículas 'Concluida' para 'Ativa'
-             instance = serializer.instance
-             if instance and instance.status != 'Activo':
-                 from apis.models import Matricula
-                 updated_count = Matricula.objects.filter(
-                    ano_lectivo=instance,
-                    status='Concluida'
-                 ).update(status='Ativa')
-                 
-                 from apis.models import Turma
-                 updated_turmas = Turma.objects.filter(
-                    ano_lectivo=instance, 
-                    status='Concluida'
-                 ).update(status='Ativa')
-                 
-                 print(f"Ano Lectivo {instance.nome} reaberto: {updated_count} matrículas e {updated_turmas} turmas revertidas para 'Ativa'.")
-        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response({
+            **serializer.data,
+            "stats": getattr(instance, '_update_stats', None)
+        })
+
+    def perform_update(self, serializer):
         serializer.save()
 
     @action(detail=True, methods=['get'])

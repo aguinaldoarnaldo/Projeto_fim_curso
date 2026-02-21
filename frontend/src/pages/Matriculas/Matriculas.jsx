@@ -1126,7 +1126,6 @@ const Matriculas = () => {
                                         { value: 'Confirmada', label: 'Confirmada', icon: ShieldCheck, color: '#0369a1' },
                                         { value: 'Concluida', label: 'Concluída', icon: GraduationCap, color: '#1e40af' },
                                         { value: 'Transferido', label: 'Transferido', icon: ArrowRightLeft, color: '#c2410c' },
-                                        { value: 'Suspensa', label: 'Suspensa', icon: Lock, color: '#b91c1c' },
                                         { value: 'Desistente', label: 'Desistente', icon: X, color: '#64748b' }
                                     ].map((opt) => (
                                         <button
