@@ -186,9 +186,9 @@ class AuthService:
             
             HistoricoLogin.objects.create(**historico_data)
             
-            # Atualiza status online
-            user.is_online = True
-            user.save()
+            # Atualiza status online usando update() para bypassar validações do modelo
+            # (evita bloquear alunos com estado final ao fazer login)
+            user.__class__.objects.filter(pk=user.pk).update(is_online=True)
             
         except Exception as e:
             print(f"Erro ao registrar log de login: {e}")
@@ -429,8 +429,9 @@ class AuthService:
              return
             
         if user:
-            user.is_online = False
-            user.save()
+            # usa update() direto para bypassar validações do modelo
+            # (evita bloquear alunos com estado final ao fazer logout)
+            user.__class__.objects.filter(pk=user.pk).update(is_online=False)
             
             # Registrar saída no histórico
             historico = None
@@ -472,13 +473,15 @@ class AuthService:
             raise ValueError('Usuário não encontrado.')
             
         # Atualizar senha
-        user.senha_hash = new_password
+        from django.contrib.auth.hashers import make_password as _make_password
+        hashed_password = _make_password(new_password)
         
         # Se tiver Auth User
         if hasattr(user, 'user') and user.user:
              user.user.set_password(new_password)
              user.user.save()
         
-        # Se for modelo custom, o save deve tratar o hash se não começar com pbkdf2
-        user.save()
+        # Usa update() direto para bypassar validações do modelo
+        # (necessário para alunos com estado final poderem recuperar senha)
+        user.__class__.objects.filter(pk=user.pk).update(senha_hash=hashed_password)
         return True
