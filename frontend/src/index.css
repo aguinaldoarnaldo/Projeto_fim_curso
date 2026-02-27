@@ -2,14 +2,25 @@
 @import './GlobalMobileFixes.css';
 
 :root {
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  line-height: 1.4;
-  font-weight: 400;
+  --font-heading: 'Outfit', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  
+  font-family: var(--font-body);
+  line-height: 1.5;
+  font-weight: 450;
   color: #0f172a;
+  
+  /* High-end rendering */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  
+  /* Inter-specific refinements */
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  letter-spacing: -0.011em;
+  
   scroll-behavior: smooth;
 }
 

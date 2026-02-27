@@ -90,7 +90,8 @@ const NovaMatricula = () => {
         novo_aluno_foto: null,
         doc_certificado: null,
         tipo: 'Novo',
-        matricula_id: ''
+        matricula_id: '',
+        numero_matricula: ''
     });
 
     const [editStepChoice, setEditStepChoice] = useState(null); // 'pessoais', 'academicos', 'documentos'
@@ -252,6 +253,20 @@ const NovaMatricula = () => {
                     const res = await api.get(`alunos/${aluno_id_param}/`);
                     const s = res.data;
                     
+                    // Logic for next class if it's a confirmation
+                    let suggestedClasseId = s.id_turma?.id_classe?.id_classe || s.id_turma?.id_classe || '';
+                    if (tipo_param === 'Confirmacao') {
+                        // Find current class index and suggest next one
+                        const currentClasseName = s.id_turma?.id_classe?.nome_classe || '';
+                        const match = currentClasseName.match(/(\d+)/);
+                        if (match) {
+                            const currentLevel = parseInt(match[1]);
+                            const nextLevel = currentLevel + 1;
+                            const nextClasse = classesDisponiveis.find(c => c.nome_classe.includes(String(nextLevel)));
+                            if (nextClasse) suggestedClasseId = nextClasse.id_classe;
+                        }
+                    }
+
                     setFormData(prev => ({
                         ...prev,
                         candidato_id: '',
@@ -260,6 +275,7 @@ const NovaMatricula = () => {
                         data_nascimento: s.data_nascimento,
                         genero: s.genero === 'M' || s.genero === 'Masculino' ? 'M' : 'F',
                         numero_bi: s.numero_bi,
+                        numero_matricula: s.numero_matricula || '',
                         email: s.email || '',
                         telefone: s.telefone || '',
                         provincia: s.provincia_residencia || '',
@@ -267,6 +283,7 @@ const NovaMatricula = () => {
                         bairro: s.bairro_residencia || '',
                         numero_casa: s.numero_casa || '',
                         curso: s.id_turma?.id_curso?.nome_curso || '',
+                        classe: suggestedClasseId,
                         turno: s.id_turma?.id_periodo?.periodo || '',
                         tipo: tipo_param || 'Confirmacao',
                         novo_aluno_foto: s.img_path,
@@ -277,7 +294,7 @@ const NovaMatricula = () => {
                     }));
                     
                     if (s.id_turma?.id_curso?.nome_curso) {
-                        fetchTurmas(s.id_turma.id_curso.nome_curso, s.id_turma.id_periodo?.periodo);
+                        fetchTurmas(s.id_turma.id_curso.nome_curso, s.id_turma.id_periodo?.periodo, suggestedClasseId);
                     }
                 } catch (err) {
                     console.error("Erro ao carregar dados do aluno:", err);
@@ -285,7 +302,7 @@ const NovaMatricula = () => {
             }
         };
         fetchStudentInfo();
-    }, [aluno_id_param, tipo_param]);
+    }, [aluno_id_param, tipo_param, classesDisponiveis]);
 
     const fetchTurmas = async (cursoFilter = null, turnoFilter = null, classeFilter = null) => {
         try {
@@ -483,7 +500,7 @@ const NovaMatricula = () => {
         // Se for edição e ainda não escolheu o que editar, mostra o menu de escolha
         if (isEditing && !editStepChoice && step === 1) {
             return (
-                <div className="table-card" style={{ padding: '40px', textAlign: 'center', animation: 'fadeIn 0.4s' }}>
+                <div className="table-card" style={{ padding: '20px', textAlign: 'center', animation: 'fadeIn 0.4s' }}>
                     <h2 style={{ color: '#1e293b', marginBottom: '10px' }}>O que deseja editar?</h2>
                     <p style={{ color: '#64748b', marginBottom: '30px' }}>Selecione a secção que pretende atualizar para {formData.nome_completo}</p>
                     
@@ -558,9 +575,8 @@ const NovaMatricula = () => {
 
         switch (step) {
             case 1:
-
                 return (
-                    <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
+                    <div className="table-card" style={{ padding: '20px 25px', animation: 'fadeIn 0.3s' }}>
                         <h3 className="form-title">
                             <User size={22} /> Dados Pessoais do Aluno 
                             {isReadOnly && <span className="badge-provenience">Proveniente de Candidatura</span>}
@@ -574,7 +590,7 @@ const NovaMatricula = () => {
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', 
                                     overflow: 'hidden', border: '3px solid white', 
                                     boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
-                                    margin: '0 auto 15px',
+                                    margin: '0 auto 10px',
                                     position: 'relative'
                                 }}>
                                     {imagePreview ? (
@@ -607,7 +623,7 @@ const NovaMatricula = () => {
                                     {imagePreview ? 'Trocar Foto' : 'Anexar Foto'}
                                     <input type="file" name="novo_aluno_foto" onChange={handleFileChange} accept="image/*" style={{display:'none'}} />
                                 </label>
-                                <p style={{fontSize:'10px', color:'#64748b', marginTop:'8px', fontWeight: '500'}}>Fundo Branco, 3x4</p>
+                                <p style={{fontSize:'10px', color:'#64748b', marginTop:'5px', fontWeight: '500'}}>Fundo Branco, 3x4</p>
                             </div>
 
                             {/* Coluna dos Campos (Direita) - Ocupa o resto */}
@@ -625,6 +641,19 @@ const NovaMatricula = () => {
                                         placeholder="Nome do Aluno"
                                     />
                                 </div>
+
+                                {formData.numero_matricula && (
+                                    <div>
+                                        <label className="field-label">Nº de Matrícula (Permanente)</label>
+                                        <input 
+                                            type="text" 
+                                            value={formData.numero_matricula}
+                                            readOnly
+                                            className="field-input read-only"
+                                            style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}
+                                        />
+                                    </div>
+                                )}
 
                                 <div>
                                     <label className="field-label">Data de Nascimento</label>
@@ -727,7 +756,7 @@ const NovaMatricula = () => {
                                 </div>
 
                                 {/* Divisória Visual */}
-                                <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', margin: '10px 0' }}></div>
+                                <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', margin: '5px 0' }}></div>
 
                                 <div>
                                     <label className="field-label">Província</label>
@@ -782,8 +811,8 @@ const NovaMatricula = () => {
                         </div>
 
                         {/* Guardian Section - Compacta */}
-                         <div style={{ marginTop: '25px', background: '#f8fafc', padding: '15px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', marginBottom: '10px' }}>
+                        <div style={{ marginTop: '12px', background: '#f8fafc', padding: '10px 15px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>
                                 <User size={16} style={{ display: 'inline', marginRight: '5px' }} /> Encarregado de Educação
                             </h4>
                              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr', gap: '10px' }}>
@@ -856,7 +885,7 @@ const NovaMatricula = () => {
                 const turmaSelect = turmasDisponiveis.find(t => t.id_turma == formData.turma_id);
 
                 return (
-                    <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
+                    <div className="table-card" style={{ padding: '20px 25px', animation: 'fadeIn 0.3s' }}>
                         <h3 className="form-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span><BookOpen size={22} /> Dados Académicos & Turma</span>
                             {!isStrictlyReadOnly && (
@@ -1141,7 +1170,7 @@ const NovaMatricula = () => {
                 const turmaSelecionada = turmasDisponiveis.find(t => t.id_turma == formData.turma_id);
 
                 return (
-                    <div className="table-card" style={{ padding: '30px', animation: 'fadeIn 0.3s' }}>
+                    <div className="table-card" style={{ padding: '20px 25px', animation: 'fadeIn 0.3s' }}>
                         <h3 className="form-title">
                             <FileText size={22} /> Revisão e Documentação
                         </h3>
@@ -1299,7 +1328,7 @@ const NovaMatricula = () => {
     };
 
     return (
-        <div className="page-container">
+        <div className="page-container nova-matricula-container">
             <header className="page-header matriculas-header-content">
                 <div>
                     <button

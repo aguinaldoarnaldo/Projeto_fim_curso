@@ -7,7 +7,8 @@ from .usuario_views import (
 from .aluno_views import AlunoViewSet, AlunoEncarregadoViewSet
 from .academico_views import (
     SalaViewSet, ClasseViewSet, DepartamentoViewSet, SeccaoViewSet,
-    AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet
+    AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet,
+    VagaCursoViewSet
 )
 
 from .avaliacao_views import (
@@ -17,6 +18,7 @@ from .avaliacao_views import (
 from .financeiro_views import FaturaViewSet, PagamentoViewSet
 from .candidatura_views import CandidaturaViewSet, ListaEsperaViewSet
 from .relatorio_views import RelatorioViewSet
+from .auditoria_views import AuditoriaViewSet
 
 __all__ = [
     # Auth
@@ -29,6 +31,7 @@ __all__ = [
     # Acadêmico
     'SalaViewSet', 'ClasseViewSet', 'DepartamentoViewSet', 'SeccaoViewSet',
     'AreaFormacaoViewSet', 'CursoViewSet', 'PeriodoViewSet', 'TurmaViewSet', 'AnoLectivoViewSet',
+    'VagaCursoViewSet',
 
     # Avaliações
     'TipoDisciplinaViewSet', 'DisciplinaViewSet', 'DisciplinaCursoViewSet',
@@ -37,4 +40,5 @@ __all__ = [
     'FaturaViewSet', 'PagamentoViewSet',
     'CandidaturaViewSet', 'ListaEsperaViewSet',
     'RelatorioViewSet',
+    'AuditoriaViewSet',
 ]

@@ -18,8 +18,28 @@ const Ajuda = () => {
             answer: "Navegue até a página 'Relatórios' no menu lateral. Selecione o tipo de relatório 'Financeiro', defina o período desejado e clique em 'Gerar'."
         },
         {
+            question: "Como exportar a ficha de matrícula em PDF?",
+            answer: "Na lista de 'Matrículas', clique no ícone de impressora ou no botão de acções ao lado do nome do aluno e selecione 'Imprimir Ficha'. O sistema gerará automaticamente o PDF com os dados do aluno."
+        },
+        {
+            question: "Onde posso ver a lista de candidatos pendentes?",
+            answer: "Aceda ao menu 'Candidaturas' ou 'Inscritos'. Lá encontrará todos os candidatos que realizaram a pré-inscrição online e que aguardam validação de documentos ou confirmação de pagamento."
+        },
+        {
+            question: "Como configurar as vagas por curso?",
+            answer: "Vá ao menu 'Vagas por Curso'. Selecione o ano lectivo desejado e defina o número de vagas totais para cada curso disponível. O sistema calculará automaticamente as vagas preenchidas e disponíveis."
+        },
+        {
+            question: "Como alterar o estado acadêmico de um aluno?",
+            answer: "Na página 'Alunos', selecione o aluno desejado, clique em 'Editar' e altere o campo 'Estado'. Pode marcar o aluno como 'Activo', 'Trancado', 'Transferido' ou 'Concluído'."
+        },
+        {
+            question: "O que é o RUPE e como confirmar o pagamento?",
+            answer: "O RUPE (Referência Única de Pagamento ao Estado) é gerado no momento da inscrição. Após o candidato pagar, o administrador pode confirmar o pagamento na ficha do candidato para validar a inscrição."
+        },
+        {
             question: "O sistema está lento, o que devo fazer?",
-            answer: "Verifique sua conexão com a internet. Se o problema persistir, entre em contato com o suporte técnico através dos canais abaixo."
+            answer: "Verifique sua conexão com a internet. Como o sistema é uma aplicação web moderna, uma conexão estável é recomendada. Se o problema persistir em vários dispositivos, contacte o suporte."
         }
     ];
 

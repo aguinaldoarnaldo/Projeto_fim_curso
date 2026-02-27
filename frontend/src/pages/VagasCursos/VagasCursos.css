@@ -1,0 +1,344 @@
+.vagas-count-badge {
+    background: #f1f5f9;
+    color: #1e293b;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    border: 1px solid #e2e8f0;
+}
+
+.filled-count {
+    background: #fefce8;
+    color: #854d0e;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    border: 1px solid #fef08a;
+}
+
+.available-status-badge {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    border: 1px solid transparent;
+}
+
+.available-status-badge.ok {
+    background: #f0fdf4;
+    color: #166534;
+    border-color: #dcfce7;
+}
+
+.available-status-badge.low {
+    background: #fff1f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+
+.year-badge {
+    background: #eff6ff;
+    color: #2563eb;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #dbeafe;
+}
+
+.vaga-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.vaga-icon {
+    width: 32px;
+    height: 32px;
+    background: #f8fafc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    border: 1px solid #f1f5f9;
+}
+
+.vaga-curso-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.btn-edit-vaga {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-edit-vaga:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.year-selector-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    color: #64748b;
+}
+
+.year-select-v2 {
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    cursor: pointer;
+}
+
+.add-vaga-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    background: #f0f9ff;
+    border: 1px solid #e0f2fe;
+    border-radius: 10px;
+    color: #0369a1;
+}
+
+.add-select {
+    border: none;
+    background: transparent;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0369a1;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Modal Styling */
+.vaga-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.vaga-modal-card {
+    background: white;
+    width: 480px;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+.modal-header-v2 {
+    padding: 30px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-header-v2 h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #1e293b;
+}
+
+.modal-header-v2 p {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.modal-icon-badge {
+    width: 54px;
+    height: 54px;
+    background: white;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
+}
+
+.modal-body-v2 {
+    padding: 30px;
+}
+
+.modal-body-v2 label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #475569;
+    font-size: 15px;
+}
+
+.input-number-wrapper input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid #f1f5f9;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.input-number-wrapper input:focus {
+    border-color: #2563eb;
+    background: #f8fbff;
+}
+
+.input-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.modal-actions-v2 {
+    padding: 20px 30px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-cancel-v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #64748b;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-save-v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #0f172a;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-save-v2:hover {
+    background: #1e293b;
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    gap: 16px;
+    color: #64748b;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f1f5f9;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spinner 0.8s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.status-vaga-badge {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-vaga-badge.aberto {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.status-vaga-badge.fechado {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.modal-select-v2 {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 2px solid #f1f5f9;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.modal-select-v2:focus {
+    border-color: #2563eb;
+    background: #f8fbff;
+}

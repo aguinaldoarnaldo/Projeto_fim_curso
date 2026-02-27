@@ -323,12 +323,11 @@ const EditCandidateModal = ({
                                   onChange={(e) => setFormData({...formData, status: e.target.value})}
                                   className="evaluation-input-small"
                                >
-                                  <option value="Pendente">Pendente</option>
-                                  <option value="Em Análise">Em Análise</option>
-                                  <option value="Pago">Pago (Aguardando Exame)</option>
-                                  <option value="Aprovado">Aprovado</option>
-                                  <option value="Não Admitido">Não Admitido</option>
-                                  <option value="Matriculado">Matriculado</option>
+                                  <option value="INSCRITO">INSCRITO</option>
+                                  <option value="AUSENTE">AUSENTE</option>
+                                  <option value="CLASSIFICADO">CLASSIFICADO</option>
+                                  <option value="NAO_CLASSIFICADO">NAO_CLASSIFICADO</option>
+                                  <option value="MATRICULADO">MATRICULADO</option>
                                </select>
                             </div>
                         </div>

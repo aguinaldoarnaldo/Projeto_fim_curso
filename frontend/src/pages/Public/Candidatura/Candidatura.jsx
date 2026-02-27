@@ -15,30 +15,34 @@ const api = axios.create({
 
 import { useConfig } from '../../../context/ConfigContext';
 
-const CountdownTimer = ({ targetDate }) => {
+const CountdownTimer = ({ targetDate, onExpire }) => {
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     function calculateTimeLeft() {
         if (!targetDate) return null;
         const difference = +new Date(targetDate) - +new Date();
-        let timeLeft = {};
-
-        if (difference > 0) {
-            timeLeft = {
-                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-                minutes: Math.floor((difference / 1000 / 60) % 60),
-                seconds: Math.floor((difference / 1000) % 60),
-            };
-        } else {
+        
+        if (difference <= 0) {
             return { expired: true };
         }
-        return timeLeft;
+
+        return {
+            days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+            minutes: Math.floor((difference / 1000 / 60) % 60),
+            seconds: Math.floor((difference / 1000) % 60),
+        };
     }
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setTimeLeft(calculateTimeLeft());
+            const nextTime = calculateTimeLeft();
+            setTimeLeft(nextTime);
+            
+            if (nextTime?.expired && onExpire) {
+                onExpire();
+                clearInterval(timer);
+            }
         }, 1000);
         return () => clearInterval(timer);
     }, [targetDate]);
@@ -78,6 +82,7 @@ const Candidatura = () => {
     // Config State (Global)
     const { config, fetchConfig: refreshConfig } = useConfig();
     const [checkingConfig, setCheckingConfig] = useState(false);
+    const [isExpiredLocal, setIsExpiredLocal] = useState(false);
 
     const [formData, setFormData] = useState({
         nome_completo: '',
@@ -344,19 +349,52 @@ const Candidatura = () => {
 
             <div className="form-section">
                 <div className="section-title"><GraduationCap size={24} /> Opções de Curso</div>
+                
+                {/* Vacancy Highlight Panel */}
+                <div className="vacancy-status-container">
+                    {cursosDisponiveis.map(c => {
+                        const isFull = c.vagas_totais > 0 && c.vagas_disponiveis <= 0;
+                        const isLow = c.vagas_totais > 0 && c.vagas_disponiveis <= 5;
+                        const badgeClass = isFull ? 'full' : isLow ? 'warning' : 'available';
+                        
+                        return (
+                            <div key={c.id_curso} className="vacancy-status-item">
+                                <span className="vs-name">{c.nome_curso}</span>
+                                <span className={`vs-badge ${badgeClass}`}>
+                                    {isFull ? 'ESGOTADO' : `${c.vagas_disponiveis} vagas`}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+
                 <div className="form-grid">
                     <div className="form-control">
                         <label>1ª Opção</label>
                         <select name="curso_primeira_opcao" value={formData.curso_primeira_opcao} onChange={handleChange} required>
                             <option value="">Selecione</option>
-                            {cursosDisponiveis.map(c => <option key={c.id_curso} value={c.id_curso}>{c.nome_curso}</option>)}
+                            {cursosDisponiveis.map(c => {
+                                const isFull = c.vagas_totais > 0 && c.vagas_disponiveis <= 0;
+                                return (
+                                    <option key={c.id_curso} value={c.id_curso} disabled={isFull}>
+                                        {c.nome_curso} {c.vagas_totais > 0 ? `(${c.vagas_disponiveis}/${c.vagas_totais} vagas)` : '(Vagas a definir)'} {isFull ? '- ESGOTADO' : ''}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     <div className="form-control">
                         <label>2ª Opção (Opcional)</label>
                         <select name="curso_segunda_opcao" value={formData.curso_segunda_opcao} onChange={handleChange}>
                             <option value="">Nenhuma</option>
-                            {cursosDisponiveis.map(c => <option key={c.id_curso} value={c.id_curso}>{c.nome_curso}</option>)}
+                            {cursosDisponiveis.map(c => {
+                                const isFull = c.vagas_totais > 0 && c.vagas_disponiveis <= 0;
+                                return (
+                                    <option key={c.id_curso} value={c.id_curso} disabled={isFull}>
+                                        {c.nome_curso} {c.vagas_totais > 0 ? `(${c.vagas_disponiveis}/${c.vagas_totais} vagas)` : '(Vagas a definir)'} {isFull ? '- ESGOTADO' : ''}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     {/* 
@@ -580,7 +618,7 @@ const Candidatura = () => {
                                 textAlign: 'center',
                                 border: '2px dashed #cbd5e1'
                             }}>
-                                {rupeData.referencia}
+                                {rupeData.codigo_rup}
                             </div>
                         </div>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '24px'}}>
@@ -589,9 +627,9 @@ const Candidatura = () => {
                         </div>
                     </div>
                     <div style={{background: '#f8fafc', padding: '16px', textAlign: 'center', borderTop: '1px solid #e2e8f0'}}>
-                        <div style={{display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#d97706', fontWeight: '600', background: '#fffbeb', padding: '6px 12px', borderRadius: '20px'}}>
-                            <div style={{width: '8px', height: '8px', background: '#d97706', borderRadius: '50%'}}></div>
-                            Aguardando Pagamento
+                        <div style={{display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: rupeData.status_rup === 'PAGO' ? '#16a34a' : '#d97706', fontWeight: '600', background: rupeData.status_rup === 'PAGO' ? '#f0fdf4' : '#fffbeb', padding: '6px 12px', borderRadius: '20px'}}>
+                            <div style={{width: '8px', height: '8px', background: rupeData.status_rup === 'PAGO' ? '#16a34a' : '#d97706', borderRadius: '50%'}}></div>
+                            {rupeData.status_rup}
                         </div>
                     </div>
                 </div>
@@ -706,7 +744,7 @@ const Candidatura = () => {
                         <div>
                             <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>DATA & HORA</span>
                             <strong style={{fontSize: '16px', color: '#334155'}}>
-                                {new Date() < new Date(config.data_fim_candidatura) 
+                                {new Date() < new Date(config.proximo_fechamento) 
                                     ? "Disponível em breve" 
                                     : (createdCandidate?.exame_data ? new Date(createdCandidate.exame_data).toLocaleString() : "A definir")}
                             </strong>
@@ -714,7 +752,7 @@ const Candidatura = () => {
                         <div>
                             <span style={{fontSize: '13px', color: '#94a3b8', display: 'block', marginBottom: '4px'}}>LOCAL</span>
                             <strong style={{fontSize: '16px', color: '#334155'}}>
-                                {new Date() < new Date(config.data_fim_candidatura) 
+                                {new Date() < new Date(config.proximo_fechamento) 
                                     ? "Consultar no portal" 
                                     : (createdCandidate?.exame_sala || "A definir")}
                             </strong>
@@ -876,7 +914,11 @@ const Candidatura = () => {
                      <div className="review-grid" style={{background: 'white', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9'}}>
                         <div>
                             <strong>Estado da Candidatura</strong>
-                            <span className={`status-badge status-${consultResult.status === 'Pendente' ? 'pending' : consultResult.status === 'Aprovado' ? 'approved' : 'rejected'}`} style={{display: 'inline-block', marginTop: '8px'}}>
+                            <span className={`status-badge ${
+                                consultResult.status === 'INSCRITO' ? 'status-pending' : 
+                                consultResult.status === 'CLASSIFICADO' || consultResult.status === 'MATRICULADO' ? 'status-approved' : 
+                                consultResult.status === 'AUSENTE' ? 'status-analysis' : 'status-rejected'
+                            }`} style={{display: 'inline-block', marginTop: '8px'}}>
                                 {consultResult.status}
                             </span>
                         </div>
@@ -894,12 +936,12 @@ const Candidatura = () => {
                                 <p style={{fontWeight: '800', fontSize: '18px', margin: '8px 0 0 0', color: '#1e3a8a'}}>{consultResult.nota_exame} Val.</p>
                             </div>
                         )}
-                        {consultResult.status === 'Agendado' && consultResult.exame_data && (
+                        {consultResult.status === 'INSCRITO' && consultResult.exame_data && (
                             <div style={{gridColumn: 'span 2', background: '#eff6ff', padding: '16px', borderRadius: '16px', border: '1px solid #dbeafe', marginTop: '16px'}}>
                                 <strong>📅 Agendamento de Exame</strong>
-                                {new Date() < new Date(config.data_fim_candidatura) ? (
+                                {new Date() < new Date(config.proximo_fechamento) ? (
                                     <p style={{fontSize: '14px', color: '#1e40af', marginTop: '12px'}}>
-                                        A data e sala do exame serão publicadas após o encerramento das inscrições (<strong>{new Date(config.data_fim_candidatura).toLocaleDateString()}</strong>).
+                                        A data e sala do exame serão publicadas após o encerramento das inscrições (<strong>{new Date(config.proximo_fechamento).toLocaleDateString()}</strong>).
                                     </p>
                                 ) : (
                                     <>
@@ -962,7 +1004,7 @@ const Candidatura = () => {
                                             alignItems: 'center'
                                         }}>
                                             <div>
-                                                <div style={{fontSize: '14px', fontWeight: '700', color: '#1e293b'}}>Ref: {rupe.referencia}</div>
+                                                <div style={{fontSize: '14px', fontWeight: '700', color: '#1e293b'}}>Ref: {rupe.codigo_rup}</div>
                                                 <div style={{fontSize: '12px', color: '#94a3b8'}}>Gerado em: {new Date(rupe.criado_em).toLocaleString()}</div>
                                             </div>
                                             <div style={{textAlign: 'right'}}>
@@ -972,10 +1014,10 @@ const Candidatura = () => {
                                                     padding: '4px 8px',
                                                     borderRadius: '6px',
                                                     textTransform: 'uppercase',
-                                                    background: rupe.status === 'Pago' ? '#dcfce7' : (rupe.is_expired ? '#fee2e2' : '#fff7ed'),
-                                                    color: rupe.status === 'Pago' ? '#166534' : (rupe.is_expired ? '#b91c1c' : '#9a3412')
+                                                    background: rupe.status_rup === 'PAGO' ? '#dcfce7' : (rupe.is_expired ? '#fee2e2' : '#fff7ed'),
+                                                    color: rupe.status_rup === 'PAGO' ? '#166534' : (rupe.is_expired ? '#b91c1c' : '#9a3412')
                                                 }}>
-                                                    {rupe.status === 'Pago' ? 'Pago' : (rupe.is_expired ? 'Expirado' : 'Pendente')}
+                                                    {rupe.status_rup}
                                                 </span>
                                                 <div style={{fontSize: '14px', fontWeight: '700', color: '#1e293b', marginTop: '4px'}}>
                                                     {parseFloat(rupe.valor).toLocaleString()} Kz
@@ -985,7 +1027,7 @@ const Candidatura = () => {
                                     ))}
                                 </div>
 
-                                {consultResult.rupe_historico[0].status === 'Pendente' && consultResult.rupe_historico[0].is_expired && consultResult.rupe_historico.length < 2 && (
+                                {consultResult.rupe_historico[0].status_rup === 'PENDENTE' && consultResult.rupe_historico[0].is_expired && consultResult.rupe_historico.length < 2 && (
                                     <div style={{marginTop: '16px', padding: '16px', background: '#fff7ed', borderRadius: '12px', border: '1px solid #fed7aa'}}>
                                         <p style={{fontSize: '14px', color: '#9a3412', margin: '0 0 12px 0'}}>
                                             A sua referência RUPE <strong>expirou</strong>. Pode gerar uma nova (limite de 2).
@@ -1045,10 +1087,16 @@ const Candidatura = () => {
                     <div className="hero-logo">Sistema de Gestão de matriculas IPM3050</div>
                     <h1 className="hero-title">{config.nome_escola || "Portal de Admissão 2026"}</h1>
                     <p className="hero-description">Inscreva-se agora para garantir o seu futuro. Processo 100% digital, rápido e seguro.</p>
-                    {config.data_fim_candidatura && (
+                    {config.proximo_fechamento && (
                         <div style={{marginTop: '20px'}}>
                             <p style={{color: 'white', opacity: 0.9, fontSize: '14px', marginBottom: '8px'}}>As candidaturas terminam em:</p>
-                            <CountdownTimer targetDate={config.data_fim_candidatura} />
+                            <CountdownTimer 
+                                targetDate={config.proximo_fechamento} 
+                                onExpire={() => {
+                                    setIsExpiredLocal(true);
+                                    refreshConfig();
+                                }}
+                            />
                         </div>
                     )}
                     
@@ -1081,7 +1129,7 @@ const Candidatura = () => {
                         
                         {checkingConfig ? (
                              <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>A verificar disponibilidade...</div>
-                        ) : !config.candidaturas_abertas ? (
+                        ) : (!config.candidaturas_abertas || isExpiredLocal) ? (
                              <div style={{textAlign: 'center', padding: '60px 20px', animation: 'fadeIn 0.8s ease-out'}}>
                                  <div style={{
                                      background: 'rgba(239, 68, 68, 0.1)', 

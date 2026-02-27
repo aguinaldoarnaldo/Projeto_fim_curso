@@ -42,6 +42,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
     sala_numero = serializers.SerializerMethodField()
     periodo_nome = serializers.SerializerMethodField()
     id_classe = serializers.SerializerMethodField()
+    matriculas_detalhes = serializers.SerializerMethodField()
 
     class Meta:
         model = Matricula
@@ -62,7 +63,8 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'sala_numero',
             'periodo_nome',
             'data_matricula', 'ativo',
-            'tipo', 'status', 'doc_bi', 'doc_certificado'
+            'tipo', 'status', 'doc_bi', 'doc_certificado',
+            'matriculas_detalhes'
         ]
         read_only_fields = ['id_matricula', 'data_matricula']
         extra_kwargs = {
@@ -310,3 +312,11 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
     def get_id_classe(self, obj):
         return obj.id_turma.id_classe.id_classe if obj.id_turma and obj.id_turma.id_classe else None
+
+    def get_matriculas_detalhes(self, obj):
+        if not obj.id_aluno:
+            return []
+        # Import dynamic serializer logic to avoid circularity if any
+        from .aluno_serializers import MatriculaHistorySerializer
+        matriculas = Matricula.objects.filter(id_aluno=obj.id_aluno).order_by('-ano_lectivo__nome', '-data_matricula')
+        return MatriculaHistorySerializer(matriculas, many=True).data

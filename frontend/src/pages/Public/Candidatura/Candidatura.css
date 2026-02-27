@@ -1,5 +1,5 @@
 /* Candidatura.css - V2 Ultra Premium Public Portal */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+/* Google Fonts removido para suporte offline/local */
 
 :root {
     --p-primary: #2563eb;
@@ -16,7 +16,13 @@
 
 body {
     margin: 0;
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-body);
+    font-feature-settings: 'cv11', 'ss01';
+}
+
+h1, h2, h3, h4, .hero-title, .card-title {
+    font-family: var(--font-heading);
+    letter-spacing: -0.03em;
 }
 
 .candidatura-page {
@@ -468,3 +474,57 @@ input[type="file"]::file-selector-button {
         width: 30px;
     }
 }
+
+/* Vacancy Highlighting */
+.vacancy-status-container {
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.vacancy-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.vs-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.vs-badge {
+    font-size: 13px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+.vs-badge.available {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.vs-badge.warning {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.vs-badge.full {
+    background: #fef2f2;
+    color: #dc2626;
+}
+

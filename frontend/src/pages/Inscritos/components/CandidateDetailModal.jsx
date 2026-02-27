@@ -61,11 +61,13 @@ const CandidateDetailModal = ({
                   
                   <div className="profile-status" style={{
                       backgroundColor: 
-                        candidate.status === 'Aprovado' ? '#dcfce7' : 
-                        candidate.status === 'Pendente' ? '#fef9c3' : '#f1f5f9',
+                        candidate.status === 'CLASSIFICADO' || candidate.status === 'MATRICULADO' ? '#dcfce7' : 
+                        candidate.status === 'INSCRITO' ? '#fef9c3' : 
+                        candidate.status === 'AUSENTE' ? '#f1f5f9' : '#fee2e2',
                       color:
-                        candidate.status === 'Aprovado' ? '#166534' : 
-                        candidate.status === 'Pendente' ? '#854d0e' : '#475569',
+                        candidate.status === 'CLASSIFICADO' || candidate.status === 'MATRICULADO' ? '#166534' : 
+                        candidate.status === 'INSCRITO' ? '#854d0e' : 
+                        candidate.status === 'AUSENTE' ? '#475569' : '#991b1b',
                       border: 'none'
                   }}>
                       {candidate.status}
@@ -202,12 +204,12 @@ const CandidateDetailModal = ({
                       {candidate.rupe ? (
                         <div className="rup-container">
                           <div className="rup-header">
-                              {candidate.rupe.status === 'Pago' ? 'Pago com Sucesso! ✅' : 'Aguardando Pagamento ⏳'}
+                              {candidate.rupe.status_rup === 'PAGO' ? 'Pago com Sucesso! ✅' : 'Aguardando Pagamento ⏳'}
                           </div>
                           <div className="rup-details">
                             <div className="rup-detail-item">
                               <label>REFERÊNCIA</label>
-                              <span>{candidate.rupe.referencia}</span>
+                              <span>{candidate.rupe.codigo_rup}</span>
                             </div>
                             <div className="rup-detail-item">
                               <label>VALOR</label>
@@ -215,7 +217,7 @@ const CandidateDetailModal = ({
                             </div>
                             <div className="rup-detail-item">
                               <label>ESTADO</label>
-                              <span style={{color: candidate.rupe.status === 'Pago' ? '#166534' : '#ca8a04'}}>{candidate.rupe.status}</span>
+                              <span style={{color: candidate.rupe.status_rup === 'PAGO' ? '#166534' : '#ca8a04'}}>{candidate.rupe.status_rup}</span>
                             </div>
                           </div>
                           
@@ -225,7 +227,7 @@ const CandidateDetailModal = ({
                               </button>
                               
                               {/* Admin Button to Confirm Payment */}
-                              {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && candidate.rupe.status !== 'Pago' && (
+                              {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && candidate.rupe.status_rup !== 'PAGO' && (
                                   candidate.anoLectivoAtivo === false ? (
                                       <button className="btn-finish" disabled style={{width: 'auto', background: '#9ca3af', cursor: 'not-allowed'}}>
                                         <CheckCircle2 size={18} style={{marginRight: '8px'}}/> Pagamento Bloqueado

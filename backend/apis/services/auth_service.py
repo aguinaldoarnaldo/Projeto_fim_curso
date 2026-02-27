@@ -241,6 +241,8 @@ class AuthService:
                 'nome_completo': user.nome_completo,
                 'username': user.email,
                 'email': user.email,
+                'telefone': user.telefone,
+                'endereco': user.bairro_residencia or '',
                 'cargo': user.cargo.nome_cargo if user.cargo else None,
                 'status': 'Activo' if user.is_active else 'Inactivo',
                 'is_active': user.is_active,
@@ -327,34 +329,49 @@ class AuthService:
             raise ValueError('Tipo de usuário desconhecido.')
 
         # 2. Atualizar Senha
-        nova_senha = data.get('newPassword')
-        senha_atual = data.get('currentPassword')
+        nova_senha = data.get('newPassword') or data.get('new_password')
+        senha_atual = data.get('currentPassword') or data.get('current_password')
         
         if nova_senha:
             if not senha_atual:
                 raise ValueError('Senha atual é obrigatória para definir nova senha.')
             
-            # Verificar senha atual
+            # Verificar senha atual - Prioridade para Auth User se existir
             senha_valida = False
             if hasattr(user, 'user') and user.user:
                  senha_valida = user.user.check_password(senha_atual)
+            elif hasattr(user, 'usuario') and user.usuario and user.usuario.user:
+                 senha_valida = user.usuario.user.check_password(senha_atual)
             else:
                  senha_valida = check_password(senha_atual, user.senha_hash)
                  
             if not senha_valida:
                 raise ValueError('A senha atual está incorreta.')
                 
-            # Definir nova senha
-            user.senha_hash = nova_senha 
-            # O save() do modelo vai hashear se necessário, 
-            # mas para Auth User precisamos setar explicitamente
+            # Definir nova senha em todos os elos da cadeia
+            from django.contrib.auth.hashers import make_password
+            hashed_password = make_password(nova_senha)
+            
+            # 1. Update Django Auth User (Base de autenticação)
+            auth_user = None
             if hasattr(user, 'user') and user.user:
-                user.user.set_password(nova_senha)
-                user.user.save()
-            # Para modelos custom sem Auth User, o hash será feito no save() se não começar com pbkdf2
-            elif hasattr(user, 'senha_hash'):
-                 from django.contrib.auth.hashers import make_password
-                 user.senha_hash = make_password(nova_senha)
+                 auth_user = user.user
+            elif hasattr(user, 'usuario') and user.usuario and user.usuario.user:
+                 auth_user = user.usuario.user
+            
+            if auth_user:
+                auth_user.set_password(nova_senha)
+                auth_user.save()
+            
+            # 2. Update Perfil de Usuário do Sistema
+            if hasattr(user, 'usuario') and user.usuario:
+                 user.usuario.senha_hash = hashed_password
+                 user.usuario.save()
+            elif isinstance(user, Usuario):
+                 user.senha_hash = hashed_password
+            
+            # 3. Update Perfil de funcionário/aluno/encarregado
+            user.senha_hash = hashed_password
 
         # 3. Atualizar Dados Básicos
         if 'nome' in data and data['nome']:
@@ -371,8 +388,7 @@ class AuthService:
 
         # Endereço e Telefone (Adaptação para campos diferentes)
         if 'endereco' in data:
-            if hasattr(user, 'municipio_residencia'): # Funcionario/Aluno
-                 # Simples abordagem: colocar tudo no municipio ou bairro
+            if hasattr(user, 'bairro_residencia'): 
                  user.bairro_residencia = data['endereco']
             elif hasattr(user, 'provincia_residencia'): # Encarregado
                  user.municipio_residencia = data['endereco']
@@ -384,6 +400,13 @@ class AuthService:
                       user.telefone = [data['telefone']]
                  else:
                       user.telefone = data['telefone']
+            
+            # Se for funcionário, também atualizar o perfil de usuário se vinculado
+            if user_type == 'funcionario' and hasattr(user, 'usuario') and user.usuario:
+                 user.usuario.telefone = data.get('telefone')
+                 if 'endereco' in data:
+                      user.usuario.bairro_residencia = data.get('endereco')
+                 user.usuario.save()
 
         # 4. Atualizar Foto
         file_obj = files.get('foto') or files.get('img_path')

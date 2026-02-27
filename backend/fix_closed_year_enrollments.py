@@ -21,7 +21,7 @@ def fix_enrollments():
     print(f"Found {closed_years.count()} closed academic years: {[y.nome for y in closed_years]}")
 
     # 2. Find Active/Confirmed enrollments in these years
-    active_statuses = ['Ativa', 'Confirmada']
+    active_statuses = ['Ativa']
     enrollments_to_fix = Matricula.objects.filter(
         ano_lectivo__in=closed_years,
         status__in=active_statuses
@@ -33,7 +33,7 @@ def fix_enrollments():
         print("No active enrollments found in closed years.")
         return
 
-    print(f"Found {count} enrollments with status 'Ativa' or 'Confirmada' in closed years.")
+    print(f"Found {count} enrollments with status 'Ativa' in closed years.")
     
     # 3. Update them to 'Concluida'
     # Using bulk update for efficiency

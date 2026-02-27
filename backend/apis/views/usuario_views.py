@@ -13,8 +13,10 @@ from apis.serializers import (
     EncarregadoSerializer, EncarregadoListSerializer,
     CargoSerializer, CargoFuncionarioSerializer, UsuarioSerializer
 )
+from apis.mixins import AuditMixin
 
-class UsuarioViewSet(viewsets.ModelViewSet):
+
+class UsuarioViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para gestão de Usuários do Django (Login)"""
     queryset = User.objects.all().order_by('username')
     serializer_class = UsuarioSerializer
@@ -37,9 +39,10 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         password = self.request.data.get('senha_hash')
         if not password:
             password = get_random_string(length=12)
-        serializer.save(senha_hash=password)
+        instance = serializer.save(senha_hash=password)
+        self._log_audit_action('create', instance, serializer)
 
-class CargoViewSet(viewsets.ModelViewSet):
+class CargoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Cargo"""
     queryset = Cargo.objects.all()
     serializer_class = CargoSerializer
@@ -56,7 +59,7 @@ class CargoViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nome_cargo', 'criado_em']
     ordering = ['nome_cargo']
 
-class FuncionarioViewSet(viewsets.ModelViewSet):
+class FuncionarioViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Funcionario"""
     queryset = Funcionario.objects.select_related('id_cargo').all()
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -89,6 +92,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
         year = datetime.datetime.now().year
         code = f"FUNC{year}{get_random_string(length=4, allowed_chars='0123456789')}"
         instance = serializer.save(senha_hash=password, codigo_identificacao=code)
+        self._log_audit_action('create', instance, serializer)
         
         if is_invite and instance.email:
             try:
@@ -121,7 +125,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
         serializer = CargoFuncionarioSerializer(historico, many=True)
         return Response(serializer.data)
 
-class EncarregadoViewSet(viewsets.ModelViewSet):
+class EncarregadoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Encarregado"""
     queryset = Encarregado.objects.all()
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -145,6 +149,7 @@ class EncarregadoViewSet(viewsets.ModelViewSet):
         if is_invite:
             password = get_random_string(length=32)
         instance = serializer.save(senha_hash=password)
+        self._log_audit_action('create', instance, serializer)
         if is_invite and instance.email:
             try:
                 token = generate_password_token(instance.id_encarregado, 'encarregado')
@@ -167,7 +172,7 @@ class EncarregadoViewSet(viewsets.ModelViewSet):
         serializer = AlunoListSerializer(alunos, many=True)
         return Response(serializer.data)
 
-class CargoFuncionarioViewSet(viewsets.ModelViewSet):
+class CargoFuncionarioViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para CargoFuncionario"""
     queryset = CargoFuncionario.objects.select_related('id_cargo', 'id_funcionario').all()
     serializer_class = CargoFuncionarioSerializer

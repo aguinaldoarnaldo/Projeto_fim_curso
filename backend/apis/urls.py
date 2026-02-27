@@ -13,6 +13,7 @@ from apis.views import (
     AlunoViewSet, AlunoEncarregadoViewSet,
     SalaViewSet, ClasseViewSet, DepartamentoViewSet, SeccaoViewSet,
     AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet,
+    VagaCursoViewSet,
     TipoDisciplinaViewSet, DisciplinaViewSet, DisciplinaCursoViewSet,
 
     ProfessorDisciplinaViewSet, NotaViewSet, FaltaAlunoViewSet,
@@ -20,6 +21,7 @@ from apis.views import (
     CandidaturaViewSet,
     ListaEsperaViewSet,
     RelatorioViewSet,
+    AuditoriaViewSet,
 )
 
 # Criar router e registrar ViewSets
@@ -45,6 +47,7 @@ router.register(r'areas-formacao', AreaFormacaoViewSet, basename='area-formacao'
 router.register(r'cursos', CursoViewSet, basename='curso')
 router.register(r'periodos', PeriodoViewSet, basename='periodo')
 router.register(r'anos-lectivos', AnoLectivoViewSet, basename='ano-lectivo')
+router.register(r'vaga-curso', VagaCursoViewSet, basename='vaga-curso')
 router.register(r'turmas', TurmaViewSet, basename='turma')
 
 # Avaliações
@@ -79,6 +82,9 @@ router.register(r'notificacoes', NotificacaoViewSet, basename='notificacao')
 
 # Relatórios
 router.register(r'relatorios', RelatorioViewSet, basename='relatorio')
+
+# Auditoria / Logs
+router.register(r'auditoria', AuditoriaViewSet, basename='auditoria')
 
 # URLs
 urlpatterns = [

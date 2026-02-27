@@ -38,10 +38,10 @@ const ExamSchedulingModal = ({
                Total de Candidatos Aguardando Vaga
             </p>
             <div style={{fontSize: '36px', fontWeight: '900', color: '#1e3a8a', lineHeight: '1'}}>
-                {inscritos.filter(i => i.status === 'Pago').length.toLocaleString()}
+                {inscritos.filter(i => i.status === 'INSCRITO').length.toLocaleString()}
             </div>
             <p style={{fontSize: '13px', color: '#60a5fa', marginTop: '8px', fontWeight: '500'}}>
-                Candidatos com inscrição paga e sem sala atribuída
+                Candidatos com inscrição confirmada e aguardando vaga de exame
             </p>
           </div>
 

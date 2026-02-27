@@ -1,13 +1,21 @@
+import datetime
+from django.utils import timezone
+from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.core.cache import cache
 from apis.models import Candidato, RupeCandidato, Curso, ExameAdmissao, Sala
 from apis.serializers import CandidatoSerializer, CandidatoCreateSerializer, RupeCandidatoSerializer
 from decimal import Decimal
 from apis.permissions.custom_permissions import HasAdditionalPermission
+from apis.mixins import AuditMixin
+from apis.permissions.authentication import SchoolJWTAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from apis.services.pdf_service import PDFService
 
-class CandidaturaViewSet(viewsets.ModelViewSet):
+class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para gerenciar candidaturas"""
     queryset = Candidato.objects.all()
     serializer_class = CandidatoSerializer
@@ -40,6 +48,8 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             return CandidatoCreateSerializer
         return CandidatoSerializer
 
+    authentication_classes = [SchoolJWTAuthentication, JWTAuthentication]
+
     def get_permissions(self):
         """Permite criacao anonima de candidaturas para ações publicas"""
         if self.action in ['create', 'gerar_rupe', 'consultar_status', 'simular_pagamento', 'download_comprovativo']:
@@ -47,14 +57,27 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated(), HasAdditionalPermission()]
 
     def create(self, request, *args, **kwargs):
-        # 0. Check Global Config
-        from apis.models import Configuracao
+        # 0. Check Global Config and Academic Year Schedule
+        from apis.models import Configuracao, AnoLectivo
         config = Configuracao.get_solo()
+        
+        # Primeiro verificar se o portal está aberto manualmente
         if not config.candidaturas_abertas:
             return Response(
                 {
                     'erro': 'As candidaturas estão encerradas.', 
                     'detalhe': config.mensagem_candidaturas_fechadas
+                }, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Segundo verificar o cronograma do ano lectivo activo
+        active_year = AnoLectivo.get_active_year()
+        if active_year and not active_year.is_inscricoes_abertas:
+            return Response(
+                {
+                    'erro': 'Período de inscrições encerrado.', 
+                    'detalhe': f'O período de inscrições para o ano {active_year.nome} foi concluído.'
                 }, 
                 status=status.HTTP_403_FORBIDDEN
             )
@@ -74,13 +97,10 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
     def download_comprovativo(self, request, pk=None):
         """Disponibiliza download do comprovativo de Inscrição"""
-        from django.http import HttpResponse
-        from apis.services.pdf_service import PDFService
-        from django.utils import timezone
         
         candidato = self.get_object()
         exame = ExameAdmissao.objects.filter(candidato=candidato).first()
-        rupe = RupeCandidato.objects.filter(candidato=candidato).first()
+        rupe = RupeCandidato.objects.filter(inscricao=candidato).first()
         
         context = {
             'candidato': candidato,
@@ -121,12 +141,12 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         total = valor_unitario * qtd_cursos
         
         # Histórico de RUPEs deste candidato
-        rupes_existentes = RupeCandidato.objects.filter(candidato=candidato).order_by('-criado_em')
+        rupes_existentes = RupeCandidato.objects.filter(inscricao=candidato).order_by('-criado_em')
         rupe_ativo = None
         
         # Verificar se existe algum RUPE pago ou pendente válido
         for r in rupes_existentes:
-            if r.status == 'Pago':
+            if r.status_rup == 'PAGO':
                 return Response({'erro': 'Já existe um pagamento confirmado para esta candidatura.'}, status=400)
             if not r.is_expired:
                 rupe_ativo = r
@@ -135,10 +155,10 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         if rupe_ativo:
             return Response({
                 'mensagem': 'RUPE atual ainda é válido.',
-                'referencia': rupe_ativo.referencia,
+                'codigo_rup': rupe_ativo.codigo_rup,
                 'valor': rupe_ativo.valor,
-                'status': rupe_ativo.status,
-                'expira_em': (rupe_ativo.criado_em + datetime.timedelta(hours=48))
+                'status_rup': rupe_ativo.status_rup,
+                'expira_em': rupe_ativo.data_expiracao or (rupe_ativo.criado_em + datetime.timedelta(hours=48))
             })
 
         # Se não há RUPE ativo, verificar o limite de 2
@@ -148,25 +168,29 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
                 'detalhe': 'As suas referências anteriores expiraram. Por favor, contacte a administração.'
             }, status=403)
         
-        # Gerar nova referência
+        # Gerar nova referência (Simulação)
         import random
         import datetime
+        from django.utils import timezone
         ano = datetime.datetime.now().year
         ref_num = f"{ano}.{random.randint(10000000, 99999999)}"
+        data_exp = timezone.now() + datetime.timedelta(hours=48)
         
         rupe = RupeCandidato.objects.create(
-            candidato=candidato,
+            inscricao=candidato,
             valor=total,
-            status='Pendente',
-            referencia=ref_num
+            status_rup='PENDENTE',
+            codigo_rup=ref_num,
+            data_geracao=timezone.now(),
+            data_expiracao=data_exp
         )
         
         return Response({
             'mensagem': 'Nova referência RUPE gerada com sucesso.',
-            'referencia': rupe.referencia,
+            'codigo_rup': rupe.codigo_rup,
             'valor': rupe.valor,
-            'status': rupe.status,
-            'expira_em': (rupe.criado_em + datetime.timedelta(hours=48))
+            'status_rup': rupe.status_rup,
+            'expira_em': rupe.data_expiracao
         })
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
@@ -183,19 +207,18 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
     def _processar_pagamento(self):
         """Lógica comum de processamento de pagamento"""
         candidato = self.get_object()
-        rupe = RupeCandidato.objects.filter(candidato=candidato).last()
+        rupe = RupeCandidato.objects.filter(inscricao=candidato).last()
         
         if not rupe:
             return Response({'erro': 'Nenhum RUPE encontrado para este candidato.'}, status=400)
             
         # 1. Update RUPE
-        import datetime
-        rupe.status = 'Pago'
-        rupe.data_pagamento = datetime.datetime.now()
+        rupe.status_rup = 'PAGO'
+        rupe.data_pagamento = timezone.now()
         rupe.save()
         
         # 2. Update Candidato Status
-        candidato.status = 'Pago'
+        candidato.status = 'INSCRITO'
         candidato.save()
         
         # 3. Schedule Exam (Lógica Simples: Atribui primeira sala e data +7 dias)
@@ -212,12 +235,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             }
         )
         
-        candidato.status = 'Agendado' # Já fica agendado autom. ou mantem 'Pago' para agendamento em lote?
-        # Vamos manter 'Pago' se a ideia for usar o botão "Distribuir Exames" depois. 
-        # Mas se o cliente quer "Confirmar e já está pronto", usamos Agendado. 
-        # Pela logica anterior (distribuir_exames), parece que o agendamento é em lote.
-        # VAMOS MANTER APENAS 'Pago' para permitir a distribuição correta depois.
-        candidato.status = 'Pago' 
+        candidato.status = 'INSCRITO'
         candidato.save()
         
         return Response({
@@ -300,7 +318,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
                             'realizado': False
                         }
                     )
-                    cand.status = 'Agendado'
+                    cand.status = 'INSCRITO'
                     cand.save()
                     distribuidos += 1
                 
@@ -321,7 +339,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         """
         from apis.models import ExameAdmissao
         exames = ExameAdmissao.objects.select_related('candidato', 'sala', 'candidato__curso_primeira_opcao').filter(
-            candidato__status='Agendado',
+            candidato__status='INSCRITO',
             realizado=False
         ).order_by('data_exame', 'sala__numero_sala', 'candidato__nome_completo')
         
@@ -347,11 +365,18 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def consultar_status(self, request):
-        """Consulta status pelo numero de inscricao ou BI"""
+        """Consulta status pelo numero de inscricao ou BI com cache e throttling"""
+        self.throttle_scope = 'candidate_check'
         term = request.query_params.get('q')
         if not term:
             return Response({'erro': 'Informe o parâmetro q (BI ou Nº Inscrição)'}, status=400)
             
+        # Tentar recuperar do cache (10 minutos)
+        cache_key = f'candidato_status_{term}'
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         candidato = Candidato.objects.filter(numero_inscricao=term).first() or \
                     Candidato.objects.filter(numero_bi=term).first()
                     
@@ -359,7 +384,12 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Candidato não encontrado'}, status=404)
             
         serializer = CandidatoSerializer(candidato)
-        return Response(serializer.data)
+        data = serializer.data
+        
+        # Salvar no cache
+        cache.set(cache_key, data, 600)
+        
+        return Response(data)
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def avaliar(self, request, pk=None):
@@ -385,8 +415,10 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
             
             # Update Status
             aprovado = nota >= 10
-            candidato.status = 'Aprovado' if aprovado else 'Reprovado'
+            candidato.status = 'CLASSIFICADO' if aprovado else 'NAO_CLASSIFICADO'
             candidato.save()
+
+            self._log_audit_action('update', candidato)
             
             return Response({
                 'status': candidato.status,
@@ -482,8 +514,11 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
                     )
                 
                 # 5. Update Candidato
-                candidato.status = 'Matriculado'
+                candidato.status = 'MATRICULADO'
                 candidato.save()
+                
+                self._log_audit_action('update', candidato)
+                self._log_audit_action('create', matricula) if 'matricula' in locals() else None
                 
                 return Response({
                     'mensagem': 'Matrícula realizada com sucesso!',
@@ -504,7 +539,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
 from apis.serializers import ListaEsperaSerializer
 from apis.models import ListaEspera
 
-class ListaEsperaViewSet(viewsets.ModelViewSet):
+class ListaEsperaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Lista de Espera"""
     queryset = ListaEspera.objects.select_related('candidato', 'candidato__curso_primeira_opcao').all()
     serializer_class = ListaEsperaSerializer

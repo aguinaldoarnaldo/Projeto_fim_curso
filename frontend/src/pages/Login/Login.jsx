@@ -61,8 +61,8 @@ const Login = () => {
               <LogIn size={24} />
               <span>SGMatrícula</span>
             </div>
-            <h1>Gestão Escolar Simplificada</h1>
-            <p>Plataforma integrada para administração académica, financeira e pedagógica. O futuro da educação começa aqui.</p>
+            <h1>Gestão de Matrículas</h1>
+            <p>Plataforma especializada na administração de candidaturas, inscrições e organização académica. Centralize o controlo do percurso dos seus alunos num só lugar.</p>
             
             <div className="feature-pills">
               <span>Rápido</span>

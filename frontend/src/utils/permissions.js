@@ -12,6 +12,7 @@ export const PERMISSIONS = {
     VIEW_CONFIGURACOES: 'view_configuracoes',
     MANAGE_CONFIGURACOES: 'manage_configuracoes',
     MANAGE_BACKUP: 'manage_backup',
+    VIEW_LOGS: 'view_logs',
 
     // Alunos
     VIEW_ALUNOS: 'view_alunos',
@@ -26,6 +27,10 @@ export const PERMISSIONS = {
     // Lista de Espera
     VIEW_LISTA_ESPERA: 'view_lista_espera',
     MANAGE_LISTA_ESPERA: 'manage_lista_espera',
+
+    // Vagas
+    VIEW_VAGAS: 'view_vagas',
+    MANAGE_VAGAS: 'manage_vagas',
 
     // Matrículas
     VIEW_MATRICULAS: 'view_matriculas',
@@ -68,6 +73,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_DASHBOARD,
         PERMISSIONS.VIEW_ALUNOS, PERMISSIONS.CREATE_ALUNO, PERMISSIONS.EDIT_ALUNO,
         PERMISSIONS.VIEW_INSCRITOS, PERMISSIONS.MANAGE_INSCRITOS,
+        PERMISSIONS.VIEW_VAGAS, PERMISSIONS.MANAGE_VAGAS,
         PERMISSIONS.VIEW_MATRICULAS, PERMISSIONS.CREATE_MATRICULA, PERMISSIONS.EDIT_MATRICULA,
         PERMISSIONS.VIEW_TURMAS, 
         PERMISSIONS.VIEW_SALAS,
@@ -119,6 +125,8 @@ export const PERMISSIONS_PT = {
     [PERMISSIONS.EDIT_MATRICULA]: 'Editar Matrícula',
     [PERMISSIONS.VIEW_LISTA_ESPERA]: 'Ver Lista de Espera',
     [PERMISSIONS.MANAGE_LISTA_ESPERA]: 'Gerir Lista de Espera',
+    [PERMISSIONS.VIEW_VAGAS]: 'Ver Lista de Vagas',
+    [PERMISSIONS.MANAGE_VAGAS]: 'Gerenciamento de Vagas',
 
     // 3. Gestão Pedagógica
     [PERMISSIONS.VIEW_TURMAS]: 'Ver Turmas',
@@ -144,6 +152,7 @@ export const PERMISSIONS_PT = {
     [PERMISSIONS.MANAGE_CONFIGURACOES]: 'Gerir Ano Lectivo e Configurações',
     [PERMISSIONS.MANAGE_USUARIOS]: 'Gerir Usuários e Acessos',
     [PERMISSIONS.MANAGE_BACKUP]: 'Gerir Backups e Manutenção',
+    [PERMISSIONS.VIEW_LOGS]: 'Ver Logs de Auditoria',
 };
 
 export const PERMISSION_GROUPS = [
@@ -168,6 +177,8 @@ export const PERMISSION_GROUPS = [
             PERMISSIONS.VIEW_MATRICULAS,
             PERMISSIONS.CREATE_MATRICULA,
             PERMISSIONS.EDIT_MATRICULA,
+            PERMISSIONS.VIEW_VAGAS,
+            PERMISSIONS.MANAGE_VAGAS,
         ]
     },
     {
@@ -201,7 +212,8 @@ export const PERMISSION_GROUPS = [
             PERMISSIONS.VIEW_CONFIGURACOES,
             PERMISSIONS.MANAGE_CONFIGURACOES,
             PERMISSIONS.MANAGE_USUARIOS,
-            PERMISSIONS.MANAGE_BACKUP
+            PERMISSIONS.MANAGE_BACKUP,
+            PERMISSIONS.VIEW_LOGS
         ]
     }
 ];

@@ -14,7 +14,7 @@ from apis.models import Matricula
 print("Checking Matricula statuses...")
 matriculas = Matricula.objects.all()
 for m in matriculas:
-    if m.status not in ['Ativa', 'Confirmada', 'Concluida', 'Desistente', 'Transferido']:
+    if m.status not in ['Ativa', 'Concluida', 'Desistente', 'Transferido']:
         print(f"ID: {m.id_matricula}, Aluno: {m.id_aluno.nome_completo}, Status Found: '{m.status}' (Invalid/Old)")
     elif m.id_aluno.nome_completo.lower().startswith('telma'):
         print(f"ID: {m.id_matricula}, Aluno: {m.id_aluno.nome_completo}, Status Found: '{m.status}'")

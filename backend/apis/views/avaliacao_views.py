@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 from apis.services.academic_service import AcademicService
+from apis.mixins import AuditMixin
 
 from apis.models import (
     TipoDisciplina, Disciplina, DisciplinaCurso,
@@ -19,7 +20,7 @@ from apis.serializers import (
 )
 
 
-class TipoDisciplinaViewSet(viewsets.ModelViewSet):
+class TipoDisciplinaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para TipoDisciplina"""
     queryset = TipoDisciplina.objects.all()
     serializer_class = TipoDisciplinaSerializer
@@ -27,7 +28,7 @@ class TipoDisciplinaViewSet(viewsets.ModelViewSet):
     permission_map = {'list': 'view_cursos', 'create': 'manage_disciplinas'}
 
 
-class DisciplinaViewSet(viewsets.ModelViewSet):
+class DisciplinaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Disciplina"""
     queryset = Disciplina.objects.select_related(
         'id_tipo_disciplina', 'id_coordenador'
@@ -51,7 +52,7 @@ class DisciplinaViewSet(viewsets.ModelViewSet):
         return DisciplinaSerializer
 
 
-class DisciplinaCursoViewSet(viewsets.ModelViewSet):
+class DisciplinaCursoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para DisciplinaCurso"""
     queryset = DisciplinaCurso.objects.select_related(
         'id_curso', 'id_disciplina'
@@ -62,7 +63,7 @@ class DisciplinaCursoViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
 
 
-class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
+class ProfessorDisciplinaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para ProfessorDisciplina"""
     queryset = ProfessorDisciplina.objects.select_related(
         'id_funcionario', 'id_disciplina', 'id_turma'
@@ -73,7 +74,7 @@ class ProfessorDisciplinaViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
 
 
-class NotaViewSet(viewsets.ModelViewSet):
+class NotaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Nota"""
     queryset = Nota.objects.select_related(
         'id_aluno', 'id_disciplina', 'id_professor', 'id_turma'
@@ -134,6 +135,8 @@ class NotaViewSet(viewsets.ModelViewSet):
                     )
                     notas_criadas.append(nota)
                 
+                self._log_audit_action('create', notas_criadas[0]) if notas_criadas else None
+
                 return Response({
                     'message': f'{len(notas_criadas)} notas lançadas.',
                     'count': len(notas_criadas)
@@ -145,7 +148,7 @@ class NotaViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class FaltaAlunoViewSet(viewsets.ModelViewSet):
+class FaltaAlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para FaltaAluno"""
     queryset = FaltaAluno.objects.select_related(
         'id_aluno', 'id_disciplina', 'id_turma'
@@ -187,6 +190,9 @@ class FaltaAlunoViewSet(viewsets.ModelViewSet):
             total = AcademicService.registrar_falta_lote(
                 aluno_ids, disciplina_id, turma_id, data_falta, observacao
             )
+            # Manual audit log for batch action - we log one sample to show the action happened
+            self._log_audit_action('create', FaltaAluno.objects.filter(id_turma=turma).last()) if total > 0 else None
+
             return Response({
                 'message': f'{total} faltas registradas.',
                 'count': total

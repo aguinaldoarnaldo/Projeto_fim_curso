@@ -368,8 +368,8 @@
 .step-number { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; }
 .step-label { font-size: 13px; font-weight: 600; }
 .btn-back-link { background: none; border: none; color: #1e3a8a; display: flex; align-items: center; gap: 5px; font-weight: 600; cursor: pointer; margin-bottom: 10px; padding: 0; }
-.form-title { margin-bottom: 25px; display: flex; align-items: center; gap: 10px; color: #1e3a8a; }
-.form-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.form-title { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; color: #1e3a8a; }
+.form-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 640px) { .form-grid-2col, .upload-grid { grid-template-columns: 1fr; } .form-full-width { grid-column: span 1; } .step-header-actions { display: none; } .step-container { padding: 0 10px; } }
 .form-full-width { grid-column: span 2; }
 .field-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #4b5563; }
@@ -379,7 +379,7 @@
 .upload-box-icon { margin-bottom: 10px; }
 .upload-box-title { font-size: 14px; font-weight: 600; }
 .upload-box-hint { font-size: 12px; color: #6b7280; }
-.step-actions { margin-top: 30px; display: flex; justify-content: space-between; }
+.step-actions { margin-top: 20px; display: flex; justify-content: space-between; }
 .btn-step-prev { padding: 12px 25px; border-radius: 10px; border: 1px solid #d1d5db; background: white; font-weight: 600; }
 .btn-step-next { padding: 12px 30px; border-radius: 10px; border: none; background: var(--primary-color); color: white; font-weight: 600; display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .btn-step-finish { padding: 12px 30px; border-radius: 10px; border: none; background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -403,8 +403,8 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 .matricula-modal-header { padding: 24px; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 10; }
 .modal-header-info h2 { font-size: 20px; font-weight: 700; color: #111827; }
 .modal-subtitle { font-size: 13px; color: #6b7280; font-family: monospace; }
-.btn-close-modal { background: #f3f4f6; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #4b5563; transition: all 0.2s; }
-.btn-close-modal:hover { background: #e5e7eb; color: #1f2937; }
+.matricula-modal-header .btn-close-modal { background: #f3f4f6; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #4b5563; transition: all 0.2s; }
+.matricula-modal-header .btn-close-modal:hover { background: #e5e7eb; color: #1f2937; }
 .matricula-modal-body { padding: 24px; }
 .modal-profile-section { display: flex; gap: 20px; align-items: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #f3f4f6; }
 .profile-large-avatar { width: 220px; height: 220px; background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%); color: white; font-size: 64px; font-weight: 700; border-radius: 50%; /* Circular */ display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); flex-shrink: 0; border: 4px solid white; }
@@ -433,139 +433,288 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
 
 /* ... existing styles ... */
 
-/* New "Pretty" Modal Styles (Sidebar Layout) - PREMIUM DARK & GOLD THEME */
+/* ==============================================
+   MODAL MATRÍCULA - REDESIGN PREMIUM (GOLD THEME)
+   ============================================== */
+.matriculas-page .detail-modal-card {
+    border-radius: 28px;
+    max-width: 960px;
+    animation: modalSlideUp 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 40px 80px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: scale(0.94) translateY(24px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .matriculas-page .detail-modal-grid {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 300px 1fr;
     height: 100%;
     overflow: hidden;
 }
 
+/* SIDEBAR - Gradiente Dark Azul Premium */
 .matriculas-page .profile-sidebar {
-    /* Use System Sidebar Gradient */
-    background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--primary-color) 100%);
-    padding: 48px 32px;
+    background: linear-gradient(170deg,
+        var(--sidebar-bg) 0%,
+        var(--primary-color) 45%,
+        var(--primary-light) 100%);
+    padding: 40px 28px 36px;
     color: white;
     display: flex;
     flex-direction: column;
     align-items: center;
     overflow-y: auto;
     position: relative;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-    border-right: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 
-/* Hexagon Pattern Overlay */
-/* Pattern Overlay - Simplified */
+/* Padrão de pontos decorativo */
 .matriculas-page .profile-sidebar::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0);
-    background-size: 24px 24px;
-    opacity: 0.5;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity: 0.6;
     pointer-events: none;
 }
 
+/* Círculo decorativo no topo */
+.matriculas-page .profile-sidebar::after {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, rgba(96,165,250,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Avatar - Efeito Glow */
 .matriculas-page .profile-avatar-large {
-    width: 180px;
-    height: 180px;
-    border-radius: 50%; /* Circular */
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 64px;
+    font-size: 56px;
     font-weight: 800;
-    margin-bottom: 24px;
-    border: 3px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    box-shadow:
+        0 0 0 8px rgba(99,102,241,0.12),
+        0 20px 40px rgba(0,0,0,0.25),
+        inset 0 0 30px rgba(255,255,255,0.03);
     flex-shrink: 0;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.1); 
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .matriculas-page .profile-avatar-large:hover {
-    transform: scale(1.05);
+    transform: scale(1.06);
     cursor: zoom-in;
-    border-color: white;
+    border-color: rgba(255,255,255,0.6);
+    box-shadow:
+        0 0 0 12px rgba(99,102,241,0.18),
+        0 24px 48px rgba(0,0,0,0.3);
 }
 
-/* Profile Name */
+/* Nome */
 .matriculas-page .profile-name {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     text-align: center;
-    margin-bottom: 8px;
-    line-height: 1.2;
+    margin-bottom: 4px;
+    line-height: 1.25;
     color: white;
+    letter-spacing: -0.3px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1;
 }
 
+/* ID / Matrícula */
 .matriculas-page .profile-id {
     opacity: 1;
-    font-size: 14px;
-    margin-bottom: 32px;
+    font-size: 11px;
+    margin-bottom: 24px;
     font-family: 'Courier New', monospace;
-    background: rgba(0,0,0,0.2);
-    padding: 6px 16px;
-    border-radius: 4px; /* More angular */
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.8);
-    letter-spacing: 0.05em;
+    background: rgba(0,0,0,0.25);
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 0.08em;
+    position: relative;
+    z-index: 1;
 }
 
+/* Footer da sidebar */
 .matriculas-page .profile-footer {
     margin-top: auto;
     width: 100%;
     border-top: 1px solid rgba(255,255,255,0.1);
-    padding-top: 24px;
+    padding-top: 20px;
+    position: relative;
+    z-index: 1;
 }
 
 .matriculas-page .profile-footer-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    opacity: 1;
-    font-size: 14px;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin-bottom: 4px;
+    font-size: 13px;
     font-weight: 500;
-    color: #cbd5e1;
+    color: #bfdbfe;
+    transition: background 0.2s;
+    background: rgba(255,255,255,0.04);
+}
+
+.matriculas-page .profile-footer-item:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
 }
 
 .matriculas-page .profile-footer-item svg {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255,255,255,0.7);
+    flex-shrink: 0;
 }
 
+/* Área de conteúdo */
 .matriculas-page .content-area {
-    padding: 48px;
+    padding: 32px 36px;
     overflow-y: auto;
-    background: #f8fafc; /* Slightly gray background */
-    height: 100%;
+    background: var(--bg-color);
+    max-height: 88vh;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
 }
 
+.matriculas-page .content-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.matriculas-page .content-area::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+
+/* Secções */
 .matriculas-page .info-section {
-    margin-bottom: 48px;
-    background: white;
-    padding: 24px;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    background: var(--card-bg);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin-bottom: 18px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 16px rgba(30,58,138,0.05);
+    transition: box-shadow 0.2s, transform 0.2s;
+    min-height: fit-content;
+    height: auto;
 }
 
+.matriculas-page .info-section:hover {
+    box-shadow: 0 6px 28px rgba(30,58,138,0.09);
+    transform: translateY(-1px);
+}
+
+/* Título da secção */
 .matriculas-page .section-title {
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 800;
     color: var(--primary-color);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 24px;
+    letter-spacing: 0.14em;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding-bottom: 12px;
+    gap: 10px;
+    padding-bottom: 14px;
     border-bottom: 2px solid var(--primary-light-bg);
+}
+
+/* Grid de campos */
+.matriculas-page .info-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+/* Cada campo individual */
+.matriculas-page .info-grid-2 > div {
+    background: #f8fafd;
+    border: 1px solid #e8eef8;
+    border-radius: 12px;
+    padding: 12px 16px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.matriculas-page .info-grid-2 > div::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #3b82f6, #6366f1);
+    border-radius: 3px 0 0 3px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.matriculas-page .info-grid-2 > div:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(59,130,246,0.1);
+}
+
+.matriculas-page .info-grid-2 > div:hover::before {
+    opacity: 1;
+}
+
+/* Label e valor */
+.matriculas-page .info-label {
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 800;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.matriculas-page .info-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    display: block;
+    min-width: 0;
+}
+
+.matriculas-page .info-value.monospace {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #1d4ed8;
+    letter-spacing: 0.03em;
 }
 
 /* Update hover effect for doc cards */
@@ -602,15 +751,14 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
         grid-template-columns: 1fr;
     }
     .matriculas-page .profile-sidebar {
-        padding: 32px;
+        padding: 28px;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 24px;
-        background: linear-gradient(135deg, var(--sidebar-bg) 0%, var(--primary-color) 100%);
+        gap: 20px;
     }
     .matriculas-page .profile-avatar-large {
-        width: 100px;
-        height: 100px;
+        width: 90px;
+        height: 90px;
         margin-bottom: 0;
         font-size: 32px;
     }
@@ -702,3 +850,150 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
         gap: 16px;
     }
 }
+
+/* NovaMatricula Visibility Improvements */
+.nova-matricula-container {
+    padding-top: 60px !important; 
+    padding-bottom: 120px !important; /* Extra scroll room at the bottom */
+}
+
+.matriculas-header-content {
+    margin-bottom: 15px !important;
+}
+
+.matriculas-header-content h1 {
+    font-size: 24px !important; 
+    margin-bottom: 5px !important;
+}
+
+.matriculas-header-content p {
+    font-size: 14px !important;
+    margin-bottom: 10px !important;
+    display: block !important; /* Show description again */
+}
+
+.nova-matricula-container .step-indicator {
+    padding: 4px 10px;
+}
+
+.nova-matricula-container .field-label {
+    margin-bottom: 4px; /* Reduced from 8px */
+    font-size: 13px;
+}
+
+.nova-matricula-container .field-input, 
+.nova-matricula-container .field-select {
+    padding: 8px 12px; /* Reduced padding */
+    height: 38px;
+}
+
+.form-title { 
+    margin-bottom: 12px; 
+    font-size: 16px; 
+}
+/* Year History Tabs - Matching Alunos styles for consistency */
+.year-history-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding: 4px 4px 12px 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.year-history-tabs::-webkit-scrollbar {
+    height: 6px;
+}
+
+.year-history-tabs::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
+}
+
+.history-tab-btn {
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.history-tab-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #f0f9ff;
+    transform: translateY(-1px);
+}
+
+.history-tab-btn.active {
+    border: 2px solid var(--primary-color);
+    background: #f0f9ff;
+    color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(35, 56, 138, 0.15); /* Slightly darker shade for Blue/Indigo theme */
+}
+
+.history-tab-btn .tab-year-icon {
+    opacity: 0.6;
+}
+
+.history-tab-btn.active .tab-year-icon {
+    opacity: 1;
+}
+
+/* Interactive Status Menu in Modal */
+.profile-status-interactive:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.status-dropdown-modal {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+    border: 1px solid #e2e8f0;
+    z-index: 1001;
+    padding: 6px;
+    animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.status-opt {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #475569;
+}
+
+.status-opt:hover {
+    background: #f1f5f9;
+}
+
+.status-opt.ativa:hover { color: #16a34a; background: #f0fdf4; }
+.status-opt.concluida:hover { color: #2563eb; background: #eff6ff; }
+.status-opt.desistente:hover { color: #dc2626; background: #fef2f2; }
+.status-opt.transferido:hover { color: #ea580c; background: #fff7ed; }

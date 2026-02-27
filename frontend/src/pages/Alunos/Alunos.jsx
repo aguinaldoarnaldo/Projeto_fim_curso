@@ -23,6 +23,7 @@ import {
     GraduationCap,
     Eye,
     Edit,
+    ChevronDown,
     ArrowUp,
     ArrowDown,
     CheckCircle,
@@ -33,6 +34,7 @@ import {
     Users,
     Activity,
     ArrowRightLeft,
+    ArrowUpRight,
     Database
 } from 'lucide-react';
 
@@ -58,11 +60,11 @@ const Alunos = () => {
     const [showStatusSubmenu, setShowStatusSubmenu] = useState(false); // Valid state for submenu
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [menuStudent, setMenuStudent] = useState(null);
+    const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
     const filterButtonRef = useRef(null);
     const [formData, setFormData] = useState({
         nome: '',
         bi: '',
-        nif: '',
         id_curso: '',
         id_classe: '',
         id_sala: '',
@@ -222,15 +224,16 @@ const Alunos = () => {
             dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
             genero: student.genero || 'N/A',
             detalhes: {
-                nif: student.numero_bi, 
                 nascimento: student.data_nascimento || 'N/A',
                 encarregado: student.encarregado_principal || 'N/A',
                 telefone: student.telefone || 'N/A',
                 email: student.email,
                 endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
                 bi: student.numero_bi,
+                nacionalidade: student.nacionalidade || 'Angolana',
                 obs: '',
-                historico: student.historico_escolar || []
+                historico: student.historico_escolar || [],
+                historicoMatriculas: student.matriculas_detalhes || []
             }
         }));
     };
@@ -244,12 +247,22 @@ const Alunos = () => {
         update: updateStudent
     } = useDataCache('alunos', fetchStudentsData);
 
-    // Polling for real-time updates (Silent Refresh)
+    // Polling Inteligente para atualizações em tempo real (Silent Refresh)
     useEffect(() => {
-        const interval = setInterval(() => {
-            refresh(true); // silent = true
-        }, 120000); // 2 minutes
-        return () => clearInterval(interval);
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                refresh(true); 
+            }
+        };
+
+        const interval = setInterval(syncIfVisible, 180000); // 3 minutos devido ao volume de dados
+        
+        window.addEventListener('focus', syncIfVisible);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
     }, [refresh]);
 
 
@@ -283,6 +296,15 @@ const Alunos = () => {
             
             if (response.status === 200 || response.status === 204) {
                  console.log("Status atualizado com sucesso no backend:", response.data);
+                 
+                 // Sync with open modal if it's the same student
+                 if (selectedStudent && selectedStudent.id === studentId) {
+                     setSelectedStudent(prev => ({
+                         ...prev,
+                         status: newStatus
+                     }));
+                 }
+
                  // Force refresh to ensure frontend matches backend, compensating for any optimistic update issues
                  await refresh(true); 
                  // alert("Status atualizado com sucesso!"); // Optional confirmation
@@ -309,7 +331,6 @@ const Alunos = () => {
         setFormData({
             nome: student.nome,
             bi: student.detalhes.bi,
-            nif: student.detalhes.nif,
             id_curso: '', // We should ideally have the IDs in the student object
             id_classe: '',
             id_sala: '',
@@ -326,7 +347,6 @@ const Alunos = () => {
         setFormData({
             nome: '',
             bi: '',
-            nif: '',
             id_curso: '',
             id_classe: '',
             id_sala: '',
@@ -348,7 +368,6 @@ const Alunos = () => {
             const payload = {
                 nome_completo: formData.nome,
                 numero_bi: formData.bi,
-                nif: formData.nif,
                 status_aluno: formData.status
                 // Add more fields as needed
             };
@@ -431,10 +450,22 @@ const Alunos = () => {
             case 'Ativo': 
             case 'Activo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
             case 'Inativo': return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
-            case 'Concluido': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
+            case 'Concluido': 
+            case 'Concluida': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
             case 'Transferido': return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
             default: return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
         }
+    };
+
+    const getTipoMatriculaLabel = (tipo) => {
+        const mapping = {
+            'Novo': 'Novo Ingresso',
+            'Confirmacao': 'Confirmação',
+            'Transferencia': 'Transferência',
+            'Repetente': 'Repetente',
+            'Reenquadramento': 'Reenquadramento'
+        };
+        return mapping[tipo] || tipo;
     };
 
     // Filter Configurations
@@ -751,39 +782,102 @@ const Alunos = () => {
                 <div className="modal-overlay" onClick={() => setSelectedStudent(null)}>
                     <div className="detail-modal-card" onClick={(e) => e.stopPropagation()}>
                         <button
-                            onClick={() => setSelectedStudent(null)}
+                            onClick={() => {
+                                setSelectedStudent(null);
+                                setSelectedHistoryIndex(0);
+                            }}
                             className="btn-close-modal">
                             <X size={24} color="#64748b" />
                         </button>
 
                         <div className="detail-modal-grid">
-                            {/* Left Profile Card */}
+                            {/* LEFT SIDEBAR: EMERALD THEME */}
                             <div className="profile-sidebar">
-                                <div className="profile-avatar-large" style={{ overflow: 'hidden', padding: 0 }}>
+                                <div className="profile-avatar-large" onClick={() => {
+                                    if (selectedStudent.foto) {
+                                        const win = window.open("", "_blank");
+                                        win.document.write(`<img src="${selectedStudent.foto}" style="max-width:100%; height:auto;">`);
+                                        win.focus();
+                                    }
+                                }} title="Clique para ampliar">
                                     {selectedStudent.foto ? (
-                                        <img src={selectedStudent.foto} alt={selectedStudent.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={selectedStudent.foto} alt="" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
                                     ) : (
-                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <User size={48} color="white" />
-                                        </div>
+                                        <User size={64} />
                                     )}
                                 </div>
                                 <h2 className="profile-name">{selectedStudent.nome}</h2>
                                 <p className="profile-id">ID: {selectedStudent.id}</p>
+                                
+                                <div 
+                                    className="profile-status-interactive"
+                                    onClick={() => setShowStatusSubmenu(!showStatusSubmenu)}
+                                    style={{
+                                        background: (() => {
+                                            const h = selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex];
+                                            const s = (h ? h.status : selectedStudent.status).toLowerCase();
+                                            if (s === 'ativo' || s === 'activo') return 'rgba(34, 197, 94, 0.2)'; // Green
+                                            if (s === 'concluido' || s === 'concluida') return 'rgba(59, 130, 246, 0.2)'; // Blue
+                                            if (s === 'desistente') return 'rgba(239, 68, 68, 0.2)'; // Red
+                                            return 'rgba(255,255,255,0.2)';
+                                        })(),
+                                        padding: '8px 16px', 
+                                        borderRadius: '8px', 
+                                        marginBottom: '32px',
+                                        fontWeight: '700',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'pointer',
+                                        position: 'relative',
+                                        transition: 'all 0.2s ease',
+                                        width: '100%'
+                                    }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {(selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex]?.status || selectedStudent.status).toUpperCase()}
+                                        <ChevronDown size={14} />
+                                    </span>
+                                    {selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex]?.tipo === 'Confirmacao' && (
+                                        <span style={{ fontSize: '9px', opacity: 0.9, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                            DADOS ATUALIZADOS
+                                        </span>
+                                    )}
 
-                                <div className="profile-status">
-                                    {selectedStudent.status}
+                                    {showStatusSubmenu && (
+                                        <div className="status-dropdown-modal" onClick={(e) => e.stopPropagation()}>
+                                            {['Ativo', 'Inativo', 'Concluido', 'Transferido'].map(s => (
+                                                <button 
+                                                    key={s} 
+                                                    onClick={() => handleUpdateStatus(selectedStudent.id, s)}
+                                                    className={`status-opt ${s.toLowerCase()}`}
+                                                >
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="profile-footer">
-                                    <div className="profile-footer-item">
-                                        <ClipboardList size={18} />
-                                        <span className="profile-footer-text">Lançamento de Notas</span>
-                                    </div>
-                                    <div className="profile-footer-item">
-                                        <ShieldCheck size={18} />
-                                        <span className="profile-footer-text">Histórico Disciplinar</span>
-                                    </div>
+                                    {(() => {
+                                        const h = selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex];
+                                        if (!h) return (
+                                            <>
+                                                <div className="profile-footer-item"><Calendar size={18} /><span>Matrícula: {selectedStudent.dataMatricula}</span></div>
+                                                <div className="profile-footer-item"><BookOpen size={18} /><span>Classe: {selectedStudent.classe}</span></div>
+                                                <div className="profile-footer-item"><Home size={18} /><span>Turma: {selectedStudent.turma}</span></div>
+                                            </>
+                                        );
+                                        return (
+                                            <>
+                                                <div className="profile-footer-item"><Calendar size={18} /><span>Ano: {h.ano_lectivo_nome}</span></div>
+                                                <div className="profile-footer-item"><BookOpen size={18} /><span>Classe: {h.classe_nome}</span></div>
+                                                <div className="profile-footer-item"><Home size={18} /><span>Turma: {h.turma_codigo}</span></div>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             </div>
 
@@ -798,33 +892,117 @@ const Alunos = () => {
                                         <div><p className="info-label">Nome Completo</p><p className="info-value">{selectedStudent.nome}</p></div>
                                         <div><p className="info-label">Género</p><p className="info-value">{selectedStudent.genero || 'N/A'}</p></div>
                                         <div><p className="info-label">Data de Nascimento</p><p className="info-value">{selectedStudent.detalhes.nascimento}</p></div>
-                                        <div><p className="info-label">Bilhete de Identidade</p><p className="info-value" style={{ fontFamily: 'monospace' }}>{selectedStudent.detalhes.bi}</p></div>
-                                        <div><p className="info-label">NIF</p><p className="info-value">{selectedStudent.detalhes.nif || '-'}</p></div>
+                                        <div><p className="info-label">Bilhete de Identidade</p><p className="info-value" style={{ fontFamily: 'monospace' }}>{selectedStudent.detalhes.bi || 'N/A'}</p></div>
+                                        <div><p className="info-label">Nacionalidade</p><p className="info-value">{selectedStudent.detalhes.nacionalidade || 'Angolana'}</p></div>
                                         <div><p className="info-label">Morada</p><p className="info-value">{selectedStudent.detalhes.endereco}</p></div>
                                     </div>
                                 </div>
                                 
-                                {/* 2. Dados Académicos */}
+                                 {/* 2. Dados Académicos & Histórico Interativo */}
                                 <div className="info-section">
-                                    <h3 className="section-title" style={{ color: '#b45309' }}>
-                                        <GraduationCap size={20} color="#b45309" /> Informações Académicas
+                                    <h3 className="section-title" style={{ color: '#b45309', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <GraduationCap size={20} color="#b45309" /> Informações Académicas
+                                        </span>
+                                        {selectedStudent.detalhes.historicoMatriculas && selectedStudent.detalhes.historicoMatriculas.length > 1 && (
+                                            <span style={{ fontSize: '11px', background: '#fffbeb', padding: '4px 8px', borderRadius: '20px', border: '1px solid #fcd34d' }}>
+                                                Possui {selectedStudent.detalhes.historicoMatriculas.length} Matrículas
+                                            </span>
+                                        )}
                                     </h3>
-                                    <div className="info-grid-2">
-                                        <div><p className="info-label">Ano Lectivo</p><p className="info-value">{selectedStudent.anoLectivo}</p></div>
-                                        <div><p className="info-label">Curso</p><p className="info-value">{selectedStudent.curso}</p></div>
-                                        <div><p className="info-label">Classe</p><p className="info-value">{selectedStudent.classe}</p></div>
-                                        <div><p className="info-label">Turno</p><p className="info-value">{selectedStudent.turno}</p></div>
-                                        
-                                        <div style={{ gridColumn: 'span 2', background: '#fffbeb', padding: '16px', borderRadius: '12px', marginTop: '8px', border: '1px solid #fcd34d' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <Home size={20} color="#b45309" />
-                                                <div>
-                                                    <p className="info-label" style={{ color: '#b45309', marginBottom: '4px' }}>SALA & TURMA</p>
-                                                    <p className="info-value" style={{ fontSize: '18px' }}>{selectedStudent.sala} • {selectedStudent.turma}</p>
-                                                </div>
-                                            </div>
+
+                                    {/* Seletor de Anos Interativo */}
+                                    {selectedStudent.detalhes.historicoMatriculas && selectedStudent.detalhes.historicoMatriculas.length > 1 && (
+                                        <div className="year-history-tabs">
+                                            {selectedStudent.detalhes.historicoMatriculas.map((m, idx) => (
+                                                <button
+                                                    key={m.id_matricula}
+                                                    onClick={() => setSelectedHistoryIndex(idx)}
+                                                    className={`history-tab-btn ${selectedHistoryIndex === idx ? 'active' : ''}`}
+                                                >
+                                                    <Calendar size={14} className="tab-year-icon" />
+                                                    {m.ano_lectivo_nome}
+                                                </button>
+                                            ))}
                                         </div>
-                                    </div>
+                                    )}
+
+                                     {(() => {
+                                        const h = selectedStudent.detalhes.historicoMatriculas?.[selectedHistoryIndex];
+                                        if (!h) return (
+                                            <div className="info-grid-2">
+                                                <div><p className="info-label">Ano Lectivo</p><p className="info-value">{selectedStudent.anoLectivo}</p></div>
+                                                <div><p className="info-label">Curso</p><p className="info-value">{selectedStudent.curso}</p></div>
+                                                <div><p className="info-label">Classe</p><p className="info-value">{selectedStudent.classe}</p></div>
+                                                <div><p className="info-label">Turno</p><p className="info-value">{selectedStudent.turno}</p></div>
+                                            </div>
+                                        );
+
+                                        return (
+                                            <div className="info-grid-2">
+                                                <div><p className="info-label">Ano Lectivo</p><p className="info-value">{h.ano_lectivo_nome}</p></div>
+                                                <div><p className="info-label">Curso</p><p className="info-value">{h.curso_nome}</p></div>
+                                                <div><p className="info-label">Classe</p><p className="info-value">{h.classe_nome}</p></div>
+                                                <div><p className="info-label">Turno</p><p className="info-value">{h.periodo_nome}</p></div>
+                                                <div><p className="info-label">Tipo de Matrícula</p><p className="info-value" style={{color: 'var(--primary-color)', fontWeight: 700}}>{getTipoMatriculaLabel(h.tipo)}</p></div>
+                                                <div><p className="info-label">Estado no Ano</p>
+                                                    <span className="student-status-badge" style={{
+                                                        background: getStatusStyle(h.status).bg,
+                                                        color: getStatusStyle(h.status).color,
+                                                        border: `1px solid ${getStatusStyle(h.status).border}`,
+                                                        fontSize: '11px',
+                                                        padding: '3px 10px'
+                                                    }}>
+                                                        {h.status}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '16px', borderRadius: '16px', marginTop: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                    <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', color: 'var(--primary-color)' }}>
+                                                        <Home size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="info-label" style={{ marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SALA & TURMA DE REFERÊNCIA</p>
+                                                        <p className="info-value" style={{ fontSize: '18px', fontWeight: 800 }}>Sala {h.sala_numero} • {h.turma_codigo}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Comparison Logic */}
+                                                {(() => {
+                                                    const prev = selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex + 1];
+                                                    if (!prev) return null;
+                                                    
+                                                    const hasChanged = h.classe_nome !== prev.classe_nome || h.curso_nome !== prev.curso_nome || h.turma_codigo !== prev.turma_codigo;
+                                                    
+                                                    return (
+                                                        <div style={{ 
+                                                            gridColumn: 'span 2', 
+                                                            background: hasChanged ? '#f0f9ff' : '#f8fafc', 
+                                                            padding: '12px 16px', 
+                                                            borderRadius: '12px', 
+                                                            border: `1px dashed ${hasChanged ? '#bae6fd' : '#e2e8f0'}`,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '10px',
+                                                            fontSize: '12px',
+                                                            color: hasChanged ? '#0369a1' : '#64748b',
+                                                            marginTop: '8px'
+                                                        }}>
+                                                            <div style={{ background: hasChanged ? '#e0f2fe' : '#f1f5f9', padding: '6px', borderRadius: '50%' }}>
+                                                                {hasChanged ? <ArrowUpRight size={14} /> : <CheckCircle size={14} />}
+                                                            </div>
+                                                            <span>
+                                                                {hasChanged 
+                                                                    ? `Progressão detectada: O aluno mudou de ${prev.classe_nome} (${prev.ano_lectivo_nome}) para ${h.classe_nome}.`
+                                                                    : `Continuidade: Os dados acadêmicos permanecem consistentes com o ano anterior (${prev.ano_lectivo_nome}).`
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                                 
                                 {/* 3. Contactos & Encarregado */}
@@ -841,6 +1019,9 @@ const Alunos = () => {
                                         </div>
                                     </div>
                                 </div>
+
+
+
 
                                 <div style={{ height: '50px' }}></div>
                             </div>
@@ -929,6 +1110,31 @@ const Alunos = () => {
                                     </div>
                                 )}
                             </div>
+                        )}
+                        <div className="dropdown-divider" />
+
+                        {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
+                            <button 
+                                onClick={() => { 
+                                    if (menuStudent.status !== 'Concluido') {
+                                        alert("Apenas alunos com estado 'Concluído' podem renovar a matrícula para o novo ano.");
+                                        return;
+                                    }
+                                    navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Confirmacao`); 
+                                    setActiveMenuId(null); 
+                                }}
+                                className="dropdown-item-btn"
+                                style={{ 
+                                    color: menuStudent.status === 'Concluido' ? 'var(--primary-color)' : '#94a3b8', 
+                                    fontWeight: 600,
+                                    opacity: menuStudent.status === 'Concluido' ? 1 : 0.6,
+                                    cursor: menuStudent.status === 'Concluido' ? 'pointer' : 'not-allowed'
+                                }}
+                                title={menuStudent.status !== 'Concluido' ? "Apenas alunos concluídos podem renovar matrícula" : "Confirmar Matrícula"}
+                            >
+                                <div style={{ color: menuStudent.status === 'Concluido' ? 'var(--primary-color)' : '#cbd5e1' }}><RefreshCw size={16} /></div>
+                                Confirmar Matrícula
+                            </button>
                         )}
                     </div>
                 </>

@@ -10,8 +10,21 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     // Função de Logout - Definida cedo para ser usada nos useEffects
-    const signOut = () => {
+    const signOut = async () => {
         console.log('🚪 [AuthContext] Executando logout...');
+        
+        try {
+            if (user) {
+                // Notificar o backend para registar o log de saída
+                await api.post('auth/logout/', { 
+                    user_id: user.id || user.profile_id, 
+                    user_type: user.tipo 
+                });
+            }
+        } catch (err) {
+            console.warn('⚠️ [AuthContext] Erro ao notificar logout no backend:', err.message);
+        }
+
         sessionStorage.removeItem('@App:token');
         sessionStorage.removeItem('@App:user');
         localStorage.removeItem('@App:token');
@@ -55,10 +68,12 @@ export const AuthProvider = ({ children }) => {
             const papelChanged = user.papel !== remoteUser.papel;
             const superChanged = user.is_superuser !== remoteUser.is_superuser;
 
-            const photoChanged = user.foto !== remoteUser.foto;
             const nameChanged = (user.nome || user.nome_completo) !== (remoteUser.nome || remoteUser.nome_completo);
+            const phoneChanged = user.telefone !== remoteUser.telefone;
+            const addressChanged = user.endereco !== remoteUser.endereco;
+            const photoChanged = (user.img_path || user.foto) !== (remoteUser.img_path || remoteUser.foto);
 
-            if (localPerms !== remotePerms || statusChanged || papelChanged || superChanged || photoChanged || nameChanged) {
+            if (localPerms !== remotePerms || statusChanged || papelChanged || superChanged || photoChanged || nameChanged || phoneChanged || addressChanged) {
                 console.log('🔄 [AuthContext] Mudança detectada! Atualizando dados do usuário...');
                 setUser(remoteUser);
                 sessionStorage.setItem('@App:user', JSON.stringify(remoteUser));
@@ -71,23 +86,38 @@ export const AuthProvider = ({ children }) => {
         }
     }, [user]);
 
-    // 2. SINCRONIZAÇÃO EM TEMPO REAL (Polling)
+    // 2. SINCRONIZAÇÃO INTELIGENTE (Polling Otimizado)
+    const syncRef = React.useRef(syncUser);
+    useEffect(() => {
+        syncRef.current = syncUser;
+    }, [syncUser]);
+
     useEffect(() => {
         if (!user) return;
 
-        console.log('🚀 [AuthContext] Iniciando sincronização em tempo real...');
+        console.log('🚀 [AuthContext] Iniciando sincronização inteligente...');
 
-        const interval = setInterval(syncUser, 3000); // 3 segundos
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                console.log('🔄 [AuthContext] Aba visível, sincronizando...');
+                syncRef.current();
+            } else {
+                console.log('💤 [AuthContext] Aba oculta, sincronização pausada.');
+            }
+        };
+
+        // Polling a cada 60 segundos (apenas se visível)
+        const interval = setInterval(syncIfVisible, 60000); 
         
-        // Evitar execução imediata dupla se o user mudou muito rápido
-        const timeout = setTimeout(syncUser, 100); 
+        // Sincronizar imediatamente ao focar na janela/aba
+        window.addEventListener('focus', syncIfVisible);
 
         return () => {
             console.log('🧹 [AuthContext] Parando sincronização.');
             clearInterval(interval);
-            clearTimeout(timeout);
+            window.removeEventListener('focus', syncIfVisible);
         };
-    }, [syncUser, user?.id]); 
+    }, [user?.id]); // Apenas reinicia se o ID do usuário mudar (login/logout diferente)
 
     const signIn = async (email, password) => {
         setLoading(true);
