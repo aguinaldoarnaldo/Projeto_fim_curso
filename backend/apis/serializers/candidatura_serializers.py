@@ -55,16 +55,14 @@ class CandidatoSerializer(serializers.ModelSerializer):
     # Adicionar info do RUPE
     rupe_info = serializers.SerializerMethodField()
     def get_rupe_info(self, obj):
-        rupe = obj.rupes.last() # assumindo related_name='rupes' ou padrao
-        # Se nao tiver related_name, usar RupeCandidato.objects.filter... mas é menos eficiente
-        # Vamos usar o reverse lookup padrao se existir, ou filter
         from apis.models import RupeCandidato
-        rupe = RupeCandidato.objects.filter(candidato=obj).last()
+        rupe = RupeCandidato.objects.filter(inscricao=obj).last()
         if rupe:
             return {
-                'referencia': rupe.referencia,
-                'status': rupe.status,
-                'valor': rupe.valor
+                'codigo_rup': rupe.codigo_rup,
+                'status_rup': rupe.status_rup,
+                'valor': rupe.valor,
+                'is_expired': rupe.is_expired
             }
         return None
 
@@ -108,7 +106,11 @@ class RupeCandidatoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = RupeCandidato
-        fields = ['id_rupe', 'referencia', 'valor', 'status', 'data_pagamento', 'criado_em', 'is_expired']
+        fields = [
+            'id', 'codigo_rup', 'referencia_banco', 'valor', 
+            'status_rup', 'data_geracao', 'data_expiracao', 
+            'data_pagamento', 'criado_em', 'is_expired'
+        ]
 
 class ListaEsperaSerializer(serializers.ModelSerializer):
     candidato_nome = serializers.CharField(source='candidato.nome_completo', read_only=True)

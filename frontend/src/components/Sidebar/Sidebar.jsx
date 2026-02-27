@@ -52,6 +52,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Turmas', icon: <Layers size={20} />, path: '/turma', permission: PERMISSIONS.VIEW_TURMAS },
     { name: 'Salas', icon: <DoorOpen size={20} />, path: '/salas', permission: PERMISSIONS.VIEW_SALAS },
     { name: 'Cursos', icon: <GraduationCap size={20} />, path: '/cursos', permission: PERMISSIONS.VIEW_CURSOS },
+    { name: 'Gestão de Vagas', icon: <ClipboardList size={20} />, path: '/vagas-cursos', permission: PERMISSIONS.MANAGE_CONFIGURACOES },
     { name: 'Relatórios', icon: <PieChart size={20} />, path: '/relatorios', permission: PERMISSIONS.VIEW_RELATORIOS },
     { name: 'Configurações', icon: <Settings size={20} />, path: '/configuracoes', permission: PERMISSIONS.VIEW_CONFIGURACOES },
   ];

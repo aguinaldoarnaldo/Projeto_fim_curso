@@ -4,7 +4,7 @@ from .usuarios import Cargo, Funcionario, Encarregado, CargoFuncionario, Usuario
 from .alunos import Aluno, AlunoEncarregado
 from .academico import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
-    Curso, Periodo, Turma, AnoLectivo
+    Curso, Periodo, Turma, AnoLectivo, VagaCurso
 )
 
 from .avaliacoes import TipoDisciplina, Disciplina, DisciplinaCurso, ProfessorDisciplina, Nota, FaltaAluno
@@ -20,7 +20,7 @@ __all__ = [
     'BaseModel',
     'Usuario', 'Cargo', 'Funcionario', 'Encarregado', 'CargoFuncionario',
     'Aluno', 'AlunoEncarregado',
-    'Sala', 'Classe', 'Departamento', 'Seccao', 'AreaFormacao', 'Curso', 'Periodo', 'Turma', 'AnoLectivo',
+    'Sala', 'Classe', 'Departamento', 'Seccao', 'AreaFormacao', 'Curso', 'Periodo', 'Turma', 'AnoLectivo', 'VagaCurso',
 
     'TipoDisciplina', 'Disciplina', 'DisciplinaCurso', 'ProfessorDisciplina', 'Nota', 'FaltaAluno',
     'Fatura', 'Pagamento',

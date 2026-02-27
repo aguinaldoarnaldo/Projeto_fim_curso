@@ -1,0 +1,67 @@
+{% extends "pdf/base_documento.html" %}
+
+{% block content %}
+<div class="title">Relatório de Vagas por Ano Lectivo</div>
+
+<div style="margin-bottom: 20px;">
+    <p>Distribuição de vagas e ocupação por curso.
+    {% if ano_filtrado %}
+        <br><strong>Ano Lectivo: {{ ano_filtrado.nome }}</strong>
+    {% else %}
+        <br><strong>Mostrando todos os anos lectivos</strong>
+    {% endif %}
+    </p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt;">
+    <thead>
+        <tr style="background-color: #4b5563; color: white;">
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">CURSO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">ANO LECTIVO</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">VAGAS TOTAIS</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">OCUPADAS</th>
+            <th style="border: 1px solid #ddd; padding: 6px; text-align: center;">DISPONÍVEIS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for vaga in vagas %}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ vaga.curso_nome }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ vaga.ano_lectivo_nome }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">{{ vaga.vagas }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">{{ vaga.vagas_preenchidas }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">
+                {{ vaga.vagas_disponiveis }}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="border: 1px solid #ddd; padding: 10px; text-align: center;">Nenhuma configuração de vagas encontrada.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div style="margin-top: 30px; padding: 15px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;">
+    <h4 style="margin-top: 0; margin-bottom: 10px; color: #1e293b;">Resumo Geral</h4>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+        <div>
+            <span style="font-size: 8pt; color: #64748b; display: block;">Total de Vagas Oferecidas</span>
+            <span style="font-size: 14pt; font-weight: bold; color: #1e293b;">{{ totais.vagas }}</span>
+        </div>
+        <div>
+            <span style="font-size: 8pt; color: #64748b; display: block;">Vagas Preenchidas</span>
+            <span style="font-size: 14pt; font-weight: bold; color: #16a34a;">{{ totais.preenchidas }}</span>
+        </div>
+        <div>
+            <span style="font-size: 8pt; color: #64748b; display: block;">Vagas Restantes</span>
+            <span style="font-size: 14pt; font-weight: bold; color: #2563eb;">{{ totais.disponiveis }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="signature">
+    <div class="signature-line"></div>
+    <p>A Direção Académica</p>
+</div>
+{% endblock %}

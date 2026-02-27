@@ -42,6 +42,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
     sala_numero = serializers.SerializerMethodField()
     periodo_nome = serializers.SerializerMethodField()
     id_classe = serializers.SerializerMethodField()
+    matriculas_detalhes = serializers.SerializerMethodField()
 
     class Meta:
         model = Matricula
@@ -62,7 +63,8 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'sala_numero',
             'periodo_nome',
             'data_matricula', 'ativo',
-            'tipo', 'status', 'doc_bi', 'doc_certificado'
+            'tipo', 'status', 'doc_bi', 'doc_certificado',
+            'matriculas_detalhes'
         ]
         read_only_fields = ['id_matricula', 'data_matricula']
         extra_kwargs = {
@@ -150,24 +152,37 @@ class MatriculaSerializer(serializers.ModelSerializer):
         Regra:
         1. Se enviados no request -> OK.
         2. Se não enviados:
-           a) Se for matricula via Candidato: verificar se o Candidato tem os docs.
-           b) Se for matricula via Aluno já existente: verificar se tem matriculas anteriores com docs.
+           a) Verificar se a instância atual (se update) já possui os documentos.
+           b) Se for matricula via Candidato: verificar se o Candidato tem os docs.
+           c) Se for matricula via Aluno já existente: verificar se tem matriculas anteriores com docs.
         """
         doc_bi = attrs.get('doc_bi')
         doc_certificado = attrs.get('doc_certificado')
         
-        # Se ambos enviados, ok
-        if doc_bi and doc_certificado:
-            return attrs
-
-        # Verificar contexto (Candidato ou Aluno)
-        candidato_id = attrs.get('id_candidato') or (self.initial_data.get('id_candidato'))
-        aluno = attrs.get('id_aluno')
-
+        # Flags de presença
         has_bi = bool(doc_bi)
         has_cert = bool(doc_certificado)
 
-        # Caso 1: Via Candidato
+        # Se for um UPDATE (partial ou não), herdar valores atuais se não enviados
+        if self.instance:
+            if not has_bi and self.instance.doc_bi:
+                has_bi = True
+            if not has_cert and self.instance.doc_certificado:
+                has_cert = True
+
+        # Se ambos presentes via request ou via instância existente, ok
+        if has_bi and has_cert:
+            return attrs
+
+        # Buscar referências para herança (Candidato ou Aluno)
+        candidato_id = attrs.get('id_candidato') or self.initial_data.get('id_candidato')
+        aluno = attrs.get('id_aluno')
+        
+        # Se for update e não veio aluno no attrs, usar o da instância
+        if not aluno and self.instance:
+            aluno = self.instance.id_aluno
+
+        # Caso 1: Via Candidato (Criação)
         if candidato_id:
             try:
                 candidato = Candidato.objects.get(pk=candidato_id)
@@ -178,12 +193,17 @@ class MatriculaSerializer(serializers.ModelSerializer):
             except Candidato.DoesNotExist:
                 pass
         
-        # Caso 2: Via Aluno (Histórico)
+        # Caso 2: Via Aluno (Histórico de outras matrículas)
         elif aluno:
-            # Buscar último registro com docs
-            last_mat = Matricula.objects.filter(id_aluno=aluno).exclude(
+            # Buscar último registro com docs (excluindo a própria se for update para evitar circularidade inútil, 
+            # embora já tenhamos checado a self.instance acima)
+            query = Matricula.objects.filter(id_aluno=aluno).exclude(
                 doc_bi='', doc_certificado=''
-            ).order_by('-data_matricula').first()
+            )
+            if self.instance:
+                query = query.exclude(pk=self.instance.pk)
+                
+            last_mat = query.order_by('-data_matricula').first()
             
             if last_mat:
                 if not has_bi and last_mat.doc_bi:
@@ -292,3 +312,11 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
     def get_id_classe(self, obj):
         return obj.id_turma.id_classe.id_classe if obj.id_turma and obj.id_turma.id_classe else None
+
+    def get_matriculas_detalhes(self, obj):
+        if not obj.id_aluno:
+            return []
+        # Import dynamic serializer logic to avoid circularity if any
+        from .aluno_serializers import MatriculaHistorySerializer
+        matriculas = Matricula.objects.filter(id_aluno=obj.id_aluno).order_by('-ano_lectivo__nome', '-data_matricula')
+        return MatriculaHistorySerializer(matriculas, many=True).data

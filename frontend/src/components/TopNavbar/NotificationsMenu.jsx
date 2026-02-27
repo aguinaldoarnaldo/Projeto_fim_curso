@@ -34,9 +34,20 @@ const NotificationsMenu = () => {
     };
 
     useEffect(() => {
-        fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
-        return () => clearInterval(interval);
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                fetchNotifications();
+            }
+        };
+
+        const interval = setInterval(syncIfVisible, 60000); // 1 minuto
+        
+        window.addEventListener('focus', syncIfVisible);
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
     }, []);
 
     const markAsRead = async (id, e) => {

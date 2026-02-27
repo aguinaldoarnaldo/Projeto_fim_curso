@@ -5,8 +5,9 @@ from rest_framework.decorators import action
 from apis.models import Configuracao
 from apis.serializers.configuracao_serializers import ConfiguracaoSerializer
 from apis.permissions.custom_permissions import HasAdditionalPermission
+from apis.mixins import AuditMixin
 
-class ConfiguracaoViewSet(viewsets.GenericViewSet):
+class ConfiguracaoViewSet(AuditMixin, viewsets.GenericViewSet):
     """
     ViewSet Singleton para Configuração do Sistema
     """
@@ -27,10 +28,12 @@ class ConfiguracaoViewSet(viewsets.GenericViewSet):
         """Retorna a configuração singleton"""
         config = Configuracao.get_solo()
         
-        # Lógica de fechamento automático
-        from django.utils import timezone
-        if config.candidaturas_abertas and config.fechamento_automatico and config.data_fim_candidatura:
-            if timezone.now() > config.data_fim_candidatura:
+        # Lógica de fechamento automático baseada no Ano Lectivo
+        from apis.models import AnoLectivo
+        active_year = AnoLectivo.get_active_year()
+        
+        if active_year and active_year.fecho_automatico_inscricoes:
+            if config.candidaturas_abertas and not active_year.is_inscricoes_abertas:
                 config.candidaturas_abertas = False
                 config.save()
         
@@ -43,6 +46,7 @@ class ConfiguracaoViewSet(viewsets.GenericViewSet):
         config = Configuracao.get_solo()
         serializer = self.get_serializer(config, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
+            self._log_audit_action('update', instance, serializer)
             return Response(serializer.data)
         return Response(serializer.errors, status=400)

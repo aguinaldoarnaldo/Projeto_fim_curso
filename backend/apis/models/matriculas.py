@@ -57,7 +57,6 @@ class Matricula(models.Model):
     
     STATUS_MATRICULA = [
         ('Ativa', 'Ativa'),
-        ('Confirmada', 'Confirmada'),
         ('Concluida', 'Concluída'),
         ('Desistente', 'Desistente'),
         ('Transferido', 'Transferido')
@@ -163,6 +162,11 @@ class Matricula(models.Model):
              # Se for uma edição de uma matrícula já existente em ano fechado
              raise ValidationError(f"A matrícula pertence ao ano lectivo '{self.ano_lectivo.nome}' que está encerrado. Nenhuma alteração é permitida.")
              
+        # Garantir que matrículas de Confirmação entrem como 'Ativa'
+        # Confirmação no sistema é o ato de renovar a matrícula para o novo ano
+        if self.tipo == 'Confirmacao':
+            self.status = 'Ativa'
+
         self.clean()
         
         # Check capacity and notify if full

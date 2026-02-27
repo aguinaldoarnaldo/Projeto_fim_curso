@@ -22,8 +22,10 @@ import {
     ArrowRightLeft,
     ArrowUp,
     ArrowDown,
+    ArrowUpRight,
     ChevronRight,
     ChevronLeft,
+    ChevronDown,
     MapPin, 
     Users, 
     Lock,
@@ -47,6 +49,7 @@ const Matriculas = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [selectedMatricula, setSelectedMatricula] = useState(null);
+    const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
     const [showPermutaModal, setShowPermutaModal] = useState(false);
 
     const [showStatusSubmenu, setShowStatusSubmenu] = useState(false);
@@ -105,6 +108,11 @@ const Matriculas = () => {
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [activeMenuId]);
 
+    // Reset history index when selected matricula changes
+    useEffect(() => {
+        setSelectedHistoryIndex(0);
+    }, [selectedMatricula?.real_id]);
+
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -112,7 +120,8 @@ const Matriculas = () => {
         sala: '',
         curso: '',
         turma: '',
-        classe: ''
+        classe: '',
+        tipo: ''
     });
 
     // Filter Options State
@@ -148,6 +157,7 @@ const Matriculas = () => {
             turno: item.periodo_nome || 'N/A',
             turma: item.turma_codigo || 'Sem Turma',
             status: item.status || 'Ativa',
+            tipo: item.tipo || 'Novo',
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
             alunoId: item.id_aluno, // Use correct ID field from serializer
             id_turma: item.id_turma || '',
@@ -176,7 +186,8 @@ const Matriculas = () => {
                 documentos: item.documentos_entregues ? item.documentos_entregues.split(',') : [],
                 doc_bi: item.doc_bi,
                 doc_cert: item.doc_certificado,
-                historico: item.historico_escolar || [] 
+                historico: item.historico_escolar || [],
+                historicoMatriculas: item.matriculas_detalhes || []
             }
         }));
     };
@@ -231,12 +242,22 @@ const Matriculas = () => {
         refresh(true);
     }, [refresh]);
 
-    // 4. Polling (Silent Refresh)
+    // 4. Polling Automático e Inteligente (Otimizado)
     useEffect(() => {
-        const interval = setInterval(() => {
-            refresh(true); // silent = true
-        }, 60000); // 60s polling
-        return () => clearInterval(interval);
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                refresh(true); // silent = true
+            }
+        };
+
+        const interval = setInterval(syncIfVisible, 120000); // 120s polling
+        
+        window.addEventListener('focus', syncIfVisible);
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
     }, [refresh]);
 
     const handleFilterChange = (key, value) => {
@@ -245,7 +266,7 @@ const Matriculas = () => {
     };
 
     const resetFilters = () => {
-        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '' });
+        setFilters({ ano: '', sala: '', curso: '', turma: '', classe: '', tipo: '' });
         setCurrentPage(1);
     };
 
@@ -267,6 +288,15 @@ const Matriculas = () => {
     const handleUpdateStatus = async (matriculaId, newStatus) => {
         try {
             await api.patch(`matriculas/${matriculaId}/`, { status: newStatus });
+            
+            // Sync with open modal if it's the same matricula
+            if (selectedMatricula && selectedMatricula.real_id === matriculaId) {
+                setSelectedMatricula(prev => ({
+                    ...prev,
+                    status: newStatus
+                }));
+            }
+
             alert("Estado da matrícula atualizado!");
             setActiveMenuId(null);
             setMenuMatricula(null);
@@ -322,10 +352,30 @@ const Matriculas = () => {
                 (filters.classe === '' || matricula.classe === filters.classe) &&
                 (filters.curso === '' || matricula.curso === filters.curso) &&
                 (filters.sala === '' || String(matricula.sala) === filters.sala) &&
-                (filters.turma === '' || matricula.turma === filters.turma);
+                (filters.turma === '' || matricula.turma === filters.turma) &&
+                (filters.tipo === '' || matricula.tipo === filters.tipo);
 
             return matchesSearch && matchesFilters;
         });
+
+        // Dedup logic: If NO year filter is active, only show the most recent matricula for each student
+        if (filters.ano === '') {
+            const studentMap = {};
+            sortableItems.forEach(m => {
+                const studentId = m.alunoId;
+                if (!studentMap[studentId]) {
+                    studentMap[studentId] = m;
+                } else {
+                    // Simple logic: Compare by real_id or dataMatricula
+                    // We assume the list is already sorted by date desc if backend default applies, 
+                    // but let's be safe.
+                    if (m.real_id > studentMap[studentId].real_id) {
+                        studentMap[studentId] = m;
+                    }
+                }
+            });
+            sortableItems = Object.values(studentMap);
+        }
 
         if (sortConfig.key) {
             sortableItems.sort((a, b) => {
@@ -357,9 +407,8 @@ const Matriculas = () => {
         // Mapeamento estrito conforme o Backend (models.py)
         // STATUS_MATRICULA = ['Ativa', 'Confirmada', 'Concluida', 'Desistente', 'Transferido']
         const statusMap = {
-            // Status: Ativa / Confirmada -> Verde
+            // Status: Ativa -> Verde
             'ativa': 'status-confirmed',
-            'confirmada': 'status-confirmed',
 
             // Status: Concluida -> Verde Sucesso
             'concluida': 'status-success',
@@ -416,6 +465,18 @@ const Matriculas = () => {
             label: 'Turma', 
             icon: Users,
             options: turmasDisponiveis.map(t => ({ value: t.codigo_turma || t.nome, label: t.codigo_turma || t.nome }))
+        },
+        {
+            key: 'tipo',
+            label: 'Tipo de Matrícula',
+            icon: ShieldCheck,
+            options: [
+                { value: 'Novo', label: 'Novo Ingresso' },
+                { value: 'Confirmacao', label: 'Confirmação' },
+                { value: 'Transferencia', label: 'Transferência' },
+                { value: 'Repetente', label: 'Repetente' },
+                { value: 'Reenquadramento', label: 'Reenquadramento' }
+            ]
         }
     ], [anosDisponiveis, classesDisponiveis, cursosDisponiveis, salasDisponiveis, turmasDisponiveis]);
 
@@ -527,9 +588,9 @@ const Matriculas = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                    <th className="sticky-col-1" style={{ width: '80px', textAlign: 'center' }}>Nº Matr.</th>
+
                                     <th 
-                                        className={`sticky-col-2 sortable-header ${sortConfig.key === 'aluno' ? 'active-sort' : ''}`} 
+                                        className={`sticky-col-1 sortable-header ${sortConfig.key === 'aluno' ? 'active-sort' : ''}`} 
                                         onClick={() => requestSort('aluno')}
                                         style={{ minWidth: '250px' }} 
                                     >
@@ -589,10 +650,8 @@ const Matriculas = () => {
                             <tbody>
                                 {currentItems.map((m) => (
                                     <tr key={m.id} className="animate-fade-in">
-                                        <td className="sticky-col-1" style={{ textAlign: 'center', fontWeight: '700', fontFamily: 'monospace', color: '#64748b' }}>
-                                            #{m.real_id}
-                                        </td>
-                                        <td className="sticky-col-2">
+
+                                        <td className="sticky-col-1">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div className="student-avatar" style={{ 
                                                     width: '32px', 
@@ -725,7 +784,10 @@ const Matriculas = () => {
                     
                     {/* Lightbox for Image Zoom */}
                     <div className="detail-modal-card matriculas-page" onClick={(e) => e.stopPropagation()}>
-                         <button className="btn-close-modal" onClick={() => setSelectedMatricula(null)}>
+                        <button className="btn-close-modal" onClick={() => {
+                            setSelectedMatricula(null);
+                            setSelectedHistoryIndex(0);
+                        }}>
                             <X size={24} color="#64748b" />
                         </button>
                         
@@ -749,15 +811,56 @@ const Matriculas = () => {
                                 <h2 className="profile-name">{selectedMatricula.aluno}</h2>
                                 <p className="profile-id">ID: {selectedMatricula.id}</p>
                                 
-                                <div style={{
-                                    background: 'rgba(255,255,255,0.2)', 
-                                    padding: '8px 16px', 
-                                    borderRadius: '8px', 
-                                    marginBottom: '32px',
-                                    fontWeight: '700',
-                                    border: '1px solid rgba(255,255,255,0.2)'
-                                }}>
-                                    {selectedMatricula.status}
+                                <div 
+                                    className="profile-status-interactive"
+                                    onClick={() => setShowStatusSubmenu(!showStatusSubmenu)}
+                                    style={{
+                                        background: (() => {
+                                            const h = selectedMatricula.detalhes?.historicoMatriculas?.[selectedHistoryIndex];
+                                            const s = (h ? h.status : selectedMatricula.status).toLowerCase();
+                                            if (s === 'ativa') return 'rgba(34, 197, 94, 0.2)'; // Green
+                                            if (s === 'concluida') return 'rgba(59, 130, 246, 0.2)'; // Blue
+                                            if (s === 'desistente') return 'rgba(239, 68, 68, 0.2)'; // Red
+                                            return 'rgba(255,255,255,0.2)';
+                                        })(),
+                                        padding: '8px 16px', 
+                                        borderRadius: '8px', 
+                                        marginBottom: '32px',
+                                        fontWeight: '700',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'pointer',
+                                        position: 'relative',
+                                        transition: 'all 0.2s ease',
+                                        width: '100%'
+                                    }}
+                                >
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {(selectedMatricula.detalhes?.historicoMatriculas?.[selectedHistoryIndex]?.status || selectedMatricula.status).toUpperCase()}
+                                        <ChevronDown size={14} />
+                                    </span>
+                                    {selectedMatricula.detalhes?.historicoMatriculas?.[selectedHistoryIndex]?.tipo === 'Confirmacao' && (
+                                        <span style={{ fontSize: '9px', opacity: 0.9, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                            DADOS ATUALIZADOS
+                                        </span>
+                                    )}
+
+                                    {showStatusSubmenu && (
+                                        <div className="status-dropdown-modal" onClick={(e) => e.stopPropagation()}>
+                                            {['Ativa', 'Concluida', 'Desistente', 'Transferido'].map(s => (
+                                                <button 
+                                                    key={s} 
+                                                    onClick={() => handleUpdateStatus(selectedMatricula.real_id, s)}
+                                                    className={`status-opt ${s.toLowerCase()}`}
+                                                >
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button 
@@ -786,17 +889,36 @@ const Matriculas = () => {
                                 </button>
 
                                 <div className="profile-footer">
-                                    <div className="profile-footer-item">
-                                        <Calendar size={18} />
-                                        <span>Matrícula: {selectedMatricula.dataMatricula}</span>
-                                    </div>
-                                    <div className="profile-footer-item">
-                                        <BookOpen size={18} />
-                                        <span>Classe: {selectedMatricula.classe}</span>
-                                    </div>
-                                    <div className="profile-footer-item">
-                                        <Home size={18} />
-                                        <span>Turma: {selectedMatricula.turma}</span>
+                                    {(() => {
+                                        const h = selectedMatricula.detalhes?.historicoMatriculas?.[selectedHistoryIndex];
+                                        if (!h) return (
+                                            <>
+                                                <div className="profile-footer-item"><Calendar size={18} /><span>Matrícula: {selectedMatricula.dataMatricula}</span></div>
+                                                <div className="profile-footer-item"><BookOpen size={18} /><span>Classe: {selectedMatricula.classe}</span></div>
+                                                <div className="profile-footer-item"><Home size={18} /><span>Turma: {selectedMatricula.turma}</span></div>
+                                            </>
+                                        );
+                                        return (
+                                            <>
+                                                <div className="profile-footer-item"><Calendar size={18} /><span>Ano: {h.ano_lectivo_nome}</span></div>
+                                                <div className="profile-footer-item"><BookOpen size={18} /><span>Classe: {h.classe_nome}</span></div>
+                                                <div className="profile-footer-item"><Home size={18} /><span>Turma: {h.turma_codigo}</span></div>
+                                            </>
+                                        );
+                                    })()}
+                                    <div className="profile-footer-item" style={{ marginTop: '5px', color: '#fef3c7' }}>
+                                        <ShieldCheck size={18} />
+                                        <span>Tipo: {
+                                            (() => {
+                                                const h = selectedMatricula.detalhes?.historicoMatriculas?.[selectedHistoryIndex];
+                                                const tipo = h ? h.tipo : selectedMatricula.tipo;
+                                                return tipo === 'Novo' ? 'Novo Ingresso' :
+                                                       tipo === 'Confirmacao' ? 'Confirmação' :
+                                                       tipo === 'Transferencia' ? 'Transferência' :
+                                                       tipo === 'Repetente' ? 'Repetente' :
+                                                       tipo === 'Reenquadramento' ? 'Reenquadramento' : tipo;
+                                            })()
+                                        }</span>
                                     </div>
                                 </div>
                             </div>
@@ -817,24 +939,116 @@ const Matriculas = () => {
                                     </div>
                                 </div>
                                 
-                                {/* 2. Dados Académicos */}
+                                 {/* 2. Dados Académicos & Histórico Interativo */}
                                 <div className="info-section">
-                                    <div className="section-title"><BookOpen size={20} color="#b45309" /> Informações Académicas</div>
-                                    <div className="info-grid-2">
-                                        <div><p className="info-label">Ano Lectivo</p><p className="info-value">{selectedMatricula.anoLectivo}</p></div>
-                                        <div><p className="info-label">Curso</p><p className="info-value">{selectedMatricula.curso}</p></div>
-                                        <div><p className="info-label">Classe/Nível</p><p className="info-value">{selectedMatricula.classe}</p></div>
-                                        <div><p className="info-label">Turno</p><p className="info-value">{selectedMatricula.turno}</p></div>
-                                        <div style={{gridColumn: 'span 2', background: '#fffbeb', padding: '16px', borderRadius: '12px', marginTop: '8px', border: '1px solid #fcd34d'}}>
-                                            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                                                <Home size={20} color="#b45309" />
-                                                <div>
-                                                    <p className="info-label" style={{color: '#b45309', marginBottom: '4px'}}>SALA & TURMA ATRIBUÍDA</p>
-                                                    <p className="info-value" style={{fontSize: '18px'}}>{selectedMatricula.sala} • {selectedMatricula.turma}</p>
-                                                </div>
-                                            </div>
+                                    <h3 className="section-title" style={{ color: '#b45309', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <GraduationCap size={20} color="#b45309" /> Dados da Matrícula
+                                        </span>
+                                        {selectedMatricula.detalhes.historicoMatriculas && selectedMatricula.detalhes.historicoMatriculas.length > 1 && (
+                                            <span style={{ fontSize: '11px', background: '#fffbeb', padding: '4px 8px', borderRadius: '20px', border: '1px solid #fcd34d', textTransform: 'none', letterSpacing: 'normal' }}>
+                                                {selectedMatricula.detalhes.historicoMatriculas.length} Matrículas registradas
+                                            </span>
+                                        )}
+                                    </h3>
+
+                                    {/* Seletor de Anos Interativo */}
+                                    {selectedMatricula.detalhes.historicoMatriculas && selectedMatricula.detalhes.historicoMatriculas.length > 1 && (
+                                        <div className="year-history-tabs">
+                                            {selectedMatricula.detalhes.historicoMatriculas.map((m, idx) => (
+                                                <button
+                                                    key={m.id_matricula}
+                                                    onClick={() => setSelectedHistoryIndex(idx)}
+                                                    className={`history-tab-btn ${selectedHistoryIndex === idx ? 'active' : ''}`}
+                                                >
+                                                    <Calendar size={14} className="tab-year-icon" />
+                                                    {m.ano_lectivo_nome}
+                                                </button>
+                                            ))}
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {(() => {
+                                        const h = selectedMatricula.detalhes.historicoMatriculas?.[selectedHistoryIndex];
+                                        
+                                        const getTipoLabel = (t) => {
+                                            const map = { 'Novo': 'Novo Ingresso', 'Confirmacao': 'Confirmação', 'Transferencia': 'Transferência', 'Repetente': 'Repetente', 'Reenquadramento': 'Reenquadramento' };
+                                            return map[t] || t;
+                                        };
+                                        const getBadgeClass = (s) => {
+                                            const map = { 'ativa': 'status-confirmed', 'concluida': 'status-success', 'transferido': 'status-info', 'desistente': 'status-danger' };
+                                            return map[String(s).toLowerCase()] || 'status-default';
+                                        };
+
+                                        if (!h) {
+                                            return (
+                                                <div className="info-grid-2">
+                                                    <div><p className="info-label">Ano Lectivo</p><p className="info-value">{selectedMatricula.anoLectivo}</p></div>
+                                                    <div><p className="info-label">Curso</p><p className="info-value">{selectedMatricula.curso}</p></div>
+                                                    <div><p className="info-label">Classe/Nível</p><p className="info-value">{selectedMatricula.classe}</p></div>
+                                                    <div><p className="info-label">Turno</p><p className="info-value">{selectedMatricula.turno}</p></div>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="info-grid-2">
+                                                <div><p className="info-label">Ano Lectivo</p><p className="info-value">{h.ano_lectivo_nome}</p></div>
+                                                <div><p className="info-label">Curso</p><p className="info-value">{h.curso_nome}</p></div>
+                                                <div><p className="info-label">Classe</p><p className="info-value">{h.classe_nome}</p></div>
+                                                <div><p className="info-label">Turno</p><p className="info-value">{h.periodo_nome}</p></div>
+                                                <div><p className="info-label">Tipo de Matrícula</p><p className="info-value" style={{color: 'var(--primary-color)', fontWeight: 700}}>{getTipoLabel(h.tipo)}</p></div>
+                                                <div><p className="info-label">Estado no Ano</p>
+                                                    <span className={`status-badge ${getBadgeClass(h.status)}`} style={{fontSize: '11px', padding: '3px 10px'}}>
+                                                        {h.status.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '16px', borderRadius: '16px', marginTop: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                    <div style={{ background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', color: 'var(--primary-color)' }}>
+                                                        <Home size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="info-label" style={{ marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SALA & TURMA DE REFERÊNCIA</p>
+                                                        <p className="info-value" style={{ fontSize: '18px', fontWeight: 800 }}>Sala {h.sala_numero} • {h.turma_codigo}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Comparativo de Alteração */}
+                                                {(() => {
+                                                    const prev = selectedMatricula.detalhes?.historicoMatriculas?.[selectedHistoryIndex + 1];
+                                                    if (!prev) return null;
+                                                    
+                                                    const hasChanged = h.classe_nome !== prev.classe_nome || h.curso_nome !== prev.curso_nome || h.turma_codigo !== prev.turma_codigo;
+                                                    
+                                                    return (
+                                                        <div style={{ 
+                                                            gridColumn: 'span 2', 
+                                                            background: hasChanged ? '#f0f9ff' : '#f8fafc', 
+                                                            padding: '12px 16px', 
+                                                            borderRadius: '12px', 
+                                                            border: `1px dashed ${hasChanged ? '#bae6fd' : '#e2e8f0'}`,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '10px',
+                                                            fontSize: '12px',
+                                                            color: hasChanged ? '#0369a1' : '#64748b'
+                                                        }}>
+                                                            <div style={{ background: hasChanged ? '#e0f2fe' : '#f1f5f9', padding: '6px', borderRadius: '50%' }}>
+                                                                {hasChanged ? <ArrowUpRight size={14} /> : <CheckCircle size={14} />}
+                                                            </div>
+                                                            <span>
+                                                                {hasChanged 
+                                                                    ? `Progressão detectada: O aluno mudou de ${prev.classe_nome} (${prev.ano_lectivo_nome}) para ${h.classe_nome}.`
+                                                                    : `Continuidade: Os dados acadêmicos permanecem consistentes com o ano anterior (${prev.ano_lectivo_nome}).`
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                                 
                                 {/* 3. Contactos do Aluno */}
@@ -1123,10 +1337,8 @@ const Matriculas = () => {
                                 >
                                     {[
                                         { value: 'Ativa', label: 'Ativa / Ativo', icon: CheckCircle, color: '#16a34a' },
-                                        { value: 'Confirmada', label: 'Confirmada', icon: ShieldCheck, color: '#0369a1' },
                                         { value: 'Concluida', label: 'Concluída', icon: GraduationCap, color: '#1e40af' },
                                         { value: 'Transferido', label: 'Transferido', icon: ArrowRightLeft, color: '#c2410c' },
-                                        { value: 'Suspensa', label: 'Suspensa', icon: Lock, color: '#b91c1c' },
                                         { value: 'Desistente', label: 'Desistente', icon: X, color: '#64748b' }
                                     ].map((opt) => (
                                         <button
@@ -1169,12 +1381,15 @@ const Matriculas = () => {
                             <button 
                                 className="dropdown-item success" 
                                 onClick={() => {
-                                     if (!isYearClosed) {
-                                        navigate('/matriculas/nova', { state: { matricula: menuMatricula, tipo: 'Confirmacao' } })
-                                     } else {
+                                     if (isYearClosed) {
                                         alert("Crie um Ano Lectivo Ativo para poder confirmar matrículas."); 
+                                     } else if (menuMatricula.status !== 'Concluida') {
+                                        alert("Apenas matrículas com estado 'Concluída' podem ser confirmadas para o novo ano.");
+                                     } else {
+                                        navigate('/matriculas/nova', { state: { matricula: menuMatricula, tipo: 'Confirmacao' } })
                                      }
                                 }}
+                                disabled={isYearClosed || menuMatricula.status !== 'Concluida'}
                                 style={{
                                     width: '100%',
                                     textAlign: 'left',
@@ -1182,20 +1397,20 @@ const Matriculas = () => {
                                     background: 'transparent',
                                     border: 'none',
                                     borderRadius: '8px',
-                                    cursor: !isYearClosed ? 'pointer' : 'not-allowed',
+                                    cursor: (!isYearClosed && menuMatricula.status === 'Concluida') ? 'pointer' : 'not-allowed',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '10px',
-                                    color: !isYearClosed ? '#059669' : '#94a3b8',
+                                    color: (!isYearClosed && menuMatricula.status === 'Concluida') ? '#059669' : '#94a3b8',
                                     fontSize: '14px',
                                     fontWeight: 600,
-                                    opacity: !isYearClosed ? 1 : 0.6
+                                    opacity: (!isYearClosed && menuMatricula.status === 'Concluida') ? 1 : 0.6
                                 }}
-                                onMouseOver={(e) => { if (!isYearClosed) e.currentTarget.style.background = '#ecfdf5'; }}
+                                onMouseOver={(e) => { if (!isYearClosed && menuMatricula.status === 'Concluida') e.currentTarget.style.background = '#ecfdf5'; }}
                                 onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                                title={!isYearClosed ? "Confirmar para o novo ano" : "Não há ano lectivo ativo"}
+                                title={isYearClosed ? "Não há ano lectivo ativo" : menuMatricula.status !== 'Concluida' ? "Apenas matrículas concluídas podem ser renovadas" : "Confirmar para o novo ano"}
                             >
-                                <CheckCircle size={16} color={!isYearClosed ? "#059669" : "#cbd5e1"} /> Confirmar Matrícula
+                                <CheckCircle size={16} color={(!isYearClosed && menuMatricula.status === 'Concluida') ? "#059669" : "#cbd5e1"} /> Confirmar Matrícula
                             </button>
                         </div>
                     )}

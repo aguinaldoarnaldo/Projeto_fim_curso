@@ -1,12 +1,19 @@
 /* Dashboard.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Google Fonts removido para suporte offline/local */
 
 .dashboard-container {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     padding: 24px;
     background-color: #f8fafc;
     min-height: 100vh;
     color: #1e293b;
+    letter-spacing: -0.01em;
+}
+
+.dashboard-container h1, 
+.dashboard-container h2, 
+.dashboard-container h3 {
+    font-family: var(--font-heading);
 }
 
 /* HEADER */
@@ -385,13 +392,18 @@
     gap: 24px;
 }
 
+.chart-body {
+    min-height: 300px;
+    width: 100%;
+}
+
 .gender-chart-body {
     height: 300px;
 }
 
 .course-chart-body {
     height: auto;
-    min-height: 300px;
+    min-height: 350px;
 }
 
 @media (max-width: 1200px) {

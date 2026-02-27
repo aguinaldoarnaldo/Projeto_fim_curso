@@ -12,8 +12,9 @@ from apis.models import Matricula
 from apis.serializers.matricula_serializers import MatriculaSerializer
 
 from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
+from apis.mixins import AuditMixin
 
-class MatriculaViewSet(viewsets.ModelViewSet):
+class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Matricula"""
     queryset = Matricula.objects.select_related(
         'id_aluno', 
@@ -166,27 +167,31 @@ class MatriculaViewSet(viewsets.ModelViewSet):
                                 print(f"Erro ao copiar foto do candidato: {e}")
                 else:
                     # Atualizar dados do aluno existente
+                    # IMPORTANTE: Para 'Confirmacao', apenas atualizamos a turma e o status.
+                    # Os dados pessoais do aluno (nome, BI, morada, etc.) NÃO são alterados
+                    # para preservar a integridade do histórico das matrículas anteriores.
+                    is_confirmacao = data.get('tipo') == 'Confirmacao'
+                    
                     aluno.id_turma = turma
                     aluno.status_aluno = 'Activo'
                     
-                    # Campos de Identidade
-                    if data.get('nome_completo'): aluno.nome_completo = data.get('nome_completo')
-                    if data.get('data_nascimento'): aluno.data_nascimento = data.get('data_nascimento')
-                    if data.get('genero'): aluno.genero = data.get('genero')
-                    if data.get('numero_bi'): aluno.numero_bi = data.get('numero_bi')
-
-                    # Campos de Endereço/Contato
-                    if data.get('nacionalidade'): aluno.nacionalidade = data.get('nacionalidade')
-                    if data.get('naturalidade'): aluno.naturalidade = data.get('naturalidade')
-                    if data.get('deficiencia'): aluno.deficiencia = data.get('deficiencia')
-                    if data.get('email'): aluno.email = data.get('email')
-                    if data.get('telefone'): aluno.telefone = data.get('telefone')
-                    if data.get('provincia'): aluno.provincia_residencia = data.get('provincia')
-                    if data.get('municipio'): aluno.municipio_residencia = data.get('municipio')
-                    if data.get('bairro'): aluno.bairro_residencia = data.get('bairro')
-                    if data.get('numero_casa'): aluno.numero_casa = data.get('numero_casa')
+                    if not is_confirmacao:
+                        # Edição normal — permite actualizar dados pessoais
+                        if data.get('nome_completo'): aluno.nome_completo = data.get('nome_completo')
+                        if data.get('data_nascimento'): aluno.data_nascimento = data.get('data_nascimento')
+                        if data.get('genero'): aluno.genero = data.get('genero')
+                        if data.get('numero_bi'): aluno.numero_bi = data.get('numero_bi')
+                        if data.get('nacionalidade'): aluno.nacionalidade = data.get('nacionalidade')
+                        if data.get('naturalidade'): aluno.naturalidade = data.get('naturalidade')
+                        if data.get('deficiencia'): aluno.deficiencia = data.get('deficiencia')
+                        if data.get('email'): aluno.email = data.get('email')
+                        if data.get('telefone'): aluno.telefone = data.get('telefone')
+                        if data.get('provincia'): aluno.provincia_residencia = data.get('provincia')
+                        if data.get('municipio'): aluno.municipio_residencia = data.get('municipio')
+                        if data.get('bairro'): aluno.bairro_residencia = data.get('bairro')
+                        if data.get('numero_casa'): aluno.numero_casa = data.get('numero_casa')
                     
-                    # Foto
+                    # Foto: actualizar sempre (nova foto do ano)
                     foto_nova = request.FILES.get('novo_aluno_foto')
                     if foto_nova:
                         aluno.img_path = foto_nova

@@ -64,10 +64,21 @@ class Aluno(BaseModel):
             from django.core.exceptions import ValidationError
             try:
                 estado_anterior = Aluno.objects.values_list('status_aluno', flat=True).get(pk=self.pk)
-                if estado_anterior in ESTADOS_FINAIS:
+                # Permitimos salvar se o estado estiver a ser alterado (ex: desbloqueio de Inativo -> Activo)
+                # Caso contrário, se o estado atual for final e não estiver a mudar, bloqueia outras edições.
+                if estado_anterior in ESTADOS_FINAIS and self.status_aluno == estado_anterior:
                     raise ValidationError(
                         f"O aluno encontra-se com o estado '{estado_anterior}' que é um estado final. "
-                        f"Não são permitidas alterações. Contacte o administrador para desbloquear."
+                        f"Não são permitidas alterações nos dados enquanto estiver neste estado. "
+                        f"Para editar, altere primeiro o estado do aluno."
+                    )
+                
+                # --- Bloqueio de alteração do número de matrícula ---
+                # Uma vez atribuído, o número de matrícula não deve ser alterado manualmente.
+                matricula_anterior = Aluno.objects.values_list('numero_matricula', flat=True).get(pk=self.pk)
+                if matricula_anterior and self.numero_matricula != matricula_anterior:
+                    raise ValidationError(
+                        f"O Número de Matrícula ({matricula_anterior}) é permanente e não pode ser alterado."
                     )
             except Aluno.DoesNotExist:
                 pass  # Novo registo, nada a validar

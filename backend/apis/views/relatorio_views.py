@@ -56,8 +56,9 @@ class RelatorioViewSet(viewsets.ViewSet):
         context = {
             'turmas': turmas,
             'total': turmas.count(),
-            'ano_filtrado': AnoLectivo.objects.filter(id_ano_lectivo=ano_id).first() if (ano_id and ano_id != 'all') else None,
+            'ano_filtrado': AnoLectivo.objects.filter(id_ano=ano_id).first() if (ano_id and ano_id != 'all') else None,
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'hoje': timezone.now(),
             'escola_nome': 'Complexo Escolar Politécnico'
         }
         
@@ -83,6 +84,7 @@ class RelatorioViewSet(viewsets.ViewSet):
                 'turma': turma,
                 'alunos': alunos,
                 'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+                'hoje': timezone.now(),
                 'escola_nome': 'Complexo Escolar Politécnico'
             }
             
@@ -107,6 +109,7 @@ class RelatorioViewSet(viewsets.ViewSet):
             'pagamentos': pagamentos,
             'total_geral': total,
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'hoje': timezone.now(),
             'escola_nome': 'Complexo Escolar Politécnico'
         }
         
@@ -129,8 +132,9 @@ class RelatorioViewSet(viewsets.ViewSet):
         context = {
             'candidatos': candidatos,
             'total': candidatos.count(),
-            'ano_filtrado': AnoLectivo.objects.filter(id_ano_lectivo=ano_lectivo_id).first() if (ano_lectivo_id and ano_lectivo_id != 'all' and ano_lectivo_id != '') else None,
+            'ano_filtrado': AnoLectivo.objects.filter(id_ano=ano_lectivo_id).first() if (ano_lectivo_id and ano_lectivo_id != 'all' and ano_lectivo_id != '') else None,
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'hoje': timezone.now(),
             'escola_nome': 'Complexo Escolar Politécnico'
         }
         
@@ -150,12 +154,68 @@ class RelatorioViewSet(viewsets.ViewSet):
             'anos': anos,
             'total': anos.count(),
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'hoje': timezone.now(),
             'escola_nome': 'Complexo Escolar Politécnico'
         }
         
         response = self._render_pdf('pdf/anos_lectivos_resumo.html', context)
         if response:
             response['Content-Disposition'] = 'attachment; filename="relatorio_anos_lectivos.pdf"'
+            return response
+        return Response({'erro': 'Erro ao gerar PDF'}, status=500)
+
+    @action(detail=False, methods=['get'])
+    def relatorio_vagas(self, request):
+        """Relatório de vagas por curso e ano lectivo"""
+        from apis.models import VagaCurso, AnoLectivo, Matricula
+        from django.db.models import Count, Q
+        
+        ano_id = request.query_params.get('ano_id')
+        vagas_qs = VagaCurso.objects.select_related('id_curso', 'ano_lectivo').all().order_by('ano_lectivo', 'id_curso__nome_curso')
+        
+        if ano_id and ano_id != 'all' and ano_id != '':
+            vagas_qs = vagas_qs.filter(ano_lectivo_id=ano_id)
+            
+        report_data = []
+        total_vagas = 0
+        total_preenchidas = 0
+        
+        status_ativos = ['Ativa', 'Concluida']
+        
+        for v in vagas_qs:
+            preenchidas = Matricula.objects.filter(
+                id_turma__id_curso=v.id_curso,
+                ano_lectivo=v.ano_lectivo,
+                status__in=status_ativos
+            ).count()
+            
+            report_data.append({
+                'curso_nome': v.id_curso.nome_curso,
+                'ano_lectivo_nome': v.ano_lectivo.nome,
+                'vagas': v.vagas,
+                'vagas_preenchidas': preenchidas,
+                'vagas_disponiveis': max(0, v.vagas - preenchidas)
+            })
+            
+            total_vagas += v.vagas
+            total_preenchidas += preenchidas
+            
+        from django.utils import timezone
+        context = {
+            'vagas': report_data,
+            'totais': {
+                'vagas': total_vagas,
+                'preenchidas': total_preenchidas,
+                'disponiveis': max(0, total_vagas - total_preenchidas)
+            },
+            'ano_filtrado': AnoLectivo.objects.filter(id_ano=ano_id).first() if (ano_id and ano_id != 'all' and ano_id != '') else None,
+            'hoje': timezone.now(),
+            'escola_nome': 'Complexo Escolar Politécnico'
+        }
+        
+        response = self._render_pdf('pdf/vagas_resumo.html', context)
+        if response:
+            response['Content-Disposition'] = 'attachment; filename="relatorio_vagas.pdf"'
             return response
         return Response({'erro': 'Erro ao gerar PDF'}, status=500)
 
@@ -183,6 +243,7 @@ class RelatorioViewSet(viewsets.ViewSet):
         context = {
             'salas': salas_data,
             'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
+            'hoje': timezone.now(),
             'escola_nome': 'Complexo Escolar Politécnico'
         }
         

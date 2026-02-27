@@ -9,15 +9,11 @@ class Candidato(BaseModel):
     """Candidatos inscritos no processo de admissão"""
     
     STATUS_CHOICES = [
-        ('Pendente', 'Pendente'),
-        ('Em Análise', 'Em Análise'),
-        ('Confirmado', 'Confirmado'),
-        ('Pago', 'Pago'),
-        ('Agendado', 'Agendado'),
-        ('Aprovado', 'Aprovado'),
-        ('Não Admitido', 'Não Admitido'), 
-        ('Reprovado', 'Reprovado'),
-        ('Matriculado', 'Matriculado')
+        ('INSCRITO', 'INSCRITO'),
+        ('AUSENTE', 'AUSENTE'),
+        ('CLASSIFICADO', 'CLASSIFICADO'),
+        ('NAO_CLASSIFICADO', 'NAO_CLASSIFICADO'),
+        ('MATRICULADO', 'MATRICULADO')
     ]
 
     GENERO_CHOICES = [('M', 'Masculino'), ('F', 'Feminino')]
@@ -77,7 +73,7 @@ class Candidato(BaseModel):
     )
     
     # Estado
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pendente')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='INSCRITO')
     
     def save(self, *args, **kwargs):
         # Auto-assign active year if not provided
@@ -173,28 +169,44 @@ class ExameAdmissao(BaseModel):
         
 class RupeCandidato(BaseModel):
     """Pagamento do RUPE de inscrição"""
-    id_rupe = models.AutoField(primary_key=True)
-    candidato = models.ForeignKey(Candidato, on_delete=models.CASCADE, related_name='rupes')
-    referencia = models.CharField(max_length=50, unique=True, default=uuid.uuid4)
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=[('Pendente', 'Pendente'), ('Pago', 'Pago')], default='Pendente')
-    data_pagamento = models.DateTimeField(null=True, blank=True)
+    STATUS_RUP_CHOICES = [
+        ('PENDENTE', 'PENDENTE'),
+        ('PAGO', 'PAGO'),
+        ('EXPIRADO', 'EXPIRADO'),
+        ('CANCELADO', 'CANCELADO')
+    ]
+
+    id = models.AutoField(primary_key=True)
+    inscricao = models.ForeignKey(Candidato, on_delete=models.CASCADE, related_name='rupes', verbose_name="Dono do RUP")
+    codigo_rup = models.CharField(max_length=50, unique=True, verbose_name="Código RUP")
+    referencia_banco = models.CharField(max_length=50, null=True, blank=True, verbose_name="Referência Banco")
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    data_geracao = models.DateTimeField(null=True, blank=True, verbose_name="Data de Geração")
+    data_expiracao = models.DateTimeField(null=True, blank=True, verbose_name="Data de Expiração")
+    data_pagamento = models.DateTimeField(null=True, blank=True, verbose_name="Data de Pagamento")
+    status_rup = models.CharField(max_length=20, choices=STATUS_RUP_CHOICES, default='PENDENTE')
+    resposta_api = models.JSONField(null=True, blank=True)
     
     @property
     def is_expired(self):
-        """Um RUPE expira após 48 horas se não for pago"""
-        if self.status == 'Pago':
+        """Verifica se o RUPE expirou com base na data da API ou fallback de 48h"""
+        if self.status_rup == 'PAGO':
             return False
             
         from django.utils import timezone
+        if self.data_expiracao:
+            return timezone.now() > self.data_expiracao
+            
         from datetime import timedelta
         return timezone.now() > (self.criado_em + timedelta(hours=48))
     
     class Meta:
-        db_table = 'rupe_candidato'
+        db_table = 'rup_candidato'
+        verbose_name = 'RUP Candidato'
+        verbose_name_plural = 'RUPs Candidatos'
 
     def clean(self):
-        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+        if self.inscricao.ano_lectivo and not self.inscricao.ano_lectivo.activo:
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
 
     def save(self, *args, **kwargs):
@@ -202,7 +214,7 @@ class RupeCandidato(BaseModel):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+        if self.inscricao.ano_lectivo and not self.inscricao.ano_lectivo.activo:
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
         super().delete(*args, **kwargs)
 

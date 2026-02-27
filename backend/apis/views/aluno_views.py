@@ -11,9 +11,10 @@ from apis.serializers import (
     AlunoSerializer, AlunoListSerializer, AlunoDetailSerializer,
     AlunoEncarregadoSerializer
 )
+from apis.mixins import AuditMixin
 
 
-class AlunoViewSet(viewsets.ModelViewSet):
+class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Aluno"""
     queryset = Aluno.objects.select_related(
         'id_turma',
@@ -188,7 +189,7 @@ class AlunoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class AlunoEncarregadoViewSet(viewsets.ModelViewSet):
+class AlunoEncarregadoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para AlunoEncarregado"""
     queryset = AlunoEncarregado.objects.select_related(
         'id_aluno', 'id_encarregado'

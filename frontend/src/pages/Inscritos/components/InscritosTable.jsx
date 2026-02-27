@@ -32,18 +32,9 @@ const InscritosTable = ({
       <table className="data-table">
         <thead>
           <tr>
+
             <th 
-                className={`sticky-col-1 sortable-header ${sortConfig.key === 'id' ? 'active-sort' : ''}`} 
-                onClick={() => requestSort('id')}
-                style={{ width: '60px' }}
-            >
-                ID 
-                <span className="sort-icon">
-                    {sortConfig.key === 'id' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
-                </span>
-            </th>
-            <th 
-                className={`sticky-col-2 sortable-header ${sortConfig.key === 'nome' ? 'active-sort' : ''}`} 
+                className={`sticky-col-1 sortable-header ${sortConfig.key === 'nome' ? 'active-sort' : ''}`} 
                 onClick={() => requestSort('nome')}
                 style={{ minWidth: '240px' }}
             >
@@ -88,14 +79,15 @@ const InscritosTable = ({
                     {sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
                 </span>
             </th>
+            <th>Pagamento (RUP)</th>
             <th style={{ textAlign: 'center' }}>Ações</th>
           </tr>
         </thead>
         <tbody>
           {data.length > 0 ? data.map((i) => (
             <tr key={i.id} className="clickable-row animate-fade-in">
-              <td className="sticky-col-1">{i.id}</td>
-              <td className="sticky-col-2" style={{ fontWeight: 600 }}>{i.nome}</td>
+
+              <td className="sticky-col-1" style={{ fontWeight: 600 }}>{i.nome}</td>
               <td>{i.curso1}</td>
               <td>
                 {i.notaExame ? (
@@ -106,13 +98,25 @@ const InscritosTable = ({
               </td>
               <td>{i.anoInscricao}</td>
               <td>
-                <span className={`status-badge ${i.status === 'Pendente' ? 'status-pending' :
-                  i.status === 'Em Análise' ? 'status-analysis' :
-                    i.status === 'Aprovado' ? 'status-approved' : 
-                    i.status === 'Matriculado' ? 'status-confirmed' : 'status-rejected'
-                  }`}>
+                <span className={`status-badge ${
+                  i.status === 'INSCRITO' ? 'status-pending' :
+                  i.status === 'CLASSIFICADO' ? 'status-approved' :
+                  i.status === 'MATRICULADO' ? 'status-confirmed' : 
+                  i.status === 'AUSENTE' ? 'status-analysis' : 'status-rejected'
+                }`}>
                   {i.status}
                 </span>
+              </td>
+              <td>
+                {i.rupe ? (
+                  <span className={`status-badge ${i.rupe.status_rup === 'PAGO' ? 'status-approved' : 
+                    i.rupe.is_expired ? 'status-rejected' : 'status-pending'}`}
+                    style={{ textTransform: 'uppercase', fontSize: '11px' }}>
+                    {i.rupe.status_rup}
+                  </span>
+                ) : (
+                  <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>Não Gerado</span>
+                )}
               </td>
               <td>
                 <div className="actions-cell">
@@ -158,16 +162,16 @@ const InscritosTable = ({
 
                   {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                     <button
-                        className={`btn-icon btn-enroll ${i.status === 'Aprovado' ? 'can-enroll' : ''}`}
-                        disabled={i.status !== 'Aprovado' || i.status === 'Matriculado'}
+                        className={`btn-icon btn-enroll ${i.status === 'CLASSIFICADO' ? 'can-enroll' : ''}`}
+                        disabled={i.status !== 'CLASSIFICADO' || i.status === 'MATRICULADO'}
                         onClick={(e) => { 
                             e.stopPropagation(); 
                             navigate('/matriculas/nova', { state: { candidato: i } });
                         }}
                         title={
-                            i.status === 'Matriculado' ? "Candidato já matriculado" :
-                            i.status === 'Aprovado' ? "Matricular Candidato" : 
-                            "Matrícula indisponível (Candidato não aprovado)"
+                            i.status === 'MATRICULADO' ? "Candidato já matriculado" :
+                            i.status === 'CLASSIFICADO' ? "Matricular Candidato" : 
+                            "Matrícula indisponível (Candidato não classificado)"
                         }
                     >
                         <GraduationCap size={16} />
@@ -178,7 +182,7 @@ const InscritosTable = ({
             </tr>
           )) : (
             <tr>
-              <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+              <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                 Nenhum candidato encontrado com os filtros aplicados.
               </td>
             </tr>

@@ -15,6 +15,10 @@
   --text-muted: #6b7280;
   --card-bg: #ffffff;
   --border-color: #e5e7eb;
+
+  /* Typography Tokens */
+  --font-h: var(--font-heading);
+  --font-b: var(--font-body);
 }
 
 [data-color="green"] {
@@ -36,9 +40,16 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-family: var(--font-body);
   background-color: var(--bg-color);
   color: var(--text-color);
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .app-container {

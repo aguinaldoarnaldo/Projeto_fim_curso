@@ -9,9 +9,10 @@ from apis.serializers import (
     FaturaSerializer, FaturaListSerializer,
     PagamentoSerializer, PagamentoListSerializer
 )
+from apis.mixins import AuditMixin
 
 
-class FaturaViewSet(viewsets.ModelViewSet):
+class FaturaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Fatura"""
     queryset = Fatura.objects.select_related('id_aluno').all()
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -37,7 +38,7 @@ class FaturaViewSet(viewsets.ModelViewSet):
         return FaturaSerializer
 
 
-class PagamentoViewSet(viewsets.ModelViewSet):
+class PagamentoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Pagamento"""
     queryset = Pagamento.objects.select_related(
         'id_fatura', 'id_recebedor'

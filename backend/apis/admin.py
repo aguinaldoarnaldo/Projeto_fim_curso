@@ -20,7 +20,7 @@ from apis.models import (
     # Auditoria
     Historico, HistoricoLogin,
     # Candidatura
-    Candidato, ExameAdmissao, RupeCandidato
+    Candidato, ExameAdmissao, RupeCandidato, VagaCurso
 )
 
 
@@ -59,9 +59,9 @@ class ExameAdmissaoAdmin(ModelAdmin):
 
 @admin.register(RupeCandidato)
 class RupeCandidatoAdmin(ModelAdmin):
-    list_display = ['candidato', 'referencia', 'valor', 'status', 'data_pagamento']
-    list_filter = ['status']
-    search_fields = ['referencia', 'candidato__nome_completo']
+    list_display = ['inscricao', 'codigo_rup', 'valor', 'status_rup', 'data_pagamento']
+    list_filter = ['status_rup']
+    search_fields = ['codigo_rup', 'inscricao__nome_completo']
 
 @admin.register(Cargo)
 class CargoAdmin(ModelAdmin):
@@ -433,7 +433,19 @@ admin.site.register(Classe, ModelAdmin)
 admin.site.register(Departamento, ModelAdmin)
 admin.site.register(Seccao, ModelAdmin)
 admin.site.register(AreaFormacao, ModelAdmin)
-admin.site.register(AnoLectivo, ModelAdmin)
+class VagaCursoInline(admin.TabularInline):
+    model = VagaCurso
+    extra = 0
+    autocomplete_fields = ['id_curso']
+    verbose_name = "Configuração de Vagas"
+    verbose_name_plural = "Vagas por Curso para este Ano"
+
+@admin.register(AnoLectivo)
+class AnoLectivoAdmin(ModelAdmin):
+    list_display = ['nome', 'data_inicio', 'data_fim', 'status', 'activo']
+    inlines = [VagaCursoInline]
+
+admin.site.register(VagaCurso, ModelAdmin)
 admin.site.register(Periodo, ModelAdmin)
 admin.site.register(TipoDisciplina, ModelAdmin)
 admin.site.register(DisciplinaCurso, ModelAdmin)

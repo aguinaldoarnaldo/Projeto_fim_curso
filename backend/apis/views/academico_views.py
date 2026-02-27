@@ -8,20 +8,22 @@ from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiv
 
 from apis.models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
-    Curso, Periodo, Turma, AnoLectivo
+    Curso, Periodo, Turma, AnoLectivo, VagaCurso
 )
 from apis.serializers.academico_serializers import (
     SalaSerializer, ClasseSerializer, DepartamentoSerializer, SeccaoSerializer,
     AreaFormacaoSerializer, CursoSerializer, CursoListSerializer,
-    PeriodoSerializer, TurmaSerializer, TurmaListSerializer, AnoLectivoSerializer
+    PeriodoSerializer, TurmaSerializer, TurmaListSerializer, AnoLectivoSerializer,
+    VagaCursoSerializer
 )
+from apis.mixins import AuditMixin
 
 from rest_framework.pagination import PageNumberPagination
 
 class AnoLectivoPagination(PageNumberPagination):
     page_size = 6
 
-class AnoLectivoViewSet(viewsets.ModelViewSet):
+class AnoLectivoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para AnoLectivo"""
     queryset = AnoLectivo.objects.all()
     serializer_class = AnoLectivoSerializer
@@ -52,67 +54,52 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
         if ano_lectivo.status == 'Encerrado':
             return Response({"detail": "O ano lectivo já está encerrado."}, status=400)
         
-        # 1. Update active status
+        # O save() do modelo trata toda a lógica de encerramento
         ano_lectivo.status = 'Encerrado'
         ano_lectivo.activo = False
         ano_lectivo.save()
         
-        # 2. Bulk update matriculas e Turmas to 'Concluida'
-        from apis.models import Matricula, Turma
-        
-        updated_matriculas = Matricula.objects.filter(
-            ano_lectivo=ano_lectivo,
-            status__in=['Ativa', 'Confirmada']
-        ).update(status='Concluida')
-        
-        updated_turmas = Turma.objects.filter(
-            ano_lectivo=ano_lectivo, 
-            status='Ativa'
-        ).update(status='Concluida')
+        # Log manual pois é uma custom action
+        self._log_audit_action('update', ano_lectivo)
         
         return Response({
             "detail": f"Ano lectivo {ano_lectivo.nome} encerrado com sucesso.",
-            "matriculas_atualizadas": updated_matriculas,
-            "turmas_encerradas": updated_turmas
+            "stats": getattr(ano_lectivo, '_update_stats', None)
         }, status=200)
 
-    def perform_update(self, serializer):
-        # Check if reopening (setting status='Activo' or activo=True)
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Validar reabertura (apenas Admin)
         is_reopening = (
-            ('status' in serializer.validated_data and serializer.validated_data['status'] == 'Activo') or
-            ('activo' in serializer.validated_data and serializer.validated_data['activo'] is True)
+            ('status' in request.data and request.data['status'] == 'Activo' and instance.status == 'Encerrado') or
+            ('activo' in request.data and request.data['activo'] is True and not instance.activo)
         )
         
         if is_reopening:
-             user = self.request.user
+             user = request.user
              is_admin = user.is_superuser or (
                  hasattr(user, 'profile') and 
                  user.profile.papel and 
                  any(role in user.profile.papel.lower() for role in ['admin', 'diretor'])
              )
-             
              if not is_admin:
                   from rest_framework.exceptions import PermissionDenied
                   raise PermissionDenied("Apenas administradores podem reabrir um ano lectivo.")
 
-             # Reabertura do Ano Lectivo: Reverter matrículas 'Concluida' para 'Ativa'
-             instance = serializer.instance
-             if instance and instance.status != 'Activo':
-                 from apis.models import Matricula
-                 updated_count = Matricula.objects.filter(
-                    ano_lectivo=instance,
-                    status='Concluida'
-                 ).update(status='Ativa')
-                 
-                 from apis.models import Turma
-                 updated_turmas = Turma.objects.filter(
-                    ano_lectivo=instance, 
-                    status='Concluida'
-                 ).update(status='Ativa')
-                 
-                 print(f"Ano Lectivo {instance.nome} reaberto: {updated_count} matrículas e {updated_turmas} turmas revertidas para 'Ativa'.")
-        
-        serializer.save()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response({
+            **serializer.data,
+            "stats": getattr(instance, '_update_stats', None)
+        })
+
+    def perform_update(self, serializer):
+        # Delegate to AuditMixin which will save and log
+        return super().perform_update(serializer)
 
     @action(detail=True, methods=['get'])
     def stats_by_year(self, request, pk=None):
@@ -134,17 +121,22 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
             mes=ExtractMonth('criado_em')
         ).values('mes').annotate(total=Count('id_candidato')).order_by('mes')
         
-        # 3. Merge data into standard format [Jan-Dec]
+        # 3. Merge data into standard format starting from data_inicio month
         month_map = {
             1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
             7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
         }
         
+        start_month = ano_lectivo.data_inicio.month
         data = []
-        for i in range(1, 13):
-            mes_label = month_map[i]
-            mat_stat = next((item for item in matriculas_qs if item['mes'] == i), None)
-            cand_stat = next((item for item in candidatos_qs if item['mes'] == i), None)
+        
+        # Generate 12 months sequence starting from start_month
+        for i in range(12):
+            month_idx = (start_month + i - 1) % 12 + 1
+            mes_label = month_map[month_idx]
+            
+            mat_stat = next((item for item in matriculas_qs if item['mes'] == month_idx), None)
+            cand_stat = next((item for item in candidatos_qs if item['mes'] == month_idx), None)
             
             data.append({
                 'mes': mes_label,
@@ -154,7 +146,7 @@ class AnoLectivoViewSet(viewsets.ModelViewSet):
             
         return Response(data)
 
-class SalaViewSet(viewsets.ModelViewSet):
+class SalaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Sala"""
     queryset = Sala.objects.all()
     serializer_class = SalaSerializer
@@ -171,7 +163,7 @@ class SalaViewSet(viewsets.ModelViewSet):
     ordering_fields = ['numero_sala', 'capacidade_alunos', 'bloco']
     ordering = ['numero_sala']
 
-class ClasseViewSet(viewsets.ModelViewSet):
+class ClasseViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Classe"""
     queryset = Classe.objects.all()
     serializer_class = ClasseSerializer
@@ -185,7 +177,7 @@ class ClasseViewSet(viewsets.ModelViewSet):
     }
     ordering = ['nivel']
 
-class DepartamentoViewSet(viewsets.ModelViewSet):
+class DepartamentoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Departamento"""
     queryset = Departamento.objects.select_related('chefe_id_funcionario').all()
     serializer_class = DepartamentoSerializer
@@ -199,7 +191,7 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
     search_fields = ['nome_departamento']
     ordering = ['nome_departamento']
 
-class SeccaoViewSet(viewsets.ModelViewSet):
+class SeccaoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Seccao"""
     queryset = Seccao.objects.select_related('id_departamento').all()
     serializer_class = SeccaoSerializer
@@ -208,7 +200,7 @@ class SeccaoViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     search_fields = ['nome_seccao']
 
-class AreaFormacaoViewSet(viewsets.ModelViewSet):
+class AreaFormacaoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para AreaFormacao"""
     queryset = AreaFormacao.objects.select_related('id_responsavel').all()
     serializer_class = AreaFormacaoSerializer
@@ -218,7 +210,7 @@ class AreaFormacaoViewSet(viewsets.ModelViewSet):
     search_fields = ['nome_area']
     ordering = ['nome_area']
 
-class CursoViewSet(viewsets.ModelViewSet):
+class CursoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Curso"""
     queryset = Curso.objects.select_related('id_area_formacao', 'id_responsavel').all()
     serializer_class = CursoSerializer
@@ -265,14 +257,14 @@ class CursoViewSet(viewsets.ModelViewSet):
         serializer = DisciplinaListSerializer(disciplinas, many=True)
         return Response(serializer.data)
 
-class PeriodoViewSet(viewsets.ModelViewSet):
+class PeriodoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Periodo"""
     queryset = Periodo.objects.select_related('id_responsavel').all()
     serializer_class = PeriodoSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
     permission_map = {} # 'list': 'view_turmas' removido
 
-class TurmaViewSet(viewsets.ModelViewSet):
+class TurmaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Turma"""
     queryset = Turma.objects.select_related('id_sala', 'id_curso', 'id_classe', 'id_periodo', 'id_responsavel').all()
     serializer_class = TurmaSerializer
@@ -329,3 +321,22 @@ class TurmaViewSet(viewsets.ModelViewSet):
         return Response({
             'total': total, 'ativas': ativas, 'concluidas': concluidas
         })
+
+
+class VagaCursoViewSet(AuditMixin, viewsets.ModelViewSet):
+    """ViewSet para Gestão de Vagas por Curso"""
+    queryset = VagaCurso.objects.all()
+    serializer_class = VagaCursoSerializer
+    permission_classes = [IsAuthenticated, HasAdditionalPermission]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['ano_lectivo', 'id_curso']
+    search_fields = ['id_curso__nome_curso', 'ano_lectivo__nome']
+
+    permission_map = {
+        'list': 'view_configuracoes',
+        'retrieve': 'view_configuracoes',
+        'create': 'manage_configuracoes',
+        'update': 'manage_configuracoes',
+        'partial_update': 'manage_configuracoes',
+        'destroy': 'manage_configuracoes',
+    }

@@ -60,12 +60,22 @@ const Salas = () => {
         fetchData();
     }, []);
 
-    // Polling for real-time updates
+    // Polling Inteligente para atualizações em tempo real
     useEffect(() => {
-        const interval = setInterval(() => {
-            fetchData(true); // Silent force fetch
-        }, 30000); // 30 seconds interval
-        return () => clearInterval(interval);
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                fetchData(true);
+            }
+        };
+
+        const interval = setInterval(syncIfVisible, 60000); // 60 segundos
+        
+        window.addEventListener('focus', syncIfVisible);
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
     }, []);
 
     const fetchData = async (force = false) => {

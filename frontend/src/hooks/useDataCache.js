@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCache } from '../context/CacheContext';
 
 export const useDataCache = (key, fetcher, autoFetch = true) => {
@@ -20,46 +20,41 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
     
     const [error, setError] = useState(null);
 
+    const fetcherRef = useRef(fetcher);
+    useEffect(() => {
+        fetcherRef.current = fetcher;
+    }, [fetcher]);
+
     // Revalidação em background (Stale-While-Revalidate)
     useEffect(() => {
         if (!autoFetch) return;
 
         const load = async () => {
             try {
-                // Se não tinha cache, marca loading
-                // Se TINHA cache, mantém loading=false mas atualiza os dados quando chegarem
                 if (!data) setLoading(true);
-
-                const response = await fetcher();
-                // Normaliza a resposta (axios ou dados diretos)
+                const response = await fetcherRef.current();
                 const freshData = (response && response.data) ? (response.data.results || response.data) : response;
                 
                 if (freshData) {
-                    // Compara se mudou (opcional, mas bom pra performance)
-                    // Aqui vamos apenas atualizar sempre para garantir frescor
                     setData(freshData);
                     setCache(key, freshData);
                 }
             } catch (err) {
                 console.error(`Error fetching ${key}:`, err);
-                // Only set error if we don't have any data show (initial load failure)
-                // This prevents background refresh errors from blocking the UI
-                if (!data) {
-                    setError(err);
-                }
+                if (!data) setError(err);
             } finally {
                 setLoading(false);
             }
         };
 
         load();
-    }, [key, autoFetch]); // Removemos 'data' das dependências para evitar loops
+    }, [key, autoFetch]); 
 
     // Helper to manually refresh
     const refresh = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const response = await fetcher();
+            const response = await fetcherRef.current();
             const freshData = (response && response.data) ? (response.data.results || response.data) : response;
             
             if (freshData) {
@@ -71,7 +66,7 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [key, fetcher, setCache]);
+    }, [key, setCache]);
 
     // Helper to update local data (e.g. after delete/edit) WITHOUT refetching
     // This is crucial for "disappear from list" immediately

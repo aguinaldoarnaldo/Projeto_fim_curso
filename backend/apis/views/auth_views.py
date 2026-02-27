@@ -4,6 +4,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.cache import cache
 
 
 def get_client_ip(request):
@@ -109,7 +110,7 @@ def me_view(request):
     from apis.services.auth_service import AuthService
     
     try:
-        # Autenticar token manualmente (pois a rota é AllowAny para lidar com erros graciosamente)
+        # Autenticar token manualmente
         jwt_auth = JWTAuthentication()
         user_auth_tuple = jwt_auth.authenticate(request)
         
@@ -120,6 +121,12 @@ def me_view(request):
         user_id = token.payload.get('user_id')
         user_type = token.payload.get('user_type')
         
+        # Tentar recuperar do cache primeiro
+        cache_key = f'user_profile_{user_type}_{user_id}'
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response({'user': cached_data}, status=status.HTTP_200_OK)
+
         # Recuperar perfil via Serviço
         user_data = AuthService.get_user_profile(user_id, user_type)
         
@@ -128,6 +135,9 @@ def me_view(request):
             foto_obj = user_data.pop('foto_obj')
             user_data['foto'] = request.build_absolute_uri(foto_obj.url) if foto_obj else None
             
+        # Salvar no cache por 5 minutos (300 segundos)
+        cache.set(cache_key, user_data, 300)
+
         return Response({'user': user_data}, status=status.HTTP_200_OK)
         
     except (Usuario.DoesNotExist, Funcionario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):
@@ -161,23 +171,31 @@ def update_profile_view(request):
         user = AuthService.update_user_profile(user_id, user_type, request.data, request.FILES)
         
         # 3. Preparar resposta com dados atualizados
-        # Reutiliza lógica de formatação do serviço se possível, ou constrói resposta simples
-        # Aqui vamos construir uma resposta simples para manter compatibilidade com frontend
-        
-        foto_url = request.build_absolute_uri(user.img_path.url) if user.img_path else None
-        
         user_resp = {
-            'nome': user.nome_completo,
-            'nome_completo': user.nome_completo,
-            'email': user.email,
-            'username': user.email,
-            'foto': foto_url
+            'nome': getattr(user, 'nome_completo', ''),
+            'nome_completo': getattr(user, 'nome_completo', ''),
+            'email': getattr(user, 'email', ''),
+            'username': getattr(user, 'email', ''),
+            'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None,
+            'telefone': '',
+            'endereco': ''
         }
         
+        # Mapeamento dinâmico de telefone
+        if hasattr(user, 'telefone'):
+            tel = user.telefone
+            if isinstance(tel, list) and len(tel) > 0:
+                user_resp['telefone'] = tel[0]
+            elif isinstance(tel, str):
+                user_resp['telefone'] = tel
+
+        # Mapeamento dinâmico de endereço
         if hasattr(user, 'bairro_residencia'):
-            user_resp['endereco'] = user.bairro_residencia or (user.municipio_residencia if hasattr(user, 'municipio_residencia') else '')
-        if hasattr(user, 'telefone') and user_type != 'encarregado':
-            user_resp['telefone'] = user.telefone
+            user_resp['endereco'] = user.bairro_residencia or ''
+        elif hasattr(user, 'municipio_residencia'):
+            user_resp['endereco'] = user.municipio_residencia or ''
+        elif hasattr(user, 'provincia_residencia'):
+            user_resp['endereco'] = user.provincia_residencia or ''
             
         return Response({
             'message': 'Perfil atualizado com sucesso!',

@@ -23,6 +23,7 @@ import Cursos from "../pages/Cursos/Cursos";
 import Configuracoes from "../pages/Configuracoes/Configuracoes";
 import NovaMatricula from "../pages/Matriculas/NovaMatricula";
 import Relatorios from "../pages/Relatorios/Relatorios";
+import VagasCursos from "../pages/VagasCursos/VagasCursos";
 
 import ListaEspera from "../pages/ListaEspera/ListaEspera";
 import Perfil from "../pages/Perfil/Perfil";
@@ -115,6 +116,10 @@ export default function Routers() {
                     
                     <Route path="/cursos" element={
                         <PermissionRoute permission={PERMISSIONS.VIEW_CURSOS}><Cursos /></PermissionRoute>
+                    } />
+                    
+                    <Route path="/vagas-cursos" element={
+                        <PermissionRoute permission={PERMISSIONS.MANAGE_CONFIGURACOES}><VagasCursos /></PermissionRoute>
                     } />
                     
                     <Route path="/configuracoes" element={

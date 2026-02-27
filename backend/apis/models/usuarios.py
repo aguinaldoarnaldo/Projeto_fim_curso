@@ -42,6 +42,10 @@ class Usuario(BaseModel):
     # Flag para saber se é funcionário (opcional, pode ser inferido pelo relacionamento)
     is_funcionario = models.BooleanField(default=False)
     
+    # Novos campos para perfil completo
+    telefone = models.CharField(max_length=30, null=True, blank=True, verbose_name='Telefone')
+    bairro_residencia = models.CharField(max_length=100, null=True, blank=True, verbose_name='Bairro/Cidade')
+    
     img_path = models.ImageField(upload_to="image/usuarios/images/", null=True, blank=True, verbose_name='Foto')
     is_online = models.BooleanField(default=False, verbose_name='Online')
 

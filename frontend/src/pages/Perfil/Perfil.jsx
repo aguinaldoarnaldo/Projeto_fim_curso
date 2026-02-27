@@ -111,7 +111,15 @@ const Perfil = () => {
             if (result.success) {
                 alert("Perfil atualizado com sucesso!");
                 setIsEditing(false);
-                // AuthContext updateUser should trigger re-render via useEffect above
+                // Clear password fields if we were in security tab
+                if (activeTab === 'seguranca') {
+                    setFormData(prev => ({
+                        ...prev,
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    }));
+                }
             } else {
                 alert(result.message || "Erro ao atualizar perfil.");
             }

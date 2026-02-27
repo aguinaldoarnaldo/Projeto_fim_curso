@@ -178,11 +178,16 @@ const Cursos = () => {
         fetchAuxData();
     }, []);
 
-    // Real-time Update (Polling)
+    // Real-time Update (Polling Otimizado)
     useEffect(() => {
-        const intervalId = setInterval(() => {
-            fetchCourses(true);
-        }, 2000); // Updates every 2 seconds
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                fetchCourses(true);
+            }
+        };
+
+        // Polling a cada 30 segundos (apenas se visível)
+        const intervalId = setInterval(syncIfVisible, 30000); 
 
         return () => clearInterval(intervalId);
     }, []);

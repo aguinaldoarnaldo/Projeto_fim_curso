@@ -27,9 +27,9 @@
         {% for turma in turmas %}
         <tr>
             <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.codigo_turma }}</td>
-            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_ano_lectivo.nome }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.ano_lectivo.nome }}</td>
             <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_curso.nome_curso }}</td>
-            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_periodo.nome_periodo }}</td>
+            <td style="border: 1px solid #ddd; padding: 5px;">{{ turma.id_periodo.periodo }}</td>
             <td style="border: 1px solid #ddd; padding: 5px; text-align: center;">{{ turma.total_alunos }}</td>
         </tr>
         {% empty %}

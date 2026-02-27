@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import Aluno, AlunoEncarregado
+from apis.models import Aluno, AlunoEncarregado, Matricula
 
 
 class AlunoSerializer(serializers.ModelSerializer):
@@ -35,6 +35,7 @@ class AlunoListSerializer(serializers.ModelSerializer):
     historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
     ano_lectivo = serializers.SerializerMethodField()
     ano_lectivo_ativo = serializers.SerializerMethodField()
+    matriculas_detalhes = serializers.SerializerMethodField()
     
     class Meta:
         model = Aluno
@@ -45,8 +46,13 @@ class AlunoListSerializer(serializers.ModelSerializer):
             'numero_bi', 'telefone', 'img_path', 
             'municipio_residencia', 'provincia_residencia',
             'data_nascimento', 'criado_em', 'encarregado_principal',
-            'sugerido_tipo_matricula', 'historico_escolar', 'ano_lectivo', 'ano_lectivo_ativo'
+            'sugerido_tipo_matricula', 'historico_escolar', 
+            'matriculas_detalhes', 'ano_lectivo', 'ano_lectivo_ativo'
         ]
+
+    def get_matriculas_detalhes(self, obj):
+        matriculas = Matricula.objects.filter(id_aluno=obj).order_by('-ano_lectivo__nome', '-data_matricula')
+        return MatriculaHistorySerializer(matriculas, many=True).data
 
     def get_ano_lectivo(self, obj):
         return obj.id_turma.ano_lectivo.nome if obj.id_turma and obj.id_turma.ano_lectivo else (obj.id_turma.ano if obj.id_turma else "N/A")
@@ -83,6 +89,29 @@ class AlunoListSerializer(serializers.ModelSerializer):
         return AcademicService.determinar_tipo_matricula(obj.id_aluno)
 
 
+class MatriculaHistorySerializer(serializers.ModelSerializer):
+    """Serializer simplificado para o histórico de matrículas do aluno"""
+    ano_lectivo_nome = serializers.CharField(source='ano_lectivo.nome', read_only=True)
+    turma_codigo = serializers.CharField(source='id_turma.codigo_turma', read_only=True)
+    classe_nome = serializers.SerializerMethodField()
+    curso_nome = serializers.CharField(source='id_turma.id_curso.nome_curso', read_only=True)
+    periodo_nome = serializers.CharField(source='id_turma.id_periodo.periodo', read_only=True)
+    sala_numero = serializers.CharField(source='id_turma.id_sala.numero_sala', read_only=True)
+    
+    class Meta:
+        model = Matricula
+        fields = [
+            'id_matricula', 'ano_lectivo_nome', 'turma_codigo', 
+            'classe_nome', 'curso_nome', 'periodo_nome', 'sala_numero',
+            'tipo', 'status', 'data_matricula'
+        ]
+
+    def get_classe_nome(self, obj):
+        if obj.id_turma and obj.id_turma.id_classe:
+            return obj.id_turma.id_classe.descricao or f"{obj.id_turma.id_classe.nivel}ª Classe"
+        return "N/A"
+
+
 class AlunoDetailSerializer(serializers.ModelSerializer):
     """Serializer detalhado para Aluno com encarregados"""
     from .usuario_serializers import EncarregadoListSerializer
@@ -93,6 +122,7 @@ class AlunoDetailSerializer(serializers.ModelSerializer):
     ano_lectivo_ativo = serializers.SerializerMethodField()
     encarregados = serializers.SerializerMethodField()
     historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
+    matriculas_detalhes = serializers.SerializerMethodField()
     
     class Meta:
         model = Aluno
@@ -101,8 +131,13 @@ class AlunoDetailSerializer(serializers.ModelSerializer):
             'telefone', 'provincia_residencia', 'municipio_residencia',
             'bairro_residencia', 'numero_casa', 'genero', 'data_nascimento', 'status_aluno',
             'modo_user', 'id_turma', 'turma_codigo', 'img_path', 'is_online',
-            'encarregados', 'historico_escolar', 'criado_em', 'atualizado_em', 'ano_lectivo_ativo'
+            'encarregados', 'historico_escolar', 'matriculas_detalhes', 
+            'criado_em', 'atualizado_em', 'ano_lectivo_ativo'
         ]
+
+    def get_matriculas_detalhes(self, obj):
+        matriculas = Matricula.objects.filter(id_aluno=obj).order_by('-ano_lectivo__nome', '-data_matricula')
+        return MatriculaHistorySerializer(matriculas, many=True).data
 
     def get_ano_lectivo_ativo(self, obj):
         return obj.id_turma.ano_lectivo.activo if obj.id_turma and obj.id_turma.ano_lectivo else False

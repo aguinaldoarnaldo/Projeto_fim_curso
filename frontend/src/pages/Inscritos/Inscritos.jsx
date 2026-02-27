@@ -7,7 +7,8 @@ import {
   Filter,
   RotateCcw,
   BookOpen,
-  Activity
+  Activity,
+  CreditCard
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -55,7 +56,8 @@ const Inscritos = () => {
   const [filters, setFilters] = useState({
     ano: '',
     status: '',
-    curso: ''
+    curso: '',
+    status_rup: ''
   });
 
   const [showExamModal, setShowExamModal] = useState(false);
@@ -107,7 +109,7 @@ const Inscritos = () => {
           curso1: c.curso1_nome || 'N/A',
           curso2: c.curso2_nome || 'N/A',
           turno: c.turno_preferencial || 'N/A',
-          status: c.status || 'Pendente',
+          status: c.status || 'INSCRITO',
           dataInscricao: c.criado_em ? new Date(c.criado_em).toLocaleDateString() : 'N/A',
           encarregado: {
               nome: c.nome_encarregado || 'N/A',
@@ -144,15 +146,20 @@ const Inscritos = () => {
       if (fetchError) console.error('Fetch Error:', fetchError);
   }, [inscritos, fetchError]);
 
-  // Sync selected candidate with updated list data
-  useEffect(() => {
-      if (selectedCandidato && inscritos.length > 0) {
-          const updated = inscritos.find(i => i.id === selectedCandidato.id);
-          if (updated && JSON.stringify(updated) !== JSON.stringify(selectedCandidato)) {
-              setSelectedCandidato(updated);
-          }
-      }
-  }, [inscritos, selectedCandidato]);
+    // Sincronizar candidato selecionado com dados atualizados (Otimizado)
+    useEffect(() => {
+        if (selectedCandidato && inscritos.length > 0) {
+            const updated = inscritos.find(i => i.id === selectedCandidato.id);
+            // Evitar comparação profunda desnecessária se os campos básicos forem iguais
+            if (updated && (
+                updated.status !== selectedCandidato.status || 
+                updated.notaExame !== selectedCandidato.notaExame ||
+                (updated.rupe?.status_rup !== selectedCandidato.rupe?.status_rup)
+            )) {
+                setSelectedCandidato(updated);
+            }
+        }
+    }, [inscritos, selectedCandidato?.id]);
 
 
   const fetchFilters = async () => {
@@ -177,13 +184,23 @@ const Inscritos = () => {
     fetchFilters();
   }, []);
 
-  // Polling (Silent Refresh)
-  useEffect(() => {
-    const interval = setInterval(() => {
-        refresh(true); 
-    }, 60000); 
-    return () => clearInterval(interval);
-  }, [refresh]);
+    // Polling Inteligente (Silent Refresh)
+    useEffect(() => {
+        const syncIfVisible = () => {
+            if (!document.hidden) {
+                refresh(true); 
+            }
+        };
+
+        const interval = setInterval(syncIfVisible, 60000); 
+
+        window.addEventListener('focus', syncIfVisible);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
+    }, [refresh]);
 
   const handleOpenDetail = (candidato) => {
     setShowEvaluationModal(false);
@@ -266,7 +283,6 @@ const Inscritos = () => {
           notaExame: candidato.notaExame || '',
           status: candidato.status,
           foto: candidato.files?.foto,
-          foto: candidato.files?.foto,
           // Extra props used by modal logic but not part of 'candidato' directly
           foto_preview: null,
           foto_file: null,
@@ -338,7 +354,7 @@ const Inscritos = () => {
 
   const handleConfirmPayment = async (candidato) => {
       if (!candidato.rupe) return;
-      if (!window.confirm(`Confirmar pagamento do RUPE ${candidato.rupe.referencia}?`)) return;
+      if (!window.confirm(`Confirmar pagamento do RUPE ${candidato.rupe.codigo_rup}?`)) return;
 
       try {
           await api.post(`candidaturas/${candidato.real_id}/confirmar_pagamento/`);
@@ -405,7 +421,7 @@ const Inscritos = () => {
   };
 
   const resetFilters = () => {
-    setFilters({ ano: '', status: '', curso: '' });
+    setFilters({ ano: '', status: '', curso: '', status_rup: '' });
     setSearchTerm('');
     setCurrentPage(1);
     setShowFilters(false);
@@ -433,9 +449,11 @@ const Inscritos = () => {
       const matchesSearch = nameMatch || idMatch;
       
       const matchesAno = filters.ano === '' || i.anoInscricao === filters.ano;
-      const matchesStatus = filters.status === '' || i.status === filters.status;
+      const matchesStatus = filters.status === '' || (i.status || '').toUpperCase() === filters.status.toUpperCase();
       const matchesCurso = filters.curso === '' || i.curso1 === filters.curso;
-      return matchesSearch && matchesAno && matchesStatus && matchesCurso;
+      const matchesRUP = filters.status_rup === '' || (i.rupe?.status_rup || '').toUpperCase() === filters.status_rup.toUpperCase();
+      
+      return matchesSearch && matchesAno && matchesStatus && matchesCurso && matchesRUP;
     });
 
     // 2. Sort
@@ -471,11 +489,21 @@ const Inscritos = () => {
       label: 'Estado/Status',
       icon: Activity,
       options: [
-        { value: 'Pendente', label: 'Pendente' },
-        { value: 'Em Análise', label: 'Em Análise' },
-        { value: 'Aprovado', label: 'Aprovado' },
-        { value: 'Não Admitido', label: 'Não Admitido' },
-        { value: 'Matriculado', label: 'Matriculado' }
+        { value: 'INSCRITO', label: 'INSCRITO' },
+        { value: 'AUSENTE', label: 'AUSENTE' },
+        { value: 'CLASSIFICADO', label: 'CLASSIFICADO' },
+        { value: 'NAO_CLASSIFICADO', label: 'NAO_CLASSIFICADO' },
+        { value: 'MATRICULADO', label: 'MATRICULADO' }
+      ]
+    },
+    {
+      key: 'status_rup',
+      label: 'Estado do Pagamento',
+      icon: CreditCard,
+      options: [
+        { value: 'PENDENTE', label: 'PENDENTE' },
+        { value: 'PAGO', label: 'PAGO' },
+        { value: 'EXPIRADO', label: 'EXPIRADO' }
       ]
     },
     {

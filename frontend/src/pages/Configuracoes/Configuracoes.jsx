@@ -27,7 +27,14 @@ import {
     HelpCircle,
     FileText,
     BookOpen,
-    Archive
+    Archive,
+    Activity,
+    LogIn,
+    Clock,
+    ChevronLeft,
+    ChevronRight as ChevronRightIcon,
+    RefreshCw,
+    Upload
 } from 'lucide-react';
 import { PERMISSIONS, PERMISSIONS_PT, PERMISSION_GROUPS, ROLES, ROLE_PERMISSIONS } from '../../utils/permissions';
 import { useTheme } from '../../context/ThemeContext';
@@ -35,12 +42,13 @@ import { useAuth } from '../../context/AuthContext'; // Assuming AuthContext exi
 import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 
+
 const Configuracoes = () => {
     const { themeColor, changeColor } = useTheme();
     // Try to get auth context, fallback to mock if not available
-    const auth = useAuth() || {}; 
+    const auth = useAuth() || {};
     const { user, refreshUser } = auth;
-    
+
     // Permissões
     const canViewConfig = auth.hasPermission && auth.hasPermission(PERMISSIONS.VIEW_CONFIGURACOES);
     const canManageUsers = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_USUARIOS);
@@ -48,6 +56,7 @@ const Configuracoes = () => {
     const canManageAcademic = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_CONFIGURACOES);
     // Maintenance requires Backup permission
     const canManageMaintenance = auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_BACKUP);
+    const canViewLogs = auth.hasPermission && auth.hasPermission(PERMISSIONS.VIEW_LOGS);
     // Fallback for admin legacy check if needed, but prefer permissions
     const isAdmin = (auth.hasPermission && auth.hasPermission(PERMISSIONS.MANAGE_USUARIOS)) || (user && user.role === 'Admin') || (user?.cargo?.toLowerCase().includes('admin'));
 
@@ -60,22 +69,40 @@ const Configuracoes = () => {
     });
     const [selectedUser, setSelectedUser] = useState(null);
     const [backupStatus, setBackupStatus] = useState('idle');
+    const [saving, setSaving] = useState(false); // Added for restore operation
 
     // Real Data States
     const [usuarios, setUsuarios] = useState([]);
     const [cargos, setCargos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [cargosLoading, setCargosLoading] = useState(false);
-    
+
     // Academic Year States
     const [academicYears, setAcademicYears] = useState([]);
     const [yearLoading, setYearLoading] = useState(false);
-    const [newYear, setNewYear] = useState({ nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false });
+    const [newYear, setNewYear] = useState({
+        nome: '', data_inicio: '', data_fim: '',
+        status: 'Planeado', activo: false,
+        inicio_inscricoes: '', fim_inscricoes: '',
+        inicio_matriculas: '', fim_matriculas: '',
+        data_exame_admissao: '', data_teste_diagnostico: '',
+        hora_fechamento: '23:59', fecho_automatico_inscricoes: false
+    });
     const [isEditingYear, setIsEditingYear] = useState(false);
     const [editingYearId, setEditingYearId] = useState(null);
     const [yearCurrentPage, setYearCurrentPage] = useState(1);
     const [yearTotalPages, setYearTotalPages] = useState(1);
     const [backupsList, setBackupsList] = useState([]);
+
+    // Logs / Auditoria State
+    const [logsTab, setLogsTab] = useState('logins'); // 'logins' | 'actividades'
+    const [logsResumo, setLogsResumo] = useState(null);
+    const [logsData, setLogsData] = useState([]);
+    const [logsLoading, setLogsLoading] = useState(false);
+    const [logsPage, setLogsPage] = useState(1);
+    const [logsTotalPages, setLogsTotalPages] = useState(1);
+    const [logsTotal, setLogsTotal] = useState(0);
+    const [logsFilter, setLogsFilter] = useState({ busca: '', data_inicio: '', data_fim: '', tipo: 'all' });
 
     // Redirect if permission is lost dynamically
     useEffect(() => {
@@ -84,13 +111,13 @@ const Configuracoes = () => {
         if (activeTab === 'academico' && !canManageAcademic) setActiveTab('ajuda');
     }, [activeTab, canManageMaintenance, canManageUsers, canManageAcademic, canViewConfig]);
 
-    
+
     // Modal State
     const [showUserModal, setShowUserModal] = useState(false);
     const [cargoError, setCargoError] = useState(null);
     const [isEditingUser, setIsEditingUser] = useState(false);
     const [showYearForm, setShowYearForm] = useState(false);
-    
+
     // Global Config State
     const [config, setConfig] = useState({
         candidaturas_abertas: true,
@@ -102,11 +129,11 @@ const Configuracoes = () => {
     const [newUserEncoded, setNewUserEncoded] = useState({
         nome_completo: '',
         email: '',
-        senha_hash: '', 
+        senha_hash: '',
         papel: 'Comum',
         is_active: true
     });
-    
+
     // Permissions Modal State
     const [showPermissionsModal, setShowPermissionsModal] = useState(false);
     const [editingPermissions, setEditingPermissions] = useState([]); // List of permission strings
@@ -114,6 +141,7 @@ const Configuracoes = () => {
     const [userPhoto, setUserPhoto] = useState(null);
     const [logoFile, setLogoFile] = useState(null);
     const [userSearchTerm, setUserSearchTerm] = useState('');
+    const [selectedLog, setSelectedLog] = useState(null); // Para o modal de detalhes
 
     // Fetch Cargos on Mount (Global for the page)
     useEffect(() => {
@@ -129,6 +157,10 @@ const Configuracoes = () => {
         if (activeTab === 'manutencao') {
             fetchBackups();
         }
+        if (activeTab === 'logs') {
+            fetchLogsResumo();
+            fetchLogs(1);
+        }
     }, [activeTab]);
 
     // Fetch Data when entering tab
@@ -141,6 +173,36 @@ const Configuracoes = () => {
             }
         }
     }, [activeTab]);
+
+    const fetchLogsResumo = async () => {
+        try {
+            const res = await api.get('auditoria/resumo/');
+            setLogsResumo(res.data);
+        } catch (e) {
+            console.error('Erro ao carregar resumo de logs:', e);
+        }
+    };
+
+    const fetchLogs = async (page = 1, tipo = logsTab, filtros = logsFilter) => {
+        setLogsLoading(true);
+        try {
+            const endpoint = tipo === 'logins' ? 'auditoria/logins/' : 'auditoria/actividades/';
+            const params = new URLSearchParams({ page, page_size: 20 });
+            if (filtros.busca) params.append('busca', filtros.busca);
+            if (filtros.data_inicio) params.append('data_inicio', filtros.data_inicio);
+            if (filtros.data_fim) params.append('data_fim', filtros.data_fim);
+            if (filtros.tipo && filtros.tipo !== 'all') params.append('tipo', filtros.tipo);
+            const res = await api.get(`${endpoint}?${params}`);
+            setLogsData(res.data.results || []);
+            setLogsPage(res.data.page || 1);
+            setLogsTotalPages(res.data.total_pages || 1);
+            setLogsTotal(res.data.count || 0);
+        } catch (e) {
+            console.error('Erro ao carregar logs:', e);
+        } finally {
+            setLogsLoading(false);
+        }
+    };
 
     // Polling for real-time updates (Only when on Seguridad tab)
     useEffect(() => {
@@ -159,14 +221,14 @@ const Configuracoes = () => {
             if (!cargosLoading) setCargosLoading(true);
             const response = await api.get('cargos/');
             console.log("API Cargos Response:", response.data);
-            
+
             let data = [];
             if (Array.isArray(response.data)) {
                 data = response.data;
             } else if (response.data && Array.isArray(response.data.results)) {
                 data = response.data.results;
             }
-            
+
             if (data.length > 0) {
                 setCargos(data);
             } else {
@@ -204,7 +266,7 @@ const Configuracoes = () => {
     const handleBackup = async () => {
         setBackupStatus('processing');
         try {
-            await api.post('backups/create_backup/');
+            await api.post('backups/create_backup/', {}, { timeout: 300000 }); // Extender para 5 minutos
             setBackupStatus('completed');
             fetchBackups();
             setTimeout(() => setBackupStatus('idle'), 5000);
@@ -218,7 +280,8 @@ const Configuracoes = () => {
     const handleDownloadBackup = async (filename) => {
         try {
             const response = await api.get(`backups/download_backup/?filename=${filename}`, {
-                responseType: 'blob'
+                responseType: 'blob',
+                timeout: 300000 // Extender para 5 minutos para ficheiros grandes
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -230,6 +293,57 @@ const Configuracoes = () => {
         } catch (error) {
             console.error("Erro ao baixar backup:", error);
             alert("Erro ao baixar ficheiro.");
+        }
+    };
+
+    const handleRestoreBackup = async (filename) => {
+        console.log("Iniciando restauração do backup:", filename);
+        if (!window.confirm("AVISO CRÍTICO: Esta ação irá substituir TODOS os dados atuais do sistema (Base de Dados e Media) pelos dados deste backup. Deseja continuar?")) return;
+
+        try {
+            setSaving(true);
+            const response = await api.post('backups/restore_backup/', { filename });
+            alert("✅ Backup restaurado com sucesso!\n\nPara garantir que todos os dados sejam actualizados correctamente, a página será recarregada. Por favor, termine a sessão e entre novamente após o recarregamento.");
+            // Recarregar a página para garantir que os novos dados sejam carregados
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error) {
+            console.error("Erro ao restaurar backup:", error);
+            alert(error.response?.data?.error || "Erro ao restaurar backup");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleUploadRestoreBackup = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (!window.confirm("AVISO CRÍTICO: Está prestes a restaurar o sistema a partir de um ficheiro externo. Isso irá apagar TODOS os dados actuais. Tem a certeza?")) {
+             e.target.value = ''; // Limpar input
+             return;
+        }
+
+        try {
+            setSaving(true);
+            setBackupStatus('processing');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await api.post('backups/upload_and_restore_backup/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                timeout: 600000 // 10 minutos para uploads grandes
+            });
+
+            alert("✅ Sistema restaurado com sucesso a partir do ficheiro!\n\nAVISO: É obrigatório terminar a sessão e entrar novamente (Logout/Login) para aplicar as novas permissões e dados de acesso restaurados.");
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error) {
+            console.error("Erro no upload de restauração:", error);
+            alert(error.response?.data?.error || "Falha ao carregar ou restaurar o ficheiro.");
+        } finally {
+            setSaving(false);
+            setBackupStatus('idle');
+            e.target.value = '';
         }
     };
 
@@ -435,6 +549,30 @@ const Configuracoes = () => {
         }
     };
 
+    const showTransitionStats = (stats) => {
+        if (!stats) return;
+        
+        let message = "";
+        
+        if (stats.closed) {
+            message += `O ano letivo ${stats.closed.nome} foi ENCERRADO.\n`;
+            message += `• ${stats.closed.turmas} turmas concluídas\n`;
+            message += `• ${stats.closed.matriculas} matrículas concluídas\n`;
+            message += `• ${stats.closed.alunos} alunos movidos para 'Concluido'\n\n`;
+        }
+        
+        if (stats.reopened) {
+            message += `O ano letivo ${stats.reopened.nome} foi REABERTO.\n`;
+            message += `• ${stats.reopened.turmas} turmas reactivadas\n`;
+            message += `• ${stats.reopened.matriculas} matrículas reactivadas\n`;
+            message += `• ${stats.reopened.alunos} alunos movidos de volta para 'Activo'`;
+        }
+        
+        if (message) {
+            alert(message);
+        }
+    };
+
     // --- ACADEMIC YEAR HANDLERS ---
     const fetchAcademicYears = async (page = 1) => {
         setYearLoading(true);
@@ -537,8 +675,12 @@ const Configuracoes = () => {
         try {
             if (isEditingYear) {
                 // Update
-                await api.patch(`anos-lectivos/${editingYearId}/`, newYear);
-                alert("Ano Lectivo atualizado com sucesso!");
+                const response = await api.patch(`anos-lectivos/${editingYearId}/`, newYear);
+                if (response.data.stats) {
+                    showTransitionStats(response.data.stats);
+                } else {
+                    alert("Ano Lectivo atualizado com sucesso!");
+                }
                 setIsEditingYear(false);
                 setEditingYearId(null);
             } else {
@@ -546,7 +688,12 @@ const Configuracoes = () => {
                 await api.post('anos-lectivos/', newYear);
                 alert("Ano Lectivo criado com sucesso!");
             }
-            setNewYear({ nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false });
+            setNewYear({ 
+                nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false,
+                inicio_inscricoes: '', fim_inscricoes: '',
+                inicio_matriculas: '', fim_matriculas: '',
+                data_exame_admissao: '', data_teste_diagnostico: ''
+            });
             setShowYearForm(false);
             fetchAcademicYears();
         } catch (error) {
@@ -562,7 +709,15 @@ const Configuracoes = () => {
             data_inicio: year.data_inicio,
             data_fim: year.data_fim,
             status: year.status || (year.activo ? 'Activo' : 'Encerrado'),
-            activo: year.activo
+            activo: year.activo,
+            inicio_inscricoes: year.inicio_inscricoes || '',
+            fim_inscricoes: year.fim_inscricoes || '',
+            inicio_matriculas: year.inicio_matriculas || '',
+            fim_matriculas: year.fim_matriculas || '',
+            data_exame_admissao: year.data_exame_admissao || '',
+            data_teste_diagnostico: year.data_teste_diagnostico || '',
+            hora_fechamento: year.hora_fechamento || '23:59',
+            fecho_automatico_inscricoes: year.fecho_automatico_inscricoes || false
         });
         setIsEditingYear(true);
         setEditingYearId(year.id_ano);
@@ -570,7 +725,13 @@ const Configuracoes = () => {
     };
 
     const handleCancelEditYear = () => {
-        setNewYear({ nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false });
+        setNewYear({ 
+            nome: '', data_inicio: '', data_fim: '', status: 'Planeado', activo: false,
+            inicio_inscricoes: '', fim_inscricoes: '',
+            inicio_matriculas: '', fim_matriculas: '',
+            data_exame_admissao: '', data_teste_diagnostico: '',
+            hora_fechamento: '23:59', fecho_automatico_inscricoes: false
+        });
         setIsEditingYear(false);
         setEditingYearId(null);
         setShowYearForm(false);
@@ -584,9 +745,14 @@ const Configuracoes = () => {
         }
 
         try {
-            await api.patch(`anos-lectivos/${id}/`, { activo: true });
+            const response = await api.patch(`anos-lectivos/${id}/`, { activo: true });
             fetchAcademicYears(); // Refresh to see updates
-            alert("Ano lectivo reaberto com sucesso!");
+            
+            if (response.data.stats) {
+                showTransitionStats(response.data.stats);
+            } else {
+                alert("Ano lectivo reaberto com sucesso!");
+            }
         } catch (error) {
             console.error("Erro ao activar ano:", error);
             const msg = parseApiError(error, "Erro ao mudar status do ano.");
@@ -601,14 +767,232 @@ const Configuracoes = () => {
 
         try {
             const response = await api.post(`anos-lectivos/${id}/encerrar/`);
-            const count = response.data.matriculas_atualizadas;
-            alert(`Ano Lectivo encerrado com sucesso.\n\n${count !== undefined ? `${count} matrículas foram marcadas como CONCLUÍDAS.` : ''}`);
+            if (response.data.stats) {
+                showTransitionStats(response.data.stats);
+            } else {
+                alert(`Ano Lectivo encerrado com sucesso.`);
+            }
             fetchAcademicYears();
         } catch (error) {
             console.error("Erro ao encerrar ano:", error);
             const msg = parseApiError(error, "Erro ao encerrar ano lectivo.");
             alert(msg);
         }
+    };
+
+    const renderLogDetailsModal = () => {
+        if (!selectedLog) return null;
+
+        const isActividade = !!selectedLog.actor;
+        const dadosNovos = selectedLog.dados_novos;
+        const dadosAnteriores = selectedLog.dados_anteriores;
+
+        // Função para traduzir chaves técnicas para nomes amigáveis
+        const translateKey = (key) => {
+            const translations = {
+                'id_turma': 'Turma',
+                'id_curso': 'Curso',
+                'id_sala': 'Sala',
+                'id_classe': 'Classe',
+                'id_aluno': 'Aluno',
+                'nome_completo': 'Nome Completo',
+                'status_aluno': 'Estado do Aluno',
+                'status': 'Estado',
+                'id_ano': 'Ano Lectivo',
+                'numero_bi': 'Número de BI',
+                'data_nascimento': 'Data de Nascimento',
+                'genero': 'Género',
+                'nacionalidade': 'Nacionalidade',
+                'naturalidade': 'Naturalidade',
+                'email': 'E-mail',
+                'telefone': 'Telefone',
+                'codigo': 'Código',
+                'nome': 'Nome',
+                'num_sala': 'Nº Sala',
+                'capacidade': 'Capacidade',
+                'periodo': 'Período',
+                'tipo': 'Tipo',
+                'valor': 'Valor',
+                'data': 'Data',
+                'ativo': 'Ativo',
+                'observacao': 'Observação',
+                'id_matricula': 'ID Matrícula',
+                'id_usuario': 'ID Utilizador',
+                'id_funcionario': 'ID Funcionário',
+                'id_encarregado': 'ID Encarregado',
+                'salario_base': 'Salário Base',
+                'subsidio': 'Subsídio',
+                'bonus': 'Bónus',
+                'morada': 'Morada',
+                'bairro_residencia': 'Bairro',
+                'municipio_residencia': 'Município',
+                'provincia_residencia': 'Província',
+                'numero_casa': 'Nº Casa'
+            };
+            return translations[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+        };
+
+        const renderChanges = () => {
+            const allKeys = new Set([...Object.keys(dadosNovos || {}), ...Object.keys(dadosAnteriores || {})]);
+            const rows = [];
+            
+            allKeys.forEach(key => {
+                // Ignorar campos puramente técnicos que confundem o utilizador
+                if (['id', 'criado_em', 'actualizado_em', 'password', 'senha_hash', 'id_usuario', 'id_funcionario'].includes(key)) return;
+                
+                const oldVal = dadosAnteriores?.[key];
+                const newVal = dadosNovos?.[key];
+                
+                // Se o valor não mudou, não precisamos mostrar (para evitar ruído)
+                if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
+                
+                rows.push({ key, oldVal, newVal });
+            });
+
+            if (rows.length === 0 && selectedLog.tipo_accao.toLowerCase().includes('actualizou')) {
+                return (
+                    <div style={{ padding: '20px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Nenhuma alteração de valores detectada nos campos principais.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#475569', fontWeight: 800, width: '25%' }}>Informação</th>
+                                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#be123c', fontWeight: 800, background: 'rgba(254, 226, 226, 0.4)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <ChevronLeft size={14} /> Antes (Como estava)
+                                    </div>
+                                </th>
+                                <th style={{ padding: '14px 20px', textAlign: 'left', color: '#15803d', fontWeight: 800, background: 'rgba(220, 252, 231, 0.4)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Depois (Como ficou) <ChevronRightIcon size={14} />
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row, idx) => (
+                                <tr key={row.key} style={{ borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#1e293b', background: '#fcfcfc' }}>
+                                        {translateKey(row.key)}
+                                    </td>
+                                    <td style={{ padding: '14px 20px', color: '#be123c', background: 'rgba(254, 226, 226, 0.15)', fontStyle: row.oldVal === null ? 'italic' : 'normal' }}>
+                                        {row.oldVal === null || row.oldVal === undefined ? (
+                                            <span style={{ opacity: 0.5 }}>— (Vazio)</span>
+                                        ) : (
+                                            <span style={{ fontWeight: 500 }}>{String(row.oldVal)}</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '14px 20px', color: '#15803d', background: 'rgba(220, 252, 231, 0.15)', fontWeight: 700 }}>
+                                        {row.newVal === null || row.newVal === undefined ? (
+                                            <span style={{ opacity: 0.5, fontStyle: 'italic', fontWeight: 400 }}>— (Removido)</span>
+                                        ) : (
+                                            String(row.newVal)
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        };
+
+        return (
+            <div className="modal-overlay" style={{ zIndex: 3000 }}>
+                <div className="modal-content" style={{ maxWidth: '850px', width: '95%', padding: '0', overflow: 'hidden', borderRadius: '24px' }}>
+                    <div style={{ padding: '24px 30px', background: 'linear-gradient(to right, #f8fafc, #eff6ff)', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px', color: '#1e293b', fontSize: '20px' }}>
+                            <div style={{ width: '40px', height: '40px', background: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                <Activity size={20} color="var(--primary-color)" />
+                            </div>
+                            Explorador de Registo Histórico
+                        </h3>
+                        <button onClick={() => setSelectedLog(null)} style={{ border: 'none', background: 'white', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div style={{ padding: '30px', maxHeight: '75vh', overflowY: 'auto', background: '#fcfcfc' }}>
+                        {/* Header Info */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '32px' }}>
+                            <div style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                <p style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 800, marginBottom: '8px', letterSpacing: '0.05em' }}>Responsável</p>
+                                <p style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <User size={16} color="#3b82f6" /> {isActividade ? selectedLog.actor : selectedLog.utilizador}
+                                </p>
+                            </div>
+                            <div style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                <p style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 800, marginBottom: '8px', letterSpacing: '0.05em' }}>Data e Hora</p>
+                                <p style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Clock size={16} color="#3b82f6" /> {selectedLog.data_hora || selectedLog.entrada}
+                                </p>
+                            </div>
+                            <div style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                <p style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 800, marginBottom: '8px', letterSpacing: '0.05em' }}>ID do Registo</p>
+                                <p style={{ fontSize: '15px', fontWeight: 700, color: '#64748b', margin: 0, fontFamily: 'monospace' }}>#LOG-{selectedLog.id}</p>
+                            </div>
+                        </div>
+
+                        {!isActividade ? (
+                            <div style={{ background: '#f8fafc', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0' }}>
+                                <h4 style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <LogIn size={18} /> Detalhes da Sessão de Login
+                                </h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+                                    <div>
+                                        <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>Terminal / Endereço IP</p>
+                                        <p style={{ fontWeight: 700, fontFamily: 'monospace', color: '#1e293b', fontSize: '16px', margin: 0 }}>{selectedLog.ip}</p>
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>Saída (Logout)</p>
+                                        <p style={{ fontWeight: 700, color: selectedLog.sessao_activa ? '#059669' : '#1e293b', fontSize: '16px', margin: 0 }}>
+                                            {selectedLog.sessao_activa ? 'Sessão ainda ativa' : selectedLog.saida}
+                                        </p>
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>Agente de Navegação (Browser)</p>
+                                        <p style={{ fontSize: '14px', background: 'white', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', color: '#475569' }}>{selectedLog.dispositivo}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '20px', background: '#f1f5f9', padding: '20px', borderRadius: '18px' }}>
+                                    <div style={{ width: '48px', height: '48px', background: 'var(--primary-color)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+                                        <Activity size={24} />
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748b', fontWeight: 800, marginBottom: '4px', letterSpacing: '0.05em' }}>Tipo de Operação</p>
+                                        <p style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', margin: 0 }}>{selectedLog.tipo_accao}</p>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginBottom: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                        <FileText size={18} color="#64748b" />
+                                        <h4 style={{ margin: 0, fontSize: '16px', color: '#1e293b' }}>Resumo das Alterações</h4>
+                                    </div>
+                                    {renderChanges()}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ padding: '20px 30px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'right', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>Este registo é permanente e não pode ser alterado.</span>
+                        <button onClick={() => setSelectedLog(null)} className="btn-premium" style={{ border: 'none', background: '#1e293b', color: 'white', padding: '10px 24px', borderRadius: '12px', fontWeight: 600 }}>
+                            Concluído
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const renderContent = () => {
@@ -656,9 +1040,17 @@ const Configuracoes = () => {
                                     </>
                                 )}
                             </button>
-                            <button className="btn-premium btn-secondary-premium">
-                                Restaurar do ficheiro
-                            </button>
+                            <label className="btn-premium btn-secondary-premium" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Upload size={18} />
+                                <span>Restaurar do ficheiro</span>
+                                <input 
+                                    type="file" 
+                                    accept=".zip" 
+                                    style={{ display: 'none' }}
+                                    onChange={handleUploadRestoreBackup}
+                                    disabled={saving}
+                                />
+                            </label>
                         </div>
 
                         {backupStatus === 'completed' && (
@@ -705,6 +1097,14 @@ const Configuracoes = () => {
                                                     style={{ background: '#eff6ff', color: '#2563eb', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                                                 >
                                                     <Download size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleRestoreBackup(b.filename)}
+                                                    className="btn-icon-action" 
+                                                    title="Restaurar Este Backup"
+                                                    style={{ background: '#f0fdf4', color: '#16a34a', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                                                >
+                                                    <RefreshCw size={16} />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDeleteBackup(b.filename)}
@@ -1192,7 +1592,14 @@ const Configuracoes = () => {
                                 onClick={() => {
                                     if (showYearForm) handleCancelEditYear();
                                     else {
-                                        setNewYear({ nome: '', data_inicio: '', data_fim: '', activo: false });
+                                        setNewYear({ 
+                                            nome: '', data_inicio: '', data_fim: '', 
+                                            status: 'Planeado', activo: false,
+                                            inicio_inscricoes: '', fim_inscricoes: '',
+                                            inicio_matriculas: '', fim_matriculas: '',
+                                            data_exame_admissao: '', data_teste_diagnostico: '',
+                                            hora_fechamento: '23:59', fecho_automatico_inscricoes: false
+                                        });
                                         setIsEditingYear(false);
                                         setShowYearForm(true);
                                     }
@@ -1359,6 +1766,120 @@ const Configuracoes = () => {
                                             value={newYear.data_fim}
                                             onChange={(e) => setNewYear({...newYear, data_fim: e.target.value})}
                                         />
+                                    </div>
+
+                                    {/* NOVAS DATAS DE AGENDAMENTO (INSCRIÇÕES) */}
+                                    <div className="config-group-v2" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                                        <h4 style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ width: '4px', height: '14px', background: 'var(--primary-color)', borderRadius: '2px' }}></div>
+                                            Cronograma de Inscrições e Matrículas
+                                        </h4>
+                                    </div>
+
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Início das Inscrições</label>
+                                        <input 
+                                            type="date" 
+                                            className="input-v2"
+                                            value={newYear.inicio_inscricoes}
+                                            onChange={(e) => setNewYear({...newYear, inicio_inscricoes: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Fim das Inscrições</label>
+                                        <input 
+                                            type="date" 
+                                            className="input-v2"
+                                            value={newYear.fim_inscricoes}
+                                            onChange={(e) => setNewYear({...newYear, fim_inscricoes: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="config-group-v2" style={{ opacity: 0, pointerEvents: 'none' }}>
+                                        {/* Spacer to keep 3 col grid consistent */}
+                                    </div>
+
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Início das Matrículas</label>
+                                        <input 
+                                            type="date" 
+                                            className="input-v2"
+                                            value={newYear.inicio_matriculas}
+                                            onChange={(e) => setNewYear({...newYear, inicio_matriculas: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Fim das Matrículas</label>
+                                        <input 
+                                            type="date" 
+                                            className="input-v2"
+                                            value={newYear.fim_matriculas}
+                                            onChange={(e) => setNewYear({...newYear, fim_matriculas: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="config-group-v2" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                                        <h4 style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ width: '4px', height: '14px', background: 'var(--primary-color)', borderRadius: '2px' }}></div>
+                                            Exames e Testes
+                                        </h4>
+                                    </div>
+
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Exame de Admissão</label>
+                                        <input 
+                                            type="date" 
+                                            className="input-v2"
+                                            value={newYear.data_exame_admissao}
+                                            onChange={(e) => setNewYear({...newYear, data_exame_admissao: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Teste de Diagnóstico</label>
+                                        <input 
+                                            type="date" 
+                                            className="input-v2"
+                                            value={newYear.data_teste_diagnostico}
+                                            onChange={(e) => setNewYear({...newYear, data_teste_diagnostico: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="config-group-v2" style={{ opacity: 0, pointerEvents: 'none' }}>
+                                        {/* Spacer */}
+                                    </div>
+
+                                    <div className="config-group-v2" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                                        <h4 style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ width: '4px', height: '14px', background: 'var(--warning-color, #f59e0b)', borderRadius: '2px' }}></div>
+                                            Horários e Automatismos
+                                        </h4>
+                                    </div>
+
+                                    <div className="config-group-v2">
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px' }}>Hora de Fechamento</label>
+                                        <input 
+                                            type="time" 
+                                            className="input-v2"
+                                            value={newYear.hora_fechamento}
+                                            onChange={(e) => setNewYear({...newYear, hora_fechamento: e.target.value})}
+                                        />
+                                        <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Hora que as inscrições encerram no dia limite</span>
+                                    </div>
+
+                                    <div className="config-group-v2" style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', fontSize: '14px', display: 'block' }}>
+                                            Encerramento Automático
+                                        </label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                            <label className="switch-premium">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={newYear.fecho_automatico_inscricoes}
+                                                    onChange={(e) => setNewYear({...newYear, fecho_automatico_inscricoes: e.target.checked})}
+                                                />
+                                                <span className="slider-premium round"></span>
+                                            </label>
+                                            <span style={{ fontSize: '14px', color: '#475569', fontWeight: '500' }}>
+                                                Encerrar inscrições online automaticamente ao atingir o prazo
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1586,31 +2107,7 @@ const Configuracoes = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px', background: '#f8fafc', padding: '20px', borderRadius: '16px' }}>
-                                <div className="config-group-v2" style={{ marginBottom: 0 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                        <Calendar size={16} /> Data Limite de Candidatura
-                                    </label>
-                                    <input 
-                                        type="datetime-local" 
-                                        className="input-v2"
-                                        value={config.data_fim_candidatura ? config.data_fim_candidatura.slice(0, 16) : ''}
-                                        onChange={e => setConfig({...config, data_fim_candidatura: e.target.value})}
-                                    />
-                                </div>
-                                <div className="config-group-v2" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '24px' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        id="auto-close"
-                                        checked={config.fechamento_automatico}
-                                        onChange={e => setConfig({...config, fechamento_automatico: e.target.checked})}
-                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                                    />
-                                    <label htmlFor="auto-close" style={{ cursor: 'pointer', fontWeight: '600', color: '#1e293b' }}>
-                                        Fechar automaticamente ao atingir o prazo
-                                    </label>
-                                </div>
-                            </div>
+                            {/* Redundant date fields removed - now managed in Academic Year schedule */}
                             
                             {/* Mensagem de Encerramento - Design Premium */}
                             <div style={{ 
@@ -1760,10 +2257,196 @@ const Configuracoes = () => {
                                 </details>
                                 <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
                                     <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como encerrar o ano lectivo?</summary>
-                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Na aba Académico, clique no botão "Encerrar" ao lado do ano lectivo activo.</p>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Na aba Académico, clique no botão "Encerrar" ao lado do ano lectivo activo. Isso bloqueará novas matrículas para esse período.</p>
+                                </details>
+                                <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como configurar as vagas por curso?</summary>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Aceda ao menu principal 'Vagas por Curso'. Escolha o ano lectivo e defina o número total de vagas para cada curso oferecido pela instituição.</p>
+                                </details>
+                                <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <summary style={{ fontWeight: 600, fontSize: '14px' }}>Onde encontro a lista de candidatos reprovados na lista de espera?</summary>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Vá ao menu 'Lista de Espera'. Lá pode adicionar candidatos que não entraram na primeira fase mas que podem ser chamados posteriormente.</p>
+                                </details>
+                                <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como exportar a ficha de matrícula em PDF?</summary>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Na lista de Matrículas, use o botão de acções e selecione "Imprimir Ficha". O sistema gerará o documento pronto para assinatura.</p>
+                                </details>
+                                <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <summary style={{ fontWeight: 600, fontSize: '14px' }}>O que acontece ao suspender o portal de candidaturas?</summary>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>O público externo não poderá enviar novas inscrições. Eles verão apenas a mensagem personalizada definida na aba 'Académico'.</p>
                                 </details>
                             </div>
                         </div>
+                    </div>
+                );
+            case 'logs':
+                return (
+                    <div style={{ animation: 'fadeIn 0.5s' }}>
+                        <div className="section-title-v2">
+                            <div className="icon-circle" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}>
+                                <Activity size={24} />
+                            </div>
+                            <div>
+                                <h2>Logs de Auditoria</h2>
+                                <p>Registo completo de sessões e acções realizadas no sistema.</p>
+                            </div>
+                        </div>
+
+                        {/* Resumo Cards */}
+                        {logsResumo && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
+                                {[
+                                    { label: 'Acções Hoje', value: logsResumo.accoes_hoje, icon: <Activity size={18}/>, color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+                                    { label: 'Logins Hoje', value: logsResumo.logins_hoje, icon: <LogIn size={18}/>, color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                                    { label: 'Sessões Activas', value: logsResumo.sessoes_activas, icon: <Clock size={18}/>, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                                ].map((c, i) => (
+                                    <div key={i} style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: c.bg, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{c.icon}</div>
+                                        <div>
+                                            <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 500 }}>{c.label}</p>
+                                            <p style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#1e293b' }}>{c.value ?? '—'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Sub-tabs */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '0' }}>
+                            {[{ key: 'logins', label: 'Sessões de Login', icon: <LogIn size={16}/> }, { key: 'actividades', label: 'Acções do Sistema', icon: <Activity size={16}/> }].map(t => (
+                                <button key={t.key} onClick={() => { setLogsTab(t.key); setLogsPage(1); fetchLogs(1, t.key); }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: 600, fontSize: '14px', transition: 'all 0.2s',
+                                        background: logsTab === t.key ? 'white' : 'transparent',
+                                        color: logsTab === t.key ? '#3b82f6' : '#64748b',
+                                        borderBottom: logsTab === t.key ? '2px solid #3b82f6' : '2px solid transparent',
+                                        marginBottom: '-2px'
+                                    }}>{t.icon}{t.label}</button>
+                            ))}
+                        </div>
+
+                        {/* Filtros */}
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flex: '1', minWidth: '180px' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <input placeholder="Pesquisar..." value={logsFilter.busca}
+                                    onChange={e => setLogsFilter(f => ({...f, busca: e.target.value}))}
+                                    style={{ width: '100%', paddingLeft: '38px', padding: '10px 12px 10px 38px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                            </div>
+                            <input type="date" value={logsFilter.data_inicio} onChange={e => setLogsFilter(f => ({...f, data_inicio: e.target.value}))}
+                                style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', color: '#475569' }} />
+                            <input type="date" value={logsFilter.data_fim} onChange={e => setLogsFilter(f => ({...f, data_fim: e.target.value}))}
+                                style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', color: '#475569' }} />
+                            <button onClick={() => fetchLogs(1, logsTab, logsFilter)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>
+                                <Search size={15}/> Filtrar
+                            </button>
+                            <button onClick={() => { const f = { busca: '', data_inicio: '', data_fim: '', tipo: 'all' }; setLogsFilter(f); fetchLogs(1, logsTab, f); }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>
+                                <RefreshCw size={15}/> Limpar
+                            </button>
+                        </div>
+
+                        {/* Tabela */}
+                        <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                            {logsLoading ? (
+                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '8px' }} />
+                                    <p style={{ margin: 0 }}>A carregar registos...</p>
+                                </div>
+                            ) : logsData.length === 0 ? (
+                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <Activity size={32} style={{ marginBottom: '12px', opacity: 0.4 }} />
+                                    <p style={{ margin: 0, fontWeight: 500 }}>Nenhum registo encontrado.</p>
+                                </div>
+                            ) : logsTab === 'logins' ? (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                            {['Utilizador', 'Tipo', 'IP', 'Entrada', 'Saída', 'Duração', 'Estado'].map(h => (
+                                                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {logsData.map((row, i) => (
+                                            <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                                                <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1e293b' }}>{row.utilizador}</td>
+                                                <td style={{ padding: '12px 16px' }}><span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: '#eff6ff', color: '#2563eb' }}>{row.tipo_utilizador}</span></td>
+                                                <td style={{ padding: '12px 16px', color: '#64748b', fontFamily: 'monospace' }}>{row.ip}</td>
+                                                <td style={{ padding: '12px 16px', color: '#475569' }}>{row.entrada}</td>
+                                                <td style={{ padding: '12px 16px', color: '#475569' }}>{row.saida}</td>
+                                                <td style={{ padding: '12px 16px', color: '#64748b' }}>{row.duracao}</td>
+                                                <td style={{ padding: '12px 16px' }}>
+                                                    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: row.sessao_activa ? 'rgba(16,185,129,0.1)' : '#f1f5f9', color: row.sessao_activa ? '#059669' : '#94a3b8' }}>
+                                                        {row.sessao_activa ? '● Activo' : 'Encerrado'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                            {['Data/Hora', 'Utilizador', 'Acção'].map(h => (
+                                                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#475569' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {logsData.map((row, i) => {
+                                            const isCreate = row.tipo_accao.toLowerCase().includes('criou');
+                                            const isDelete = row.tipo_accao.toLowerCase().includes('eliminou');
+                                            const isUpdate = row.tipo_accao.toLowerCase().includes('actualizou');
+                                            
+                                            let badgeColor = '#64748b';
+                                            let badgeBg = '#f1f5f9';
+                                            if (isCreate) { badgeColor = '#059669'; badgeBg = '#ecfdf5'; }
+                                            if (isDelete) { badgeColor = '#dc2626'; badgeBg = '#fef2f2'; }
+                                            if (isUpdate) { badgeColor = '#2563eb'; badgeBg = '#eff6ff'; }
+
+                                            return (
+                                                <tr key={row.id} 
+                                                    onClick={() => setSelectedLog(row)}
+                                                    style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'white' : '#fafafa', cursor: 'pointer', transition: 'background 0.2s' }}
+                                                    className="log-row-hover"
+                                                >
+                                                    <td style={{ padding: '12px 16px', color: '#64748b', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '12px' }}>{row.data_hora}</td>
+                                                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1e293b' }}>{row.actor}</td>
+                                                    <td style={{ padding: '12px 16px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                            <span style={{ padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: badgeBg, color: badgeColor, border: `1px solid ${badgeBg}` }}>
+                                                                {row.tipo_accao}
+                                                            </span>
+                                                            <button style={{ border: 'none', background: 'none', color: '#3b82f6', fontSize: '11px', fontWeight: 700 }}>Detalhes</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        {/* Paginação */}
+                        {logsTotalPages > 1 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '0 4px' }}>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>Total: {logsTotal} registos</span>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <button disabled={logsPage <= 1} onClick={() => { setLogsPage(p => p-1); fetchLogs(logsPage-1, logsTab); }}
+                                        style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: logsPage <= 1 ? '#f8fafc' : 'white', cursor: logsPage <= 1 ? 'not-allowed' : 'pointer', color: '#64748b' }}>
+                                        <ChevronLeft size={16}/>
+                                    </button>
+                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>Pág. {logsPage} de {logsTotalPages}</span>
+                                    <button disabled={logsPage >= logsTotalPages} onClick={() => { setLogsPage(p => p+1); fetchLogs(logsPage+1, logsTab); }}
+                                        style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: logsPage >= logsTotalPages ? '#f8fafc' : 'white', cursor: logsPage >= logsTotalPages ? 'not-allowed' : 'pointer', color: '#64748b' }}>
+                                        <ChevronRightIcon size={16}/>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             default:
@@ -1773,6 +2456,7 @@ const Configuracoes = () => {
 
     return (
         <div className="config-page">
+            {renderLogDetailsModal()}
             <header className="config-header-v2">
                 <h1>Configurações do Sistema</h1>
                 <p>Gerencie as preferências, segurança e manutenção da plataforma escolar.</p>
@@ -1819,6 +2503,14 @@ const Configuracoes = () => {
                     >
                         <HelpCircle size={20} /> Ajuda
                     </button>
+                    {canViewLogs && (
+                        <button
+                            className={`config-nav-item ${activeTab === 'logs' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('logs')}
+                        >
+                            <Activity size={20} /> Logs
+                        </button>
+                    )}
                 </aside>
 
                 {/* Main Content Area V2 */}

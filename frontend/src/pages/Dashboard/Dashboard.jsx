@@ -93,7 +93,13 @@ const Dashboard = () => {
        let yearObjs = Array.isArray(dataAnos) ? dataAnos.map(a => ({ 
            id: a.id_ano, 
            nome: a.nome, 
-           activo: a.activo 
+           activo: a.activo,
+           inicio_inscricoes: a.inicio_inscricoes,
+           fim_inscricoes: a.fim_inscricoes,
+           inicio_matriculas: a.inicio_matriculas,
+           fim_matriculas: a.fim_matriculas,
+           data_exame_admissao: a.data_exame_admissao,
+           data_teste_diagnostico: a.data_teste_diagnostico
        })) : [];
        
         if (!yearObjs.find(y => y.nome === '2024')) {
@@ -207,13 +213,23 @@ const Dashboard = () => {
      }
    }, [selectedYear, academicYears.length > 0]);
 
-  // Silent refresh interval for everything (Real-time update simulation)
+  // Polling Inteligente para Dashboard (Sincronização Silenciosa)
   useEffect(() => {
-      const interval = setInterval(() => {
-          refreshStats(true); // silent = true (não ativa loading spinner)
-          refreshChart(true);
-      }, 60000); // Atualiza a cada 60 segundos para evitar sobrecarga
-      return () => clearInterval(interval);
+      const syncIfVisible = () => {
+          if (!document.hidden) {
+              refreshStats(true); 
+              refreshChart(true);
+          }
+      };
+
+      const interval = setInterval(syncIfVisible, 60000); // Atualiza a cada 60 segundos
+      
+      window.addEventListener('focus', syncIfVisible);
+
+      return () => {
+          clearInterval(interval);
+          window.removeEventListener('focus', syncIfVisible);
+      };
   }, [refreshStats, refreshChart]);
 
 
@@ -400,8 +416,8 @@ const Dashboard = () => {
                   <p>Equilíbrio entre Masculino e Feminino</p>
                 </div>
               </div>
-              <div className="chart-body gender-chart-body">
-                <ResponsiveContainer width="100%" height="100%" debounce={300}>
+              <div className="chart-body gender-chart-body" style={{ minHeight: '300px' }}>
+                <ResponsiveContainer width="100%" height={300} debounce={300}>
                   <PieChart>
                     <Pie
                       data={genderData}
@@ -484,7 +500,7 @@ const Dashboard = () => {
               <Megaphone size={20} className="shake-icon" />
               <span>Agenda & Feriados</span>
             </div>
-            <CalendarWidget />
+            <CalendarWidget scheduling={academicYears.find(y => y.nome === selectedYear)} />
           </div>
         </div>
 

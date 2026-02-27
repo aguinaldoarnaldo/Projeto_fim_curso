@@ -26,6 +26,7 @@ import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
+import { useDataCache } from '../../hooks/useDataCache';
 import { PERMISSIONS } from '../../utils/permissions';
 
 const Turmas = () => {
@@ -53,10 +54,6 @@ const Turmas = () => {
         status: ''
     });
 
-    const [turmas, setTurmas] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
     const [salas, setSalas] = useState([]);
     const [classesDisponiveis, setClassesDisponiveis] = useState([]);
     const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
@@ -74,153 +71,78 @@ const Turmas = () => {
         capacidade: 55
     });
 
-    // Cache
-    const { getCache, setCache } = useCache();
-
-    // Optimized: Fetch only dynamic data (Turmas, Salas) for polling
-    const fetchDynamicData = async () => {
-        try {
-            const [turmasRes, salasRes] = await Promise.all([
-                api.get('turmas/'),
-                api.get('salas/')
-            ]);
-            
-            const turmasData = turmasRes.data.results || turmasRes.data;
-            const salasData = salasRes.data.results || salasRes.data;
-
-            const formattedTurmas = turmasData.map(t => ({
-                id: t.id_turma,
-                turma: t.codigo_turma,
-                id_curso: t.id_curso,
-                curso: t.curso_nome,
-                id_sala: t.id_sala,
-                sala: `Sala ${t.sala_numero || 'N/A'}`,
-                id_classe: t.id_classe,
-                classe: t.classe_nome || 'N/A',
-                id_periodo: t.id_periodo,
-                coordenador: t.responsavel_nome || 'Sem Coordenador',
-                ano: t.ano_lectivo_nome || t.ano || '---',
-                ano_lectivo_id: t.ano_lectivo,
-                ano_lectivo_ativo: t.ano_lectivo_ativo, // Mapped from backend
-                id_turma: t.id_turma, // Ensure ID is mapped if missing
-                turno: t.periodo_nome,
-                qtdAlunos: t.total_alunos || 0,
-                sala_capacidade: Number(t.sala_capacidade) || 0,
-                capacidade: (t.capacidade !== null && t.capacidade !== undefined && t.capacidade > 0) ? Number(t.capacidade) : (Number(t.sala_capacidade) || 55),
-                status: t.status || 'Ativa'
-            }));
-
-            setTurmas(formattedTurmas);
-            setSalas(salasData);
-            
-            // Update Cache
-            setCache('turmas', formattedTurmas);
-            setCache('salas', salasData);
-            
-        } catch (err) {
-            console.error('Erro ao atualizar turmas em background:', err);
-        }
+    // Fetcher for useDataCache
+    const fetchTurmasData = async () => {
+        const response = await api.get('turmas/');
+        const data = response.data.results || response.data;
+        return data.map(t => ({
+            id: t.id_turma,
+            turma: t.codigo_turma,
+            id_curso: t.id_curso,
+            curso: t.curso_nome,
+            id_sala: t.id_sala,
+            sala: `Sala ${t.sala_numero || 'N/A'}`,
+            id_classe: t.id_classe,
+            classe: t.classe_nome || 'N/A',
+            id_periodo: t.id_periodo,
+            coordenador: t.responsavel_nome || 'Sem Coordenador',
+            ano: t.ano_lectivo_nome || t.ano || '---',
+            ano_lectivo_id: t.ano_lectivo,
+            ano_lectivo_ativo: t.ano_lectivo_ativo,
+            id_turma: t.id_turma,
+            turno: t.periodo_nome,
+            qtdAlunos: t.total_alunos || 0,
+            sala_capacidade: Number(t.sala_capacidade) || 0,
+            capacidade: (t.capacidade !== null && t.capacidade !== undefined && t.capacidade > 0) ? Number(t.capacidade) : (Number(t.sala_capacidade) || 55),
+            status: t.status || 'Ativa'
+        }));
     };
 
-    const fetchData = async (force = false) => {
-        // Step 1: Try Cache
-        if (!force) {
-            const cTurmas = getCache('turmas');
-            const cSalas = getCache('salas');
-            const cCursos = getCache('cursos');
-            const cPeriodos = getCache('periodos');
-            const cAnos = getCache('anos-lectivos');
-            const cClasses = getCache('classes');
+    const { 
+        data: turmas = [], 
+        loading, 
+        error, 
+        refresh, 
+        update: updateTurma 
+    } = useDataCache('turmas', fetchTurmasData);
 
-            if (cTurmas && cSalas && cCursos && cPeriodos && cAnos && cClasses) {
-                 setTurmas(cTurmas);
-                 setSalas(cSalas);
-                 setClassesDisponiveis(cClasses);
-                 setCursosDisponiveis(cCursos);
-                 setPeriodosDisponiveis(cPeriodos);
-                 setAnosDisponiveis(cAnos);
-                 setLoading(false);
-            }
-        }
-
-        try {
-            // Step 2: Fetch Everything (Initial Load)
-            // Do not force set loading=true on updates to avoid flash
-            const [turmasRes, salasRes, cursosRes, periodosRes, anosRes, classesRes] = await Promise.all([
-                api.get('turmas/'),
-                api.get('salas/'),
-                api.get('cursos/'),
-                api.get('periodos/'),
-                api.get('anos-lectivos/'),
-                api.get('classes/')
-            ]);
-            
-            const turmasData = turmasRes.data.results || turmasRes.data;
-            const formattedTurmas = turmasData.map(t => ({
-                id: t.id_turma,
-                turma: t.codigo_turma,
-                id_curso: t.id_curso,
-                curso: t.curso_nome,
-                id_sala: t.id_sala,
-                sala: `Sala ${t.sala_numero || 'N/A'}`,
-                id_classe: t.id_classe,
-                classe: t.classe_nome || 'N/A',
-                id_periodo: t.id_periodo,
-                coordenador: t.responsavel_nome || 'Sem Coordenador',
-                ano: t.ano_lectivo_nome || t.ano || '---',
-                ano_lectivo_id: t.ano_lectivo,
-                ano_lectivo_ativo: t.ano_lectivo_ativo, // Mapped from backend
-                id_turma: t.id_turma,
-                turno: t.periodo_nome,
-                qtdAlunos: t.total_alunos || 0,
-                sala_capacidade: Number(t.sala_capacidade) || 0,
-                capacidade: (t.capacidade !== null && t.capacidade !== undefined && t.capacidade > 0) ? Number(t.capacidade) : (Number(t.sala_capacidade) || 55),
-                status: t.status || 'Ativa'
-            }));
-            
-            const salasData = salasRes.data.results || salasRes.data;
-            const cursosData = cursosRes.data.results || cursosRes.data;
-            const periodosData = periodosRes.data.results || periodosRes.data;
-            const anosData = anosRes.data.results || anosRes.data || [];
-            const classesData = classesRes.data.results || classesRes.data || [];
-
-            setTurmas(formattedTurmas);
-            setSalas(salasData);
-            setClassesDisponiveis(classesData);
-            setCursosDisponiveis(cursosData);
-            setPeriodosDisponiveis(periodosData);
-            setAnosDisponiveis(anosData);
-
-            // Cache all
-            setCache('turmas', formattedTurmas);
-            setCache('salas', salasData);
-            setCache('classes', classesData);
-            setCache('cursos', cursosData);
-            setCache('periodos', periodosData);
-            setCache('anos-lectivos', anosData);
-
-            setLoading(false);
-        } catch (err) {
-            console.error('Erro ao buscar dados:', err);
-            if (loading) {
-                setError('Falha ao carregar dados.');
-                setLoading(false);
-            }
-        }
-    };
-
-    // Initial Load
+    // Fetch static metadata
     useEffect(() => {
-        fetchData();
+        const fetchMetadata = async () => {
+            try {
+                const [salasRes, cursosRes, periodosRes, anosRes, classesRes] = await Promise.all([
+                    api.get('salas/'),
+                    api.get('cursos/'),
+                    api.get('periodos/'),
+                    api.get('anos-lectivos/'),
+                    api.get('classes/')
+                ]);
+                
+                setSalas(salasRes.data.results || salasRes.data);
+                setCursosDisponiveis(cursosRes.data.results || cursosRes.data);
+                setPeriodosDisponiveis(periodosRes.data.results || periodosRes.data);
+                setAnosDisponiveis(anosRes.data.results || anosRes.data || []);
+                setClassesDisponiveis(classesRes.data.results || classesRes.data || []);
+                
+            } catch (err) {
+                console.error('Erro ao buscar metadados:', err);
+            }
+        };
+        fetchMetadata();
     }, []);
 
-    // Polling for real-time updates (Dynamic Data Only)
+    // Polling interval standardized to 120s
     useEffect(() => {
-        const interval = setInterval(() => {
-            fetchDynamicData();
-        }, 2000); // 2 seconds for real-time feel
-        return () => clearInterval(interval);
-    }, []);
+        const syncIfVisible = () => {
+            if (!document.hidden) refresh(true);
+        };
+        const interval = setInterval(syncIfVisible, 120000);
+        window.addEventListener('focus', syncIfVisible);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
+    }, [refresh]);
 
     const handleSave = async () => {
         try {
@@ -251,8 +173,10 @@ const Turmas = () => {
             
             if (modalMode === 'add') {
                  await api.post('turmas/', payload);
+                 alert("Turma criada com sucesso!");
             } else {
-                 await api.put(`turmas/${selectedTurma.id}/`, payload);
+                 await api.patch(`turmas/${selectedTurma.id}/`, payload);
+            alert("Turma atualizada com sucesso!");
                  
                  // OPTIMISTIC UPDATE: Update local state immediately for instant feedback
                  setTurmas(prev => prev.map(t => {

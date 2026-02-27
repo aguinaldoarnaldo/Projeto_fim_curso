@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.cache import cache
 
 class Configuracao(models.Model):
     """
@@ -34,14 +35,21 @@ class Configuracao(models.Model):
     def save(self, *args, **kwargs):
         self.pk = 1 # Garantir que sempre seja o ID 1 (Singleton)
         super(Configuracao, self).save(*args, **kwargs)
+        # Limpar cache ao salvar
+        cache.delete('global_config_solo')
 
     def delete(self, *args, **kwargs):
         pass # Impedir exclusão
 
     @classmethod
     def get_solo(cls):
-        obj, created = cls.objects.get_or_create(pk=1)
-        return obj
+        # Tentar recuperar do cache
+        config = cache.get('global_config_solo')
+        if not config:
+            config, created = cls.objects.get_or_create(pk=1)
+            # Cache por 1 hora (3600s)
+            cache.set('global_config_solo', config, 3600)
+        return config
 
     def __str__(self):
         return "Configuração Global Do Sistema"

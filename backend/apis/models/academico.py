@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from .base import BaseModel
 from .usuarios import Funcionario
 import datetime
@@ -17,6 +18,19 @@ class AnoLectivo(BaseModel):
     nome = models.CharField(max_length=20, verbose_name='Ano Lectivo', unique=True, help_text="Ex: 2025/2026")
     data_inicio = models.DateField(verbose_name='Data de Início')
     data_fim = models.DateField(verbose_name='Data de Fim')
+    
+    # Datas de Agendamento
+    inicio_inscricoes = models.DateField(verbose_name='Início das Inscrições', null=True, blank=True)
+    fim_inscricoes = models.DateField(verbose_name='Fim das Inscrições', null=True, blank=True)
+    inicio_matriculas = models.DateField(verbose_name='Início das Matrículas', null=True, blank=True)
+    fim_matriculas = models.DateField(verbose_name='Fim das Matrículas', null=True, blank=True)
+    data_exame_admissao = models.DateField(verbose_name='Data do Exame de Admissão', null=True, blank=True)
+    data_teste_diagnostico = models.DateField(verbose_name='Data do Teste de Diagnóstico', null=True, blank=True)
+    
+    # Automatismos e Horários
+    hora_fechamento = models.TimeField(verbose_name='Hora de Fechamento', default='23:59', help_text="Hora que o sistema encerra as operações no dia limite")
+    fecho_automatico_inscricoes = models.BooleanField(default=False, verbose_name='Fechar Inscrições Automaticamente?')
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Planeado', verbose_name='Estado')
     activo = models.BooleanField(default=False, verbose_name='Activo?') # Mantido para compatibilidade
     
@@ -26,6 +40,46 @@ class AnoLectivo(BaseModel):
         verbose_name_plural = 'Anos Lectivos'
         ordering = ['-nome']
         
+    @classmethod
+    def get_active_year(cls):
+        """Retorna o ano lectivo atualmente activo com cache"""
+        active_year = cache.get('active_academic_year')
+        if not active_year:
+            active_year = cls.objects.filter(status='Activo').first()
+            if active_year:
+                cache.set('active_academic_year', active_year, 3600)
+        return active_year
+
+    @property
+    def is_inscricoes_abertas(self):
+        """Verifica se as inscrições estão abertas com base no cronograma"""
+        if not self.inicio_inscricoes or not self.fim_inscricoes:
+            return True # Se não houver data, assume que o controle é manual
+        
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Combinar data de fim com hora de fechamento
+        try:
+            fim_datetime = timezone.make_aware(
+                datetime.datetime.combine(self.fim_inscricoes, self.hora_fechamento)
+            )
+        except:
+             # Fallback if timezone issues
+             fim_datetime = datetime.datetime.combine(self.fim_inscricoes, self.hora_fechamento)
+
+        inicio_datetime = timezone.make_aware(
+            datetime.datetime.combine(self.inicio_inscricoes, datetime.time(0, 0))
+        ) if self.inicio_inscricoes else None
+
+        if inicio_datetime and now < inicio_datetime:
+            return False
+            
+        if now > fim_datetime:
+            return False
+            
+        return True
+
     def save(self, *args, **kwargs):
         from django.apps import apps
         Turma = apps.get_model('apis', 'Turma')
@@ -49,6 +103,12 @@ class AnoLectivo(BaseModel):
         if self.pk:
             status_anterior = AnoLectivo.objects.values_list('status', flat=True).get(pk=self.pk)
 
+        # Inicializar stats de impacto (para retornar no ViewSet)
+        self._update_stats = {
+            'reopened': None,
+            'closed': None
+        }
+
         if self.status == 'Activo':
             self.activo = True
 
@@ -56,65 +116,124 @@ class AnoLectivo(BaseModel):
             # Reverter os efeitos do encerramento para este ano
             if status_anterior == 'Encerrado':
                 # Reverter Turmas deste ano que foram concluídas pelo encerramento
-                Turma.objects.filter(ano_lectivo=self, status='Concluida').update(status='Ativa')
+                count_turmas = Turma.objects.filter(ano_lectivo=self, status='Concluida').update(status='Ativa')
 
                 # Reverter Matrículas deste ano: 'Concluida' → 'Ativa'
-                # ('Transferido' e 'Desistente' são estados finais - não reverter)
-                Matricula.objects.filter(
+                count_matriculas = Matricula.objects.filter(
                     ano_lectivo=self, status='Concluida'
                 ).update(status='Ativa')
 
                 # Reverter Alunos deste ano: 'Concluido' → 'Activo'
-                # Apenas os que têm matrícula NESTE ano e estão como 'Concluido'
                 ids_alunos = Matricula.objects.filter(
                     ano_lectivo=self
                 ).values_list('id_aluno_id', flat=True).distinct()
 
-                Aluno.objects.filter(
+                count_alunos = Aluno.objects.filter(
                     id_aluno__in=ids_alunos,
                     status_aluno='Concluido'
                 ).update(status_aluno='Activo')
+
+                self._update_stats['reopened'] = {
+                    'nome': self.nome,
+                    'turmas': count_turmas,
+                    'matriculas': count_matriculas,
+                    'alunos': count_alunos
+                }
 
             # === CASO B: ACTIVAÇÃO NORMAL (outro ano estava activo) ===
             # Fechar o ano que estava activo antes
             old_active = AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).first()
             if old_active:
                 # Marcar Turmas do ano anterior como Concluídas
-                Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
+                count_turmas = Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
 
                 # Marcar Matrículas do ano anterior como Concluídas
-                # ('Transferido' e 'Desistente' são estados finais)
-                Matricula.objects.filter(
-                    ano_lectivo=old_active, status__in=['Ativa', 'Confirmada']
+                count_matriculas = Matricula.objects.filter(
+                    ano_lectivo=old_active, status__in=['Ativa']
                 ).update(status='Concluida')
 
                 # Actualizar Alunos do ano anterior: 'Activo' → 'Concluido'
-                ids_alunos_do_ano = Matricula.objects.filter(
+                # Incluir alunos via Matrícula e via Turma (segurança)
+                ids_matriculas = Matricula.objects.filter(
                     ano_lectivo=old_active
-                ).values_list('id_aluno_id', flat=True).distinct()
+                ).values_list('id_aluno_id', flat=True)
+                
+                ids_turmas = Aluno.objects.filter(
+                    id_turma__ano_lectivo=old_active
+                ).values_list('id_aluno', flat=True)
 
-                Aluno.objects.filter(
-                    id_aluno__in=ids_alunos_do_ano,
+                ids_alunos_geral = set(list(ids_matriculas) + list(ids_turmas))
+
+                count_alunos = Aluno.objects.filter(
+                    id_aluno__in=ids_alunos_geral,
                     status_aluno='Activo'
                 ).update(status_aluno='Concluido')
 
                 # Fechar o ano anterior
                 AnoLectivo.objects.filter(pk=old_active.pk).update(status='Encerrado', activo=False)
 
+                self._update_stats['closed'] = {
+                    'nome': old_active.nome,
+                    'turmas': count_turmas,
+                    'matriculas': count_matriculas,
+                    'alunos': count_alunos
+                }
+
             # Segurança extra: garantir que não há outro ano Activo além deste
             AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).update(status='Encerrado', activo=False)
         else:
             self.activo = False
+            
+            # === CASO C: ENCERRAMENTO EXPLÍCITO (Activo → Encerrado/Suspenso) ===
+            if status_anterior == 'Activo' and self.status in ['Encerrado', 'Suspenso']:
+                 # Concluir Turmas
+                 count_turmas = Turma.objects.filter(ano_lectivo=self, status='Ativa').update(status='Concluida')
+                 
+                 # Concluir Matrículas
+                 count_matriculas = Matricula.objects.filter(
+                     ano_lectivo=self, status__in=['Ativa']
+                 ).update(status='Concluida')
+                 
+                 # Concluir Alunos
+                 # Incluir alunos via Matrícula e via Turma (segurança)
+                 ids_matriculas = Matricula.objects.filter(
+                     ano_lectivo=self
+                 ).values_list('id_aluno_id', flat=True)
+                 
+                 ids_turmas = Aluno.objects.filter(
+                     id_turma__ano_lectivo=self
+                 ).values_list('id_aluno', flat=True)
+
+                 ids_alunos_geral = set(list(ids_matriculas) + list(ids_turmas))
+                 
+                 count_alunos = Aluno.objects.filter(
+                     id_aluno__in=ids_alunos_geral,
+                     status_aluno='Activo'
+                 ).update(status_aluno='Concluido')
+                 
+                 self._update_stats['closed'] = {
+                     'nome': self.nome,
+                     'turmas': count_turmas,
+                     'matriculas': count_matriculas,
+                     'alunos': count_alunos
+                 }
 
         super().save(*args, **kwargs)
+        # Limpar cache ao salvar
+        cache.delete('active_academic_year')
         
     def __str__(self):
         return f"{self.nome} ({self.status})"
 
-    @staticmethod
-    def get_active_year():
-        """Retorna o ano lectivo actualmente activo"""
-        return AnoLectivo.objects.filter(status='Activo').first()
+    @classmethod
+    def get_active_year(cls):
+        """Retorna o ano lectivo actualmente activo com cache"""
+        active_year = cache.get('active_academic_year')
+        if not active_year:
+            active_year = cls.objects.filter(status='Activo').first()
+            if active_year:
+                cache.set('active_academic_year', active_year, 3600)
+        return active_year
 
 
 class Sala(BaseModel):
@@ -356,3 +475,19 @@ class Turma(BaseModel):
 
     def __str__(self):
         return self.codigo_turma
+
+
+class VagaCurso(BaseModel):
+    """Vagas definidas para um curso em um ano lectivo específico"""
+    id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='vagas_por_ano')
+    ano_lectivo = models.ForeignKey(AnoLectivo, on_delete=models.CASCADE, related_name='vagas_cursos')
+    vagas = models.IntegerField(default=0, verbose_name='Quantidade de Vagas')
+
+    class Meta:
+        db_table = 'vaga_curso'
+        verbose_name = 'Vaga por Curso'
+        verbose_name_plural = 'Vagas por Cursos'
+        unique_together = ('id_curso', 'ano_lectivo')
+
+    def __str__(self):
+        return f"{self.id_curso.nome_curso} - {self.ano_lectivo.nome} ({self.vagas} vagas)"
