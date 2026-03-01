@@ -30,7 +30,8 @@ import {
     Users, 
     Lock,
     ShieldCheck,
-    GraduationCap
+    GraduationCap,
+    Upload
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +40,7 @@ import { parseApiError } from '../../utils/errorParser';
 import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import PermutaModal from './PermutaModal';
+import ImportarAlunosModal from './ImportarAlunosModal';
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
@@ -51,6 +53,7 @@ const Matriculas = () => {
     const [selectedMatricula, setSelectedMatricula] = useState(null);
     const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
     const [showPermutaModal, setShowPermutaModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     const [showStatusSubmenu, setShowStatusSubmenu] = useState(false);
     const statusMenuTimeoutRef = useRef(null);
@@ -145,10 +148,28 @@ const Matriculas = () => {
         
         if (!Array.isArray(data)) return [];
 
-        return data.map(item => ({
-            id: `MAT-${item.id_matricula || '000'}`,
+        return data.map(item => {
+            // Nº Aluno: ID do aluno formatado com 4 dígitos → 0001, 0002, 0151
+            const alunoIdFormatado = item.id_aluno
+                ? String(item.id_aluno).padStart(4, '0')
+                : '----';
+
+            // Nº Matrícula: Ano lectivo + ID da matrícula → 2026045
+            const anoBase = item.ano_lectivo_nome
+                ? item.ano_lectivo_nome.split('/')[0]  // "2033/2034" → "2033"
+                : new Date().getFullYear();
+            const idMatFormatado = item.id_matricula
+                ? String(item.id_matricula).padStart(3, '0')
+                : '000';
+            const numMatricula = `${anoBase}${idMatFormatado}`;
+
+            return ({
+            id: numMatricula,
             real_id: item.id_matricula,
+            numAluno: alunoIdFormatado,
+            numMatricula: numMatricula,
             aluno: item.aluno_nome || 'Desconhecido',
+            alunoNumero: alunoIdFormatado,
             foto: item.aluno_foto || null,
             anoLectivo: item.ano_lectivo_nome || item.ano_lectivo || 'N/A',
             classe: item.classe_nome || 'N/A',
@@ -159,7 +180,7 @@ const Matriculas = () => {
             status: item.status || 'Ativa',
             tipo: item.tipo || 'Novo',
             dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
-            alunoId: item.id_aluno, // Use correct ID field from serializer
+            alunoId: item.id_aluno,
             id_turma: item.id_turma || '',
             id_classe: item.id_classe || '',
             detalhes: {
@@ -189,7 +210,8 @@ const Matriculas = () => {
                 historico: item.historico_escolar || [],
                 historicoMatriculas: item.matriculas_detalhes || []
             }
-        }));
+            });
+        });
     };
 
     // 2. Use Data Cache Hook
@@ -345,7 +367,9 @@ const Matriculas = () => {
             const search = searchTerm.toLowerCase();
             const matchesSearch =
                 (matricula.aluno && String(matricula.aluno).toLowerCase().includes(search)) ||
-                (matricula.id && String(matricula.id).toLowerCase().includes(search));
+                (matricula.id && String(matricula.id).toLowerCase().includes(search)) ||
+                (matricula.real_id && String(matricula.real_id).toLowerCase().includes(search)) ||
+                (matricula.detalhes?.bi && String(matricula.detalhes.bi).toLowerCase().includes(search));
 
             const matchesFilters =
                 (filters.ano === '' || matricula.anoLectivo === filters.ano) &&
@@ -533,6 +557,17 @@ const Matriculas = () => {
                         )}
                         {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                             <button
+                                onClick={() => setShowImportModal(true)}
+                                className={`btn-permuta ${isYearClosed ? 'disabled' : ''}`}
+                                title={isYearClosed ? "Ano lectivo encerrado" : "Importar alunos de planilha CSV"}
+                                disabled={isYearClosed}
+                                style={isYearClosed ? { opacity: 0.5, cursor: 'not-allowed', background: '#e2e8f0', color: '#64748b' } : { marginRight: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569' }}
+                            >
+                                <Upload size={18} /> Importar CSV
+                            </button>
+                        )}
+                        {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
+                            <button
                                 onClick={() => navigate('/matriculas/nova')}
                                 className={`btn-new-matricula ${isYearClosed ? 'disabled' : ''}`}
                                 disabled={isYearClosed}
@@ -553,7 +588,7 @@ const Matriculas = () => {
                         <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={18} aria-hidden="true" />
                         <input
                             type="text"
-                            placeholder="Buscar aluno ou número de matrícula..."
+                            placeholder="Buscar por nome, BI ou matrícula..."
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-box-input"
@@ -597,6 +632,15 @@ const Matriculas = () => {
                                         Nome Completo
                                          <span className="sort-icon">
                                             {sortConfig.key === 'aluno' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
+                                        </span>
+                                    </th>
+                                    <th 
+                                        className={`sortable-header ${sortConfig.key === 'id' ? 'active-sort' : ''}`} 
+                                        onClick={() => requestSort('id')}
+                                    >
+                                        Nº Matrícula
+                                         <span className="sort-icon">
+                                            {sortConfig.key === 'id' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
                                         </span>
                                     </th>
                                     <th 
@@ -674,8 +718,25 @@ const Matriculas = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '13.5px' }}>{m.aluno}</span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                                                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '13.5px' }}>{m.aluno}</span>
+                                                        <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>Nº Aluno: {m.numAluno || '---'}</span>
+                                                    </div>
                                             </div>
+                                        </td>
+                                        <td>
+                                            <span style={{ 
+                                                fontFamily: 'monospace', 
+                                                fontSize: '13px', 
+                                                color: '#1e293b', 
+                                                fontWeight: 700,
+                                                background: '#f1f5f9',
+                                                padding: '4px 8px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #e2e8f0'
+                                            }}>
+                                                {m.numMatricula || '---'}
+                                            </span>
                                         </td>
                                     <td style={{fontWeight: 600, color: '#334155'}}>{m.classe}</td>
                                     <td>
@@ -809,7 +870,8 @@ const Matriculas = () => {
                                     )}
                                 </div>
                                 <h2 className="profile-name">{selectedMatricula.aluno}</h2>
-                                <p className="profile-id">ID: {selectedMatricula.id}</p>
+                                <p className="profile-id">Nº Matrícula: {selectedMatricula.numMatricula}</p>
+                                <p className="profile-id" style={{ marginTop: '-8px', opacity: 0.8, fontSize: '11px' }}>Nº Aluno: {selectedMatricula.numAluno}</p>
                                 
                                 <div 
                                     className="profile-status-interactive"
@@ -1219,9 +1281,15 @@ const Matriculas = () => {
                 onSuccess={() => { setShowPermutaModal(false); refresh(true); }}
             />
 
-
-
-            {/* Portal-like Actions Dropdown */}
+            <ImportarAlunosModal 
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onSuccess={() => {
+                    setShowImportModal(false);
+                    refresh(true);
+                }}
+            />
+  {/* Portal-like Actions Dropdown */}
             {activeMenuId && menuMatricula && (
                 <div 
                     className="dropdown-menu"

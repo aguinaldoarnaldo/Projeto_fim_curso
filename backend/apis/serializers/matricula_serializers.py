@@ -5,6 +5,7 @@ from apis.models import Matricula, Aluno, Candidato
 class MatriculaSerializer(serializers.ModelSerializer):
     """Serializer para Matricula"""
     aluno_nome = serializers.CharField(source='id_aluno.nome_completo', read_only=True)
+    aluno_numero = serializers.IntegerField(source='id_aluno.numero_matricula', read_only=True)
     aluno_foto = serializers.SerializerMethodField()
     
     # Campo opcional para matricular via candidato
@@ -48,7 +49,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
         model = Matricula
         fields = [
             'id_matricula', 
-            'id_aluno', 'aluno_nome', 'aluno_foto',
+            'id_aluno', 'aluno_nome', 'aluno_numero', 'aluno_foto',
             'id_candidato', # Campo write-only
             'bi', 'genero', 'data_nascimento', 'telefone', 'email', 'endereco',
             'encarregado_nome', 'encarregado_telefone', 'encarregado_parentesco',

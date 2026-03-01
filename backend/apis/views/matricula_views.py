@@ -43,7 +43,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
     }
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields = ['id_aluno__nome_completo', 'id_matricula']
+    search_fields = ['id_aluno__nome_completo', 'id_matricula', 'id_aluno__numero_bi', 'id_aluno__numero_matricula']
     ordering_fields = ['data_matricula', 'id_aluno__nome_completo']
     ordering = ['-data_matricula']
 
@@ -293,6 +293,106 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
             import traceback
             traceback.print_exc()
             return Response({'erro': f'Erro ao processar matrícula: {str(e)}'}, status=500)
+
+    @action(detail=False, methods=['post'])
+    def importar_csv(self, request):
+        """
+        Importa alunos e suas respectivas matrículas a partir de um arquivo CSV.
+        O CSV deve conter colunas como: nome_completo, numero_bi, data_nascimento, genero, telefone, email, turma_codigo
+        """
+        import csv
+        import io
+        from datetime import datetime
+        from apis.models import Aluno, Turma, AnoLectivo, Matricula
+        from django.db import transaction
+
+        file = request.FILES.get('arquivo_csv')
+        if not file:
+            return Response({'erro': 'Nenhum arquivo CSV enviado.'}, status=400)
+
+        # Ler o CSV
+        data_set = file.read().decode('UTF-8')
+        io_string = io.StringIO(data_set)
+        reader = csv.DictReader(io_string)
+        
+        relatorio = {
+            'sucessos': [],
+            'falhas': [],
+            'total_processado': 0
+        }
+
+        ano_lectivo_ativo = AnoLectivo.objects.filter(activo=True).first()
+        if not ano_lectivo_ativo:
+            return Response({'erro': 'Nenhum Ano Lectivo ativo encontrado.'}, status=400)
+
+        with transaction.atomic():
+            for row in reader:
+                relatorio['total_processado'] += 1
+                try:
+                    nome = row.get('nome_completo')
+                    bi = row.get('numero_bi')
+                    turma_codigo = row.get('turma_codigo')
+                    
+                    if not nome or not bi or not turma_codigo:
+                        relatorio['falhas'].append({
+                            'linha': row,
+                            'erro': 'Nome, BI e Código da Turma são obrigatórios.'
+                        })
+                        continue
+
+                    # 1. Buscar Turma
+                    try:
+                        turma = Turma.objects.get(codigo_turma=turma_codigo)
+                    except Turma.DoesNotExist:
+                        relatorio['falhas'].append({
+                            'linha': row,
+                            'erro': f'Turma com código "{turma_codigo}" não encontrada.'
+                        })
+                        continue
+
+                    # 2. Criar/Atualizar Aluno
+                    aluno, created = Aluno.objects.update_or_create(
+                        numero_bi=bi,
+                        defaults={
+                            'nome_completo': nome,
+                            'data_nascimento': row.get('data_nascimento') or None,
+                            'genero': row.get('genero') or 'M',
+                            'telefone': row.get('telefone') or '000000000',
+                            'email': row.get('email') or None,
+                            'nacionalidade': row.get('nacionalidade', 'Angolana'),
+                            'naturalidade': row.get('naturalidade'),
+                            'provincia_residencia': row.get('provincia'),
+                            'municipio_residencia': row.get('municipio'),
+                            'bairro_residencia': row.get('bairro'),
+                            'numero_casa': row.get('numero_casa'),
+                            'status_aluno': 'Activo',
+                            'id_turma': turma
+                        }
+                    )
+
+                    # 3. Criar Matrícula (se não existir para este ano)
+                    if not Matricula.objects.filter(id_aluno=aluno, ano_lectivo=ano_lectivo_ativo).exists():
+                        Matricula.objects.create(
+                            id_aluno=aluno,
+                            id_turma=turma,
+                            ano_lectivo=ano_lectivo_ativo,
+                            tipo='Novo',  # Ou extrair do CSV se houver
+                            status='Ativa',
+                            ativo=True
+                        )
+                    
+                    relatorio['sucessos'].append(f"{nome} (BI: {bi})")
+
+                except Exception as e:
+                    relatorio['falhas'].append({
+                        'linha': row,
+                        'erro': str(e)
+                    })
+
+        return Response({
+            'mensagem': f"Importação concluída: {len(relatorio['sucessos'])} sucessos, {len(relatorio['falhas'])} falhas.",
+            'relatorio': relatorio
+        }, status=200)
 
     @action(detail=False, methods=['get'])
     def sugerir_tipo(self, request):

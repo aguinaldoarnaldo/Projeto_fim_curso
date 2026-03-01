@@ -583,6 +583,15 @@ const Alunos = () => {
                                         </span>
                                     </th>
                                     <th 
+                                        className={`sortable-header ${sortConfig.key === 'matricula' ? 'active-sort' : ''}`} 
+                                        onClick={() => requestSort('matricula')}
+                                    >
+                                        Nº Aluno
+                                         <span className="sort-icon">
+                                            {sortConfig.key === 'matricula' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
+                                        </span>
+                                    </th>
+                                    <th 
                                         className={`sortable-header ${sortConfig.key === 'anoLectivo' ? 'active-sort' : ''}`} 
                                         onClick={() => requestSort('anoLectivo')}
                                     >
@@ -687,10 +696,13 @@ const Alunos = () => {
                                                     <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
                                                         <span className="student-name" style={{ fontWeight: 700, color: '#0f172a' }}>{s.nome}</span>
                                                         <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, fontFamily: 'monospace', marginTop: '2px' }}>
-                                                            {s.detalhes?.bi || 'Nº BI PENDENTE'}
+                                                            {s.detalhes?.bi || 'BI PENDENTE'}
                                                         </span>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}>
+                                                {s.matricula || '---'}
                                             </td>
                                             <td>{s.anoLectivo}</td>
                                             <td style={{ fontWeight: 700 }}>{s.classe}</td>
@@ -807,7 +819,7 @@ const Alunos = () => {
                                     )}
                                 </div>
                                 <h2 className="profile-name">{selectedStudent.nome}</h2>
-                                <p className="profile-id">ID: {selectedStudent.id}</p>
+                                <p className="profile-id">Nº Aluno: {selectedStudent.matricula}</p>
                                 
                                 <div 
                                     className="profile-status-interactive"

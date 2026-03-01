@@ -511,12 +511,12 @@ class MatriculaAdminForm(forms.ModelForm):
 class MatriculaAdmin(ModelAdmin):
     form = MatriculaAdminForm
     list_display = [
-        'id_display', 'aluno_nome', 'ano_lectivo', 'classe_nome', 
+        'id_display', 'aluno_numero', 'aluno_nome', 'ano_lectivo', 'classe_nome', 
         'curso_nome', 'sala_nome', 'turno_nome', 
         'status_badge', 'tipo', 'data_display'
     ]
     list_filter = ['ano_lectivo', 'status', 'tipo', 'ativo', 'id_turma__id_classe', 'id_turma__id_curso']
-    search_fields = ['id_aluno__nome_completo', 'id_matricula']
+    search_fields = ['id_aluno__nome_completo', 'id_matricula', 'id_aluno__numero_matricula', 'id_aluno__numero_bi']
     autocomplete_fields = ['id_turma'] # Removemos id_aluno daqui pois não será usado para seleção
     list_per_page = 20
     
@@ -650,7 +650,11 @@ class MatriculaAdmin(ModelAdmin):
 
     @display(description='Matrícula', ordering='id_matricula')
     def id_display(self, obj):
-        return f"MAT-{obj.id_matricula}"
+        return obj.id_matricula
+
+    @display(description='Nº Matrícula', ordering='id_aluno__numero_matricula')
+    def aluno_numero(self, obj):
+        return obj.id_aluno.numero_matricula
 
     @display(description='Nome Completo', ordering='id_aluno__nome_completo')
     def aluno_nome(self, obj):
