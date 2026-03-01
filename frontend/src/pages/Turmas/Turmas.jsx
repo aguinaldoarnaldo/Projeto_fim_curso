@@ -270,7 +270,7 @@ const Turmas = () => {
     };
 
     const filteredData = React.useMemo(() => {
-        let sortableItems = turmas.filter(item => {
+        let sortableItems = (turmas || []).filter(item => {
             const matchesSearch = item.turma.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.coordenador.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 String(item.id).toLowerCase().includes(searchTerm.toLowerCase());

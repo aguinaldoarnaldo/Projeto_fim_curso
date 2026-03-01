@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../Sidebar/Sidebar';
 import TopNavbar from '../TopNavbar/TopNavbar';
-import '../../Global.css';
+import '../../assets/styles/Global.css';
 
 const Layout = ({ children }) => {
     const location = useLocation();
@@ -14,7 +14,7 @@ const Layout = ({ children }) => {
     // Detectar navegação para feedback visual
     useEffect(() => {
         setIsNavigating(true);
-        const timer = setTimeout(() => setIsNavigating(false), 300);
+        const timer = setTimeout(() => setIsNavigating(false), 50);
         
         // Reset scroll ao navegar
         const contentWrapper = document.querySelector('.content-wrapper');

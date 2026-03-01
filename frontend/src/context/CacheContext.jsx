@@ -2,10 +2,20 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 
 const CacheContext = createContext();
 
+// Incrementar esta versão sempre que mudar a estrutura dos dados em cache
+const CACHE_VERSION = '3';
+
 export const CacheProvider = ({ children }) => {
     // Initialize state from localStorage if available
     const [cache, setCacheState] = useState(() => {
         try {
+            const storedVersion = localStorage.getItem('app_cache_version');
+            // Se a versão mudou, limpa o cache antigo
+            if (storedVersion !== CACHE_VERSION) {
+                localStorage.removeItem('app_cache');
+                localStorage.setItem('app_cache_version', CACHE_VERSION);
+                return {};
+            }
             const stored = localStorage.getItem('app_cache');
             return stored ? JSON.parse(stored) : {};
         } catch (e) {

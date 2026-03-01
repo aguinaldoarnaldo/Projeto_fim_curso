@@ -8,7 +8,7 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
     // Isso garante que na primeira renderização os dados já estejam lá
     const [data, setData] = useState(() => {
         const cached = getCache(key);
-        return cached || null; // Retorna null se não houver cache para indicar que precisa carregar
+        return cached || undefined; // Retorna undefined se não houver cache para permitir valores padrão na desestruturação
     });
 
     // Se já temos dados do cache, não estamos "carregando" visualmente
