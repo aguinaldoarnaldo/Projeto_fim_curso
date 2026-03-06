@@ -45,7 +45,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard', permission: PERMISSIONS.VIEW_DASHBOARD },
-    { name: 'Inscritos', icon: <UserPlus size={20} />, path: '/inscrito', permission: PERMISSIONS.VIEW_INSCRITOS },
+    { name: 'Inscritos', icon: <UserPlus size={20} />, path: '/inscritos', permission: PERMISSIONS.VIEW_INSCRITOS },
     { name: 'Lista de Espera', icon: <Clock size={20} />, path: '/lista-espera', permission: PERMISSIONS.VIEW_INSCRITOS },
     { name: 'Matrículas', icon: <ClipboardCheck size={20} />, path: '/matriculas', permission: PERMISSIONS.VIEW_MATRICULAS },
     { name: 'Alunos', icon: <Users size={20} />, path: '/alunos', permission: PERMISSIONS.VIEW_ALUNOS },

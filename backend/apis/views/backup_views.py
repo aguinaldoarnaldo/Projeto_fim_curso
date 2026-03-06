@@ -143,7 +143,10 @@ class BackupViewSet(viewsets.ViewSet):
         if not filename:
             return Response({'error': 'Filename is required'}, status=400)
             
+        # Segurança: Impedir Path Traversal
+        filename = os.path.basename(filename)
         file_path = os.path.join(self.BACKUP_DIR, filename)
+        
         if not os.path.exists(file_path):
             return Response({'error': 'File not found'}, status=404)
             
@@ -155,7 +158,10 @@ class BackupViewSet(viewsets.ViewSet):
         if not filename:
              return Response({'error': 'Filename is required'}, status=400)
              
+        # Segurança: Impedir Path Traversal
+        filename = os.path.basename(filename)
         file_path = os.path.join(self.BACKUP_DIR, filename)
+        
         if os.path.exists(file_path):
             os.remove(file_path)
             return Response({'message': 'Backup eliminado com sucesso!'})
@@ -193,7 +199,10 @@ class BackupViewSet(viewsets.ViewSet):
         if not filename:
             return Response({'error': 'Nome do ficheiro é obrigatório'}, status=400)
 
+        # Segurança: Impedir Path Traversal
+        filename = os.path.basename(filename)
         backup_path = os.path.join(self.BACKUP_DIR, filename)
+        
         if not os.path.exists(backup_path):
             return Response({'error': 'Ficheiro não encontrado'}, status=404)
 
@@ -206,9 +215,22 @@ class BackupViewSet(viewsets.ViewSet):
                 shutil.rmtree(temp_dir)
             os.makedirs(temp_dir)
 
-            # 2. Descompactar
+            # 2. Descompactar (Seguro contra Zip Slip)
+            def is_within_directory(directory, target):
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+                prefix = os.path.commonpath([abs_directory])
+                return os.path.commonpath([abs_directory, abs_target]) == prefix
+
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                for member in tar.infolist():
+                    member_path = os.path.join(path, member.filename)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Tentativa de Zip Slip detectada!")
+                tar.extractall(path, members)
+
             with zipfile.ZipFile(backup_path, 'r') as zipf:
-                zipf.extractall(temp_dir)
+                safe_extract(zipf, temp_dir)
 
             # 3. Localizar dump SQL
             sql_files = [f for f in os.listdir(temp_dir) if f.endswith('.sql')]
@@ -301,9 +323,22 @@ class BackupViewSet(viewsets.ViewSet):
                 shutil.rmtree(temp_restore_dir)
             os.makedirs(temp_restore_dir)
 
-            # 3. Descompactar
+            # 3. Descompactar (Seguro contra Zip Slip)
+            def is_within_directory(directory, target):
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+                prefix = os.path.commonpath([abs_directory])
+                return os.path.commonpath([abs_directory, abs_target]) == prefix
+
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                for member in tar.infolist():
+                    member_path = os.path.join(path, member.filename)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Tentativa de Zip Slip detectada!")
+                tar.extractall(path, members)
+
             with zipfile.ZipFile(temp_path, 'r') as zipf:
-                zipf.extractall(temp_restore_dir)
+                safe_extract(zipf, temp_restore_dir)
 
             # 4. Localizar dump SQL
             sql_files = [f for f in os.listdir(temp_restore_dir) if f.endswith('.sql')]

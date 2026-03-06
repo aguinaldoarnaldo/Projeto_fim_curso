@@ -1,0 +1,145 @@
+
+/* ============================================================
+   GlobalTableResponsive.css
+   Strategy: Horizontal Scroll (Simple & Always Visible)
+   ============================================================ */
+
+/* ── 1. TABLE WRAPPER ─────────────────────────────────────── */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;            /* Always allow horizontal scroll */
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    border-radius: 16px;
+    background: white;
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    /* Thin custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+}
+
+.table-wrapper::-webkit-scrollbar {
+    height: 5px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 0 0 16px 16px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 3px;
+}
+
+/* ── 2. BASE TABLE (Desktop) ──────────────────────────────── */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+
+.data-table thead tr {
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.data-table th {
+    padding: 13px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+}
+
+.data-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.data-table td {
+    padding: 14px 16px;
+    color: #334155;
+    vertical-align: middle;
+    white-space: nowrap;          /* keep cells from wrapping and causing layout issues */
+}
+
+/* ── 3. TABLET ────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+    .data-table th,
+    .data-table td {
+        padding: 11px 13px;
+        font-size: 13px;
+    }
+}
+
+/* ── 4. MOBILE ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+    /* Wrapper: show scroll hint shadow on right edge */
+    .table-wrapper {
+        border-radius: 12px;
+        /* Gradient fade on the right to hint at scrollable content */
+        -webkit-mask-image: linear-gradient(
+            to right,
+            black 0%,
+            black calc(100% - 20px),
+            transparent 100%
+        );
+        mask-image: linear-gradient(
+            to right,
+            black 0%,
+            black calc(100% - 20px),
+            transparent 100%
+        );
+    }
+
+    /* When already scrolled all the way right, remove mask */
+    .table-wrapper.scrolled-end {
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 12px 14px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* Scroll hint label above the table */
+    .table-wrapper::before {
+        content: '← Desliza para ver mais →';
+        display: block;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #94a3b8;
+        padding: 8px 16px 4px;
+        letter-spacing: 0.04em;
+        background: white;
+        border-bottom: 1px solid #f1f5f9;
+    }
+}
+
+/* ── 5. SMALL MOBILE ──────────────────────────────────────── */
+@media (max-width: 480px) {
+    .data-table th,
+    .data-table td {
+        padding: 11px 12px;
+        font-size: 12.5px;
+    }
+}

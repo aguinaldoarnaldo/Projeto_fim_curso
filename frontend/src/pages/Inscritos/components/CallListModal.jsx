@@ -42,7 +42,6 @@ const CallListModal = ({ isOpen, onClose, data }) => {
                                     <tr>
                                         <th>Nº INSCRIÇÃO</th>
                                         <th>NOME COMPLETO</th>
-                                        <th>BI</th>
                                         <th>CURSO</th>
                                     </tr>
                                 </thead>
@@ -51,7 +50,6 @@ const CallListModal = ({ isOpen, onClose, data }) => {
                                         <tr key={al.numero_inscricao}>
                                             <td>{al.numero_inscricao}</td>
                                             <td>{al.nome}</td>
-                                            <td>{al.bi}</td>
                                             <td>{al.curso}</td>
                                         </tr>
                                     ))}

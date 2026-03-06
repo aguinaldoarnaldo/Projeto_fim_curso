@@ -19,6 +19,8 @@ from .financeiro_views import FaturaViewSet, PagamentoViewSet
 from .candidatura_views import CandidaturaViewSet, ListaEsperaViewSet
 from .relatorio_views import RelatorioViewSet
 from .auditoria_views import AuditoriaViewSet
+from .configuracao_views import ConfiguracaoViewSet, AgendamentoBackupViewSet
+from .backup_views import BackupViewSet
 
 __all__ = [
     # Auth
@@ -41,4 +43,5 @@ __all__ = [
     'CandidaturaViewSet', 'ListaEsperaViewSet',
     'RelatorioViewSet',
     'AuditoriaViewSet',
+    'ConfiguracaoViewSet', 'AgendamentoBackupViewSet', 'BackupViewSet',
 ]

@@ -1,10 +1,12 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes, throttle_classes
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
+from django.views.decorators.csrf import csrf_exempt
 
 
 def get_client_ip(request):
@@ -29,16 +31,23 @@ def get_user_agent_info(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
+@csrf_exempt
 def login_view(request):
     """
     Endpoint de login unificado para Funcionários, Alunos e Encarregados.
     Utiliza AuthService para abstrair a complexidade de múltiplos tipos de usuários.
     """
+    request.throttle_scope = 'login'
     from apis.services.auth_service import AuthService
 
     email = request.data.get('email')
     senha = request.data.get('senha')
     tipo_usuario = request.data.get('tipo_usuario', 'funcionario')
+    
+    print(f"--- LOGIN ATTEMPT ---")
+    print(f"Email/User: {email}")
+    print(f"Tipo: {tipo_usuario}")
     
     if not email or not senha:
         return Response(
@@ -73,6 +82,7 @@ def login_view(request):
         }, status=status.HTTP_200_OK)
 
     except ValueError as e:
+        print(f"Login failed for {email}: {str(e)}")
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
         # Logar erro real no servidor se necessário

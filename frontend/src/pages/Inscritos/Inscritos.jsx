@@ -110,6 +110,7 @@ const Inscritos = () => {
           curso2: c.curso2_nome || 'N/A',
           turno: c.turno_preferencial || 'N/A',
           status: c.status || 'INSCRITO',
+          exame_data: c.exame_data,
           dataInscricao: c.criado_em ? new Date(c.criado_em).toLocaleDateString() : 'N/A',
           encarregado: {
               nome: c.nome_encarregado || 'N/A',
@@ -375,7 +376,7 @@ const Inscritos = () => {
         return;
     }
     
-    if (window.confirm("Isso irá distribuir todos os candidatos com status 'Pago' por salas. Continuar?")) {
+    if (window.confirm("Isso irá distribuir os candidatos do ano lectivo activo (que já pagaram e não têm data) por salas. Continuar?")) {
         try {
             setIsProcessingExams(true);
             const res = await api.post('candidaturas/distribuir_exames/', examConfig);
@@ -606,7 +607,7 @@ const Inscritos = () => {
       <ExamSchedulingModal 
           isOpen={showExamModal}
           onClose={() => setShowExamModal(false)}
-          inscritos={inscritos}
+          inscritos={inscritos.filter(i => i.anoLectivoAtivo === true)}
           examConfig={examConfig}
           setExamConfig={setExamConfig}
           onDistribute={handleDistributeExams}

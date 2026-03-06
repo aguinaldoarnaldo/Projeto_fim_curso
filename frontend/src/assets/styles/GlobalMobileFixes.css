@@ -33,15 +33,293 @@
     /* Ensure table headers never overlap the fixed sidebar in mobile */
     .data-table th {
         z-index: 50 !important; /* Lower than sidebar */
-        position: sticky;
     }
 
-    /* Add overlay if clicking outside is needed (requires JS support, acts as safeguard) */
+    /* Top Navbar Adjustments */
+    .top-navbar {
+        padding: 0 16px !important;
+        height: 70px !important;
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 9000 !important;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .mobile-menu-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        color: var(--primary-color);
+    }
+
+    .user-info-top {
+        display: none !important; /* Hide name/role text on small screens */
+    }
+
+    .user-profile-top {
+        padding: 0 !important;
+    }
+
+    /* GLOBAL CONTAINER FIX FOR MOBILE */
+    .page-container, .dashboard-container {
+        padding-top: 90px !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+        padding-bottom: 150px !important;  /* Generosa rolagem no fundo mobile */
+        overflow-x: hidden;
+        overflow-y: visible;               /* let content-wrapper scroll, not the page itself */
+        box-sizing: border-box !important;
+        width: 100% !important;
+        min-height: calc(100vh - 0px);     /* pages fill at least the full viewport */
+    }
+
+    /* Smooth momentum scroll on the main scrollable area */
+    .content-wrapper {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        scroll-behavior: smooth !important;
+        overscroll-behavior-y: contain !important;
+    }
+
+    /* Table card containers — grow with content, never clip */
+    .table-card,
+    .alunos-page .table-card,
+    .inscritos-page .table-card,
+    .matriculas-page .table-card,
+    .turmas-page .table-card,
+    .cursos-page .table-card,
+    .salas-page .table-card,
+    .lista-espera-page .table-card {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* The page-transition-wrapper must also grow */
+    .page-transition-wrapper {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    /* Dashboard Specific Mobile Fixes */
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .search-bar {
+        width: 100% !important;
+        flex: 1;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    .dashboard-content-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .dashboard-charts-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Charts height on mobile */
+    .chart-body, .course-chart-body, .gender-chart-body {
+        min-height: 250px !important;
+        height: 250px !important;
+    }
+
+    /* Modals on Mobile */
+    .modal-card, .detail-modal-card {
+        width: 95% !important;
+        max-height: 95vh !important;
+        margin: 0 auto;
+        border-radius: 12px !important;
+    }
+
+    .user-dropdown {
+        right: 16px !important;
+        width: calc(100vw - 32px) !important;
+        max-width: 300px !important;
+    }
+
+    .detail-modal-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        overflow-y: auto !important;
+    }
+
+    .profile-sidebar {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding: 24px !important;
+    }
+
+    .detail-main-content {
+        padding: 16px !important;
+    }
+
+    /* Forms on Mobile */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* Page Header Adjustments */
+    .page-header {
+        margin-bottom: 24px !important;
+    }
+
+    .page-header-content {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+    }
+
+    .page-header-actions {
+        width: 100% !important;
+        display: flex !important;
+        gap: 10px !important;
+    }
+
+    .btn-primary-action, .btn-action {
+        flex: 1 !important;
+        justify-content: center !important;
+        padding: 10px !important;
+        font-size: 13px !important;
+    }
+
+    /* Calendar Widget Mobile Optimization */
+    .calendar-widget {
+        padding: 12px !important;
+    }
+
+    .calendar-grid {
+        gap: 4px !important;
+    }
+
+    .calendar-day {
+        height: 35px !important;
+        font-size: 12px !important;
+    }
+
+    .calendar-events-container {
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+
+    /* KPI Grid refined */
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    .kpi-card {
+        padding: 15px !important;
+    }
+
+    .kpi-content h3 {
+        font-size: 24px !important;
+    }
+
+    .kpi-icon-floating {
+        width: 30px !important;
+        height: 30px !important;
+        top: 10px !important;
+        right: 10px !important;
+    }
+
+    /* Dashboard Charts */
+    .chart-card-new {
+        padding: 15px !important;
+    }
+
+    .chart-header {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .chart-filter-select {
+        width: 100% !important;
+    }
+
+    /* Configuracoes Mobile Fixes */
+    .config-page {
+        padding: 85px 12px 24px 12px !important;
+    }
+
+    .config-card-v2 {
+        padding: 20px !important;
+        border-radius: 20px !important;
+    }
+
+    .config-header-v2 h1 {
+        font-size: 24px !important;
+    }
+
+    .user-grid-v2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .section-title-v2 h2, .section-title-v2 h3 {
+        font-size: 18px !important;
+    }
+
+    .form-grid-2col {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .info-card-v2 {
+        padding: 16px !important;
+    }
+
+    .config-sidebar-v2 {
+        padding: 12px !important;
+        border-radius: 16px !important;
+    }
+
+    .config-nav-item {
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+    }
+
+    /* Add overlay if clicking outside is needed */
     .mobile-overlay {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0,0,0,0.5);
         z-index: 9998;
         backdrop-filter: blur(2px);
+    }
+}
+
+/* Specific fix for very small devices */
+@media (max-width: 400px) {
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .calendar-weekday {
+        font-size: 10px !important;
     }
 }

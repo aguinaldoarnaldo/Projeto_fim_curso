@@ -32,7 +32,7 @@ const InscritosTable = ({
       <table className="data-table">
         <thead>
           <tr>
-
+            <th className="sticky-col-0">ID</th>
             <th 
                 className={`sticky-col-1 sortable-header ${sortConfig.key === 'nome' ? 'active-sort' : ''}`} 
                 onClick={() => requestSort('nome')}
@@ -84,20 +84,23 @@ const InscritosTable = ({
           </tr>
         </thead>
         <tbody>
-          {data.length > 0 ? data.map((i) => (
-            <tr key={i.id} className="clickable-row animate-fade-in">
-
-              <td className="sticky-col-1" style={{ fontWeight: 600 }}>{i.nome}</td>
-              <td>{i.curso1}</td>
-              <td>
+          {data.length > 0 ? (
+            data.map((i, index) => (
+              <tr key={i.id} className="clickable-row animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
+                <td className="sticky-col-0" data-label="ID">
+                  {i.id}
+                </td>
+                <td className="sticky-col-1" data-label="Candidato" style={{ fontWeight: 600 }}>{i.nome}</td>
+                <td data-label="Curso">{i.curso1}</td>
+              <td data-label="Exame">
                 {i.notaExame ? (
                   <span style={{ fontWeight: 800, color: i.notaExame >= 10 ? '#166534' : '#dc2626' }}>
                     {i.notaExame}
                   </span>
                 ) : '-'}
               </td>
-              <td>{i.anoInscricao}</td>
-              <td>
+              <td data-label="Ano Lectivo">{i.anoInscricao}</td>
+              <td data-label="Estado">
                 <span className={`status-badge ${
                   i.status === 'INSCRITO' ? 'status-pending' :
                   i.status === 'CLASSIFICADO' ? 'status-approved' :
@@ -107,7 +110,7 @@ const InscritosTable = ({
                   {i.status}
                 </span>
               </td>
-              <td>
+              <td data-label="Pagamento (RUP)">
                 {i.rupe ? (
                   <span className={`status-badge ${i.rupe.status_rup === 'PAGO' ? 'status-approved' : 
                     i.rupe.is_expired ? 'status-rejected' : 'status-pending'}`}
@@ -118,7 +121,7 @@ const InscritosTable = ({
                   <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>Não Gerado</span>
                 )}
               </td>
-              <td>
+              <td data-label="Ações">
                 <div className="actions-cell">
                   <button
                     className="btn-icon btn-view"
@@ -180,7 +183,8 @@ const InscritosTable = ({
                 </div>
               </td>
             </tr>
-          )) : (
+            ))
+          ) : (
             <tr>
               <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                 Nenhum candidato encontrado com os filtros aplicados.

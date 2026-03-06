@@ -2,8 +2,8 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
-from apis.models import Configuracao
-from apis.serializers.configuracao_serializers import ConfiguracaoSerializer
+from apis.models import Configuracao, AgendamentoBackup
+from apis.serializers.configuracao_serializers import ConfiguracaoSerializer, AgendamentoBackupSerializer
 from apis.permissions.custom_permissions import HasAdditionalPermission
 from apis.mixins import AuditMixin
 
@@ -28,11 +28,14 @@ class ConfiguracaoViewSet(AuditMixin, viewsets.GenericViewSet):
         """Retorna a configuração singleton"""
         config = Configuracao.get_solo()
         
-        # Lógica de fechamento automático baseada no Ano Lectivo
+        # Lógica de fechamento automático baseada no Ano Lectivo e na Configuração Global
         from apis.models import AnoLectivo
         active_year = AnoLectivo.get_active_year()
         
-        if active_year and active_year.fecho_automatico_inscricoes:
+        # Só executa o fecho automático se:
+        # 1. A flag global 'fechamento_automatico' estiver activa
+        # 2. O anolectivo activo permitir fecho automático
+        if config.fechamento_automatico and active_year and active_year.fecho_automatico_inscricoes:
             if config.candidaturas_abertas and not active_year.is_inscricoes_abertas:
                 config.candidaturas_abertas = False
                 config.save()
@@ -50,3 +53,9 @@ class ConfiguracaoViewSet(AuditMixin, viewsets.GenericViewSet):
             self._log_audit_action('update', instance, serializer)
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+
+class AgendamentoBackupViewSet(viewsets.ModelViewSet):
+    queryset = AgendamentoBackup.objects.all()
+    serializer_class = AgendamentoBackupSerializer
+    permission_classes = [IsAuthenticated]

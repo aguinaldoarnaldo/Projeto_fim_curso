@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import Configuracao
+from apis.models import Configuracao, AgendamentoBackup
 
 class ConfiguracaoSerializer(serializers.ModelSerializer):
     proximo_fechamento = serializers.SerializerMethodField()
@@ -24,3 +24,9 @@ class ConfiguracaoSerializer(serializers.ModelSerializer):
                 datetime.datetime.combine(active_year.fim_inscricoes, active_year.hora_fechamento)
             )
         return obj.data_fim_candidatura
+
+
+class AgendamentoBackupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AgendamentoBackup
+        fields = '__all__'

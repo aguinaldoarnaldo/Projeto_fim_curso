@@ -7,6 +7,16 @@ from apis.serializers.notificacao import NotificacaoSerializer
 class NotificacaoViewSet(viewsets.ModelViewSet):
     queryset = Notificacao.objects.all().order_by('-data_criacao')
     serializer_class = NotificacaoSerializer
+
+    def list(self, request, *args, **kwargs):
+        # Acionar verificação automática antes de retornar a lista
+        try:
+            from apis.services.notification_service import NotificationService
+            NotificationService.check_and_create_notifications()
+        except Exception as e:
+            print(f"Erro ao verificar notificações automáticas: {e}")
+            
+        return super().list(request, *args, **kwargs)
     
     @action(detail=True, methods=['post'])
     def marcar_como_lida(self, request, pk=None):

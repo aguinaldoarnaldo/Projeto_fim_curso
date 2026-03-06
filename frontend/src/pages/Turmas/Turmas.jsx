@@ -443,11 +443,11 @@ const Turmas = () => {
                                 ) : (
                                     currentTurmas.map((t) => (
                                         <tr key={t.id} className="animate-fade-in">
-                                            <td className="turma-name-cell">{t.turma}</td>
-                                            <td>{t.curso}</td>
-                                            <td>{t.classe}</td>
-                                            <td style={{ fontWeight: 500 }}>{t.sala}</td>
-                                            <td>
+                                            <td className="turma-name-cell" data-label="Turma">{t.turma}</td>
+                                            <td data-label="Curso">{t.curso}</td>
+                                            <td data-label="Classe">{t.classe}</td>
+                                            <td data-label="Sala" style={{ fontWeight: 500 }}>{t.sala}</td>
+                                            <td data-label="Coordenador">
                                                 <div className="coordinator-cell">
                                                     <div className="coordinator-avatar-small">
                                                         {t.coordenador.split(' ').pop().charAt(0)}
@@ -455,9 +455,9 @@ const Turmas = () => {
                                                     <span>{t.coordenador}</span>
                                                 </div>
                                             </td>
-                                            <td>{t.ano}</td>
-                                            <td>{t.turno}</td>
-                                            <td style={{ textAlign: 'center' }}>
+                                            <td data-label="Ano Lectivo">{t.ano}</td>
+                                            <td data-label="Turno">{t.turno}</td>
+                                            <td data-label="Alunos" style={{ textAlign: 'center' }}>
                                                 <div className="capacity-cell">
                                                     <span style={{ fontWeight: 700, fontSize: '12px', color: t.qtdAlunos >= t.capacidade ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / {t.capacidade}</span>
                                                     <div className="capacity-progress-container">
@@ -465,7 +465,7 @@ const Turmas = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Estado">
                                                 <span style={{
                                                     padding: '4px 8px',
                                                     borderRadius: '12px',

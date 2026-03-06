@@ -340,7 +340,7 @@ const Cursos = () => {
                                 ) : (
                                     filteredCourses.map((course) => (
                                         <tr key={course.id} className="animate-fade-in">
-                                            <td>
+                                            <td data-label="Curso">
                                                 <div className="course-info">
                                                     <div className="course-icon-bg">
                                                         <BookOpen size={16} />
@@ -348,8 +348,8 @@ const Cursos = () => {
                                                     <span className="course-name">{course.nome}</span>
                                                 </div>
                                             </td>
-                                            <td>{course.area}</td>
-                                            <td>
+                                            <td data-label="Área">{course.area}</td>
+                                            <td data-label="Coordenador">
                                                 <div className="coordinator-info">
                                                     <div className="coordinator-avatar">
                                                         <User size={14} />
@@ -357,13 +357,13 @@ const Cursos = () => {
                                                     <span>{course.coordenador}</span>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Duração">
                                                 <div className="duration-info">
                                                     <Clock size={14} />
                                                     <span>{course.duracao}</span>
                                                 </div>
                                             </td>
-                                            <td style={{textAlign: 'center'}}>{course.totalTurmas}</td>
+                                            <td data-label="Turmas" style={{textAlign: 'center'}}>{course.totalTurmas}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 {hasPermission(PERMISSIONS.MANAGE_CURSOS) && (
                                                     <button

@@ -17,7 +17,7 @@ const ExamSchedulingModal = ({
       <div className="evaluation-modal-card" onClick={(e) => e.stopPropagation()} style={{maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column'}}>
         <div className="evaluation-header">
           <h3>
-            <Calendar size={20} color="#1e3a8a" /> Agendamento Automático
+            <Calendar size={20} color="#1e3a8a" /> Agendamento Automático (Ano Activo)
           </h3>
           <button onClick={onClose} className="btn-close-modal" style={{ position: 'static' }}>
             <X size={20} color="#64748b" />
@@ -38,10 +38,10 @@ const ExamSchedulingModal = ({
                Total de Candidatos Aguardando Vaga
             </p>
             <div style={{fontSize: '36px', fontWeight: '900', color: '#1e3a8a', lineHeight: '1'}}>
-                {inscritos.filter(i => i.status === 'INSCRITO').length.toLocaleString()}
+                {inscritos.filter(i => i.status === 'INSCRITO' && !i.exame_data).length.toLocaleString()}
             </div>
             <p style={{fontSize: '13px', color: '#60a5fa', marginTop: '8px', fontWeight: '500'}}>
-                Candidatos com inscrição confirmada e aguardando vaga de exame
+                Candidatos com inscrição confirmada e aguardando data de exame para o ano activo
             </p>
           </div>
 
