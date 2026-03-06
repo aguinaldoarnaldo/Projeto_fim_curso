@@ -673,7 +673,7 @@ const Alunos = () => {
                                 ) : (
                                     currentStudents.map((s) => (
                                         <tr key={s.id} className="clickable-row animate-fade-in">
-                                            <td className="sticky-col-1">
+                                            <td className="sticky-col-1" data-label="Estudante">
                                                 <div className="student-info">
                                                     <div className="student-avatar" style={{ 
                                                         width: '40px', 
@@ -701,16 +701,16 @@ const Alunos = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}>
+                                            <td data-label="Nº Aluno" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}>
                                                 {s.matricula || '---'}
                                             </td>
-                                            <td>{s.anoLectivo}</td>
-                                            <td style={{ fontWeight: 700 }}>{s.classe}</td>
-                                            <td style={{ color: '#475569' }}>{s.curso}</td>
-                                            <td>{s.sala}</td>
-                                            <td>{s.turno}</td>
-                                            <td>{s.turma}</td>
-                                             <td>
+                                            <td data-label="Ano Lectivo">{s.anoLectivo}</td>
+                                            <td data-label="Classe" style={{ fontWeight: 700 }}>{s.classe}</td>
+                                            <td data-label="Curso" style={{ color: '#475569' }}>{s.curso}</td>
+                                            <td data-label="Sala">{s.sala}</td>
+                                            <td data-label="Turno">{s.turno}</td>
+                                            <td data-label="Turma">{s.turma}</td>
+                                             <td data-label="Estado">
                                                  <span
                                                      className="student-status-badge"
                                                      style={{

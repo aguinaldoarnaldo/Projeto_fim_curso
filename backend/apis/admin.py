@@ -20,7 +20,9 @@ from apis.models import (
     # Auditoria
     Historico, HistoricoLogin,
     # Candidatura
-    Candidato, ExameAdmissao, RupeCandidato, VagaCurso
+    Candidato, ExameAdmissao, RupeCandidato, VagaCurso,
+    # Configuração e Notificações
+    Configuracao, AgendamentoBackup, Notificacao
 )
 
 
@@ -702,3 +704,19 @@ class MatriculaAdmin(ModelAdmin):
         return obj.data_matricula.strftime("%d/%m/%Y")
 admin.site.register(Historico, ModelAdmin)
 admin.site.register(HistoricoLogin, ModelAdmin)
+
+@admin.register(Configuracao)
+class ConfiguracaoAdmin(ModelAdmin):
+    list_display = ['id_config', 'nome_escola', 'candidaturas_abertas', 'fechamento_automatico']
+
+@admin.register(AgendamentoBackup)
+class AgendamentoBackupAdmin(ModelAdmin):
+    list_display = ['id_agendamento', 'data_hora', 'descricao', 'notificado', 'criado_em']
+    list_filter = ['notificado']
+    search_fields = ['descricao']
+
+@admin.register(Notificacao)
+class NotificacaoAdmin(ModelAdmin):
+    list_display = ['id_notificacao', 'titulo', 'tipo', 'lida', 'data_criacao']
+    list_filter = ['tipo', 'lida']
+    search_fields = ['titulo', 'mensagem']

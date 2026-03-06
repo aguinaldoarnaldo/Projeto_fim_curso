@@ -53,3 +53,22 @@ class Configuracao(models.Model):
 
     def __str__(self):
         return "Configuração Global Do Sistema"
+
+
+class AgendamentoBackup(models.Model):
+    """Agendamento de Backups Futuros"""
+    id_agendamento = models.AutoField(primary_key=True)
+    data_hora = models.DateTimeField(verbose_name="Data e Hora Programada")
+    descricao = models.CharField(max_length=255, verbose_name="Descrição/Motivo", blank=True, null=True)
+    notificado = models.BooleanField(default=False, verbose_name="Já Notificado?")
+    executado = models.BooleanField(default=False, verbose_name="Executado?")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'agendamento_backup'
+        verbose_name = 'Agendamento de Backup'
+        verbose_name_plural = 'Agendamentos de Backup'
+        ordering = ['data_hora']
+
+    def __str__(self):
+        return f"Backup agendado para {self.data_hora}"

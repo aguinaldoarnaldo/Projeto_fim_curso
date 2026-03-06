@@ -144,7 +144,7 @@ const Dashboard = () => {
   const genderData = dashboardStats?.gender || [{ name: 'Masculino', value: 0 }, { name: 'Feminino', value: 0 }];
   const courseData = dashboardStats?.courses || [];
   const academicYears = dashboardStats?.years || [];
-   const COLORS_GENDER = ['#3b82f6', '#ec4899'];
+   const COLORS_GENDER = ['#2563eb', '#db2777'];
    const [hasSyncActiveYear, setHasSyncActiveYear] = useState(false);
 
     // 1. Sincronização Inteligente Inicial
@@ -384,12 +384,12 @@ const Dashboard = () => {
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorMat" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.6} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1} />
                       </linearGradient>
                       <linearGradient id="colorIns" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.6} />
+                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0.1} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} dy={10} />
@@ -397,8 +397,8 @@ const Dashboard = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
                     <Legend />
-                    <Area type="monotone" dataKey="matriculas" name="Matrículas" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMat)" />
-                    <Area type="monotone" dataKey="inscritos" name="Inscrições" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorIns)" />
+                    <Area type="monotone" dataKey="matriculas" name="Matrículas" stroke="#2563eb" strokeWidth={4} fillOpacity={1} fill="url(#colorMat)" />
+                    <Area type="monotone" dataKey="inscritos" name="Inscrições" stroke="#ea580c" strokeWidth={4} fillOpacity={1} fill="url(#colorIns)" />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -481,8 +481,8 @@ const Dashboard = () => {
                       type="monotone"
                       dataKey="qnty"
                       stroke="none"
-                      fill="#6366f1"
-                      fillOpacity={0.8}
+                      fill="#4f46e5"
+                      fillOpacity={1}
                       radius={[0, 10, 10, 0]}
                     />
                   </AreaChart>

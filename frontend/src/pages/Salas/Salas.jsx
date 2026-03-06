@@ -323,7 +323,7 @@ const Salas = () => {
                                         const type = getRoomType(s);
                                         return (
                                             <tr key={s.id_sala} className="animate-fade-in">
-                                                <td className="sala-name-cell">
+                                                <td className="sala-name-cell" data-label="Sala">
                                                     <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                                                         <div style={{
                                                             width: '36px', height: '36px', 
@@ -339,7 +339,7 @@ const Salas = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td data-label="Tipo">
                                                     <span style={{
                                                         padding: '4px 10px', 
                                                         borderRadius: '6px', 
@@ -351,13 +351,13 @@ const Salas = () => {
                                                         {type.label}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td data-label="Bloco">
                                                     <div className="bloco-badge">
                                                         <MapPin size={14} />
                                                         {s.bloco || 'Principal'}
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td data-label="Capacidade">
                                                     <div className="capacity-wrapper">
                                                         <div className="capacity-text">
                                                             {(() => {
@@ -409,7 +409,7 @@ const Salas = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td data-label="Ações">
                                                     {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
                                                         <button
                                                             onClick={() => handleEdit(s)}

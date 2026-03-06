@@ -1,62 +1,80 @@
 /* ListaEspera.css */
-/* SCOPED STYLES */
-
 .lista-espera-page.page-container {
-    padding: 30px;
-    background-color: #f8fafc; /* Slate-50 */
-    min-height: 100vh;
-    font-family: 'Inter', sans-serif;
+    padding: 24px;
+    background-color: #f8fafc;
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 0;
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+/* Scrollbar Customization */
+.lista-espera-page::-webkit-scrollbar {
+    width: 6px;
+}
+.lista-espera-page::-webkit-scrollbar-track {
+    background: transparent;
+}
+.lista-espera-page::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+.lista-espera-page::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .lista-espera-page .page-header {
-    margin-bottom: 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    margin-bottom: 24px;
+    padding: 20px 0;
 }
 
 .lista-espera-page .page-header h1 {
     font-size: 28px;
     font-weight: 800;
-    color: #1e293b; /* Slate-800 */
+    color: #1e293b;
+    letter-spacing: -0.025em;
     margin: 0;
-    letter-spacing: -0.02em;
 }
 
 .lista-espera-page .page-header p {
-    color: #64748b; /* Slate-500 */
-    margin-top: 8px;
+    color: #64748b;
+    margin-top: 4px;
     font-size: 15px;
 }
 
+/* Premium Table Card */
 .lista-espera-page .table-card {
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
-    border: 1px solid #e2e8f0; /* Slate-200 */
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
+    border-radius: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    margin-bottom: 40px;
 }
 
-
 .lista-espera-page .search-filter-header {
-    padding: 20px;
+    padding: 20px 24px;
+    background: #ffffff;
     border-bottom: 1px solid #f1f5f9;
     display: flex;
-    gap: 16px;
+    justify-content: space-between;
     align-items: center;
+    gap: 16px;
 }
 
 .lista-espera-page .search-input-container {
     position: relative;
     flex: 1;
-    max-width: 400px;
+    max-width: 450px;
 }
 
 .lista-espera-page .search-input-icon {
     position: absolute;
-    left: 12px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
     color: #94a3b8;
@@ -64,141 +82,180 @@
 
 .lista-espera-page .search-input {
     width: 100%;
-    padding: 10px 10px 10px 40px;
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    outline: none;
+    height: 44px;
+    padding: 0 16px 0 44px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
     font-size: 14px;
-    color: #334155;
-    transition: border-color 0.2s;
+    color: #1e293b;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lista-espera-page .search-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: white;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    outline: none;
 }
 
+/* Action Buttons */
 .lista-espera-page .btn-action {
-    background: #0f172a;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 12px;
     font-weight: 600;
-    cursor: pointer;
     font-size: 14px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     transition: all 0.2s;
+    cursor: pointer;
+    border: none;
 }
 
-.lista-espera-page .btn-action:hover {
-    background: #1e293b;
+.lista-espera-page .btn-primary {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.lista-espera-page .btn-primary:hover {
     transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
 }
 
-
-/* Table styles are inherited from Global.css .data-table */
-
+/* Status Badges */
 .lista-espera-page .status-badge {
-    padding: 4px 10px;
-    border-radius: 100px;
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .lista-espera-page .status-aguardando {
     background: #fff7ed;
-    color: #c2410c;
-    border: 1px solid #ffedd5;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
 }
 
 .lista-espera-page .status-chamado {
-    background: #dcfce7;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #dbeafe;
 }
 
 .lista-espera-page .status-expirado {
     background: #f1f5f9;
-    color: #64748b;
+    color: #475569;
     border: 1px solid #e2e8f0;
 }
 
-.lista-espera-page .priority-highlight {
-    font-weight: 700;
-    color: #e11d48;
+/* Priority Indicator */
+.lista-espera-page .priority-pill {
+    padding: 4px 10px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-weight: 800;
+    border-radius: 6px;
+    font-size: 13px;
+    border: 1px solid #fee2e2;
 }
 
+/* Table Enhancements */
+.lista-espera-page .data-table thead tr th {
+    background: linear-gradient(to right, #1e3a8a, #2563eb);
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    padding: 16px 20px;
+    border: none;
+}
+
+.lista-espera-page .data-table tbody tr {
+    transition: all 0.2s;
+}
+
+.lista-espera-page .data-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.lista-espera-page .data-table tbody td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Modal Premium */
 .lista-espera-page .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(4px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 50;
-    animation: fadeIn 0.2s ease-out;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
 }
 
 .lista-espera-page .modal-card {
-    background: white;
-    width: 100%;
-    max-width: 500px;
-    border-radius: 16px;
-    padding: 32px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .lista-espera-page .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
+    background: #f8fafc;
+    padding: 24px 32px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-.lista-espera-page .modal-header h3 {
-    margin: 0;
-    font-size: 20px;
-    color: #0f172a;
-}
-
-.lista-espera-page .form-group {
-    margin-bottom: 20px;
-}
-
-.lista-espera-page .form-group label {
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
+.lista-espera-page .form-label {
+    font-size: 12px;
+    font-weight: 800;
     color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin-bottom: 8px;
+    display: block;
 }
 
 .lista-espera-page .form-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #1e293b;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
 .lista-espera-page .form-input:focus {
-    border-color: #3b82f6;
+    background: white;
+    border-color: #2563eb;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.lista-espera-page .candidate-selection-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-top: 8px;
+    background: white;
 }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+.lista-espera-page .candidate-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.1s;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.lista-espera-page .candidate-item:hover {
+    background: #eff6ff;
+}
+
+.lista-espera-page .candidate-item.selected {
+    background: #dbeafe;
+    border-left: 4px solid #2563eb;
 }

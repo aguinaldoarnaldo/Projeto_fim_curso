@@ -695,7 +695,7 @@ const Matriculas = () => {
                                 {currentItems.map((m) => (
                                     <tr key={m.id} className="animate-fade-in">
 
-                                        <td className="sticky-col-1">
+                                        <td className="sticky-col-1" data-label="Estudante">
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div className="student-avatar" style={{ 
                                                     width: '32px', 
@@ -724,7 +724,7 @@ const Matriculas = () => {
                                                     </div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td data-label="Nº Matrícula">
                                             <span style={{ 
                                                 fontFamily: 'monospace', 
                                                 fontSize: '13px', 
@@ -738,8 +738,8 @@ const Matriculas = () => {
                                                 {m.numMatricula || '---'}
                                             </span>
                                         </td>
-                                    <td style={{fontWeight: 600, color: '#334155'}}>{m.classe}</td>
-                                    <td>
+                                    <td data-label="Classe" style={{fontWeight: 600, color: '#334155'}}>{m.classe}</td>
+                                    <td data-label="Turma">
                                         {(m.turma === 'Sem Turma' || m.turma === 'N/A' || m.turma.includes('N/A')) ? (
                                              <span style={{
                                                  background: '#fff7ed', 
@@ -758,9 +758,9 @@ const Matriculas = () => {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="col-turno">{m.turno}</td>
-                                    <td className="col-ano" style={{color: '#64748b'}}>{m.anoLectivo}</td>
-                                    <td>{getStatusBadge(m.status)}</td>
+                                    <td data-label="Turno" className="col-turno">{m.turno}</td>
+                                    <td data-label="Ano Lectivo" className="col-ano" style={{color: '#64748b'}}>{m.anoLectivo}</td>
+                                    <td data-label="Estado">{getStatusBadge(m.status)}</td>
                                     <td style={{ 
                                         textAlign: 'center', 
                                         position: 'relative',

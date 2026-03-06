@@ -21,7 +21,7 @@
         radial-gradient(at 100% 100%, var(--primary-shadow) 0px, transparent 50%);
     background-attachment: fixed;
     min-height: 100vh;
-    padding: 40px;
+    padding: 40px 40px 180px 40px; /* Aumentado de 40px para 180px no fundo */
     font-family: 'Outfit', 'Inter', sans-serif;
 }
 

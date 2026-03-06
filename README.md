@@ -1,23 +1,32 @@
-# Sistema de Gestão Acadêmica (SGM)
+# Sistema de Gestão de Matrícula (SGM) 🎓
 
-Um sistema completo e moderno para gestão de instituições de ensino, desenvolvido com **Django (Backend)** e **React (Frontend)**. O sistema oferece uma solução robusta para administração escolar, desde a inscrição de alunos até a gestão financeira e pedagógica.
+Um ecossistema completo e moderno para a gestão do ciclo de vida do aluno, desde a candidatura online até a efetivação da matrícula e alocação acadêmica. Desenvolvido com **Django REST Framework (Backend)** e **React (Frontend)**.
 
-## 🚀 Funcionalidades Principais
+## 🚀 O Projeto
 
-*   **🎓 Acadêmico:** Gestão de alunos, turmas, salas, cursos e disciplinas.
-*   **📊 Dashboard:** Visão analítica com KPIs em tempo real e gráficos de desempenho.
-*   **🔐 Segurança:** Autenticação via JWT, controle de permissões granular por cargo (Admin, Secretaria, Professor).
-*   **💰 Financeiro:** Controle de faturas e pagamentos (em desenvolvimento).
-*   **📚 Biblioteca:** Gestão de acervo e categorias de livros.
+O SGM foi desenhado para modernizar secretarias escolares, oferecendo um portal público para candidatos e um painel administrativo robusto para a gestão de vagas, turmas e indicadores em tempo real.
+
+### 🌟 Diferenciais
+*   **� Foco em Matrículas:** Fluxo otimizado para converter inscritos em alunos matriculados de forma automática.
+*   **📊 Dashboards Inteligentes:** Gráficos dinâmicos (Recharts) comparando vagas totais, ocupação por curso, gênero e fluxo de crescimento.
+*   **⚡ Navegação Premium:** Interface React rápida, responsiva e com micro-animações para uma experiência de usuário superior.
+*   **� Segurança Robusta:** Controle de acesso baseado em permissões (RBAC) e auditoria de ações.
 
 ---
 
-## 🛠️ Requisitos de Sistema
+## 🛠️ Tecnologias Utilizadas
 
-Antes de começar, certifique-se de ter instalado:
-*   **Python 3.10 ou superior**
-*   **Node.js 18 ou superior** (com npm ou yarn)
-*   **PostgreSQL 14 ou superior** (O sistema utiliza PostgreSQL como banco de dados padrão)
+**Frontend:**
+*   React.js + Vite (SPA)
+*   Lucide React (Ícones)
+*   Recharts (Visualização de Dados)
+*   Context API (Gestão de Estado)
+
+**Backend:**
+*   Python 3.10+
+*   Django & Django REST Framework (API)
+*   PostgreSQL (Banco de Dados)
+*   JWT (Autenticação)
 
 ---
 
@@ -36,8 +45,6 @@ cd Projeto_fim_curso
    python -m venv .venv
    # Windows:
    .venv\Scripts\activate
-   # Linux/Mac:
-   source .venv/bin/activate
    ```
 3. Instale as dependências:
    ```bash
@@ -45,86 +52,41 @@ cd Projeto_fim_curso
    ```
 4. **Configuração do Banco de Dados:**
    - Crie um banco de dados no PostgreSQL chamado `gestao_escolar`.
-   - Copie o arquivo `.env.example` para `.env` e ajuste as credenciais (DB_USER, DB_PASSWORD).
-5. Execute as migrações:
+   - Configure o arquivo `.env` (use o `.env.example` como base).
+5. Execute as migrações e inicie:
    ```bash
    python manage.py migrate
-   ```
-6. (Opcional) Crie um administrador:
-   ```bash
-   python manage.py createsuperuser
-   ```
-7. Inicie o servidor:
-   ```bash
    python manage.py runserver 
    ```
 
 ### 3. Configurar o Frontend (React)
 1. Navegue até a pasta: `cd ../frontend`
-2. Instale as dependências:
+2. Instale e inicie:
    ```bash
    npm install
-   ```
-3. Inicie o ambiente de desenvolvimento:
-   ```bash
    npm run dev
    ```
 
-O sistema estará disponível em `http://localhost:5173`.
+---
+
+## 📂 Documentação e Documentos Técnicos
+
+O projeto possui uma pasta `/Docs` com documentos detalhados para consulta:
+*   [Diagrama de Caso de Uso (Frontend)](file:///c:/Users/Aguinaldo Arnaldo/Documents/Meus_projetos/Projeto_fim_curso/Docs/diagrama_caso_uso_frontend.md)
+*   [Requisitos de Negócio](file:///c:/Users/Aguinaldo Arnaldo/Documents/Meus_projetos/Projeto_fim_curso/Docs/DOCUMENTACAO_REQUISITOS.md)
+*   [Lista de Funcionalidades](file:///c:/Users/Aguinaldo Arnaldo/Documents/Meus_projetos/Projeto_fim_curso/Docs/LISTA_FUNCIONALIDADES_FRONTEND.md)
 
 ---
 
-## ❓ Solução de Problemas Comuns
+## ❓ Soluções de Problemas Comuns
 
-### Erro na instalação do `psycopg2`
-No Windows, se houver erro ao instalar o `psycopg2`, instale a versão binária:
-```bash
-pip install psycopg2-binary
-```
+### O sistema redireciona para HTTPS localmente?
+Certifique-se de que `DEBUG=True` está no seu `.env`. Se for `False`, o Django força navegação segura.
 
-### Erro de Conexão com o Banco de Dados
-*   Verifique se o serviço do PostgreSQL está rodando.
-*   Certifique-se de que o banco `gestao_escolar` foi criado.
-*   Valide as credenciais no arquivo `backend/.env`.
-
-### Erro no `npm install`
-*   Tente rodar `npm cache clean --force` e delete a pasta `node_modules` antes de tentar novamente.
-*   Certifique-se de estar usando a versão do Node recomendada (18+).
-
-### Erro de HTTPS/HTTP (Redirecionamento Infinito ou Conexão Recusada)
-Se o sistema tentar redirecionar para `https://localhost` automaticamente:
-*   Certifique-se de que `DEBUG=True` está definido no seu arquivo `backend/.env`.
-*   Se o `DEBUG` for `False`, o Django ativa proteções de segurança que exigem HTTPS. Para rodar localmente sem certificados SSL, o modo de depuração **deve** estar ativado.
-
-### Acesso via outro PC na mesma rede (IP Local)
-Se você estiver tentando acessar o sistema de outro computador usando o IP (ex: `http://192.168.1.5:5173`):
-1.  No `backend/.env`, adicione o IP ao `ALLOWED_HOSTS` e `ALLOWED_ORIGINS`.
-2.  No `frontend/src/services/api.js`, mude a `baseURL` para o IP do computador que está rodando o backend.
-
-### Erro no `makemigrations` ou `migrate`
-Se ao rodar os comandos de banco de dados você receber erros:
-*   **"No module named '...'":** Certifique-se de que a `.venv` está ativa e que rodou `pip install -r requirements.txt`.
-*   **Erro de Conexão (Connection Refused):** O PostgreSQL **deve** estar rodando e o banco `gestao_escolar` deve ter sido criado antes do comando.
-*   **Erro de "apps" ou "models":** Verifique se não há erros de sintaxe nos seus arquivos Python.
-*   **Inconsistência de Migrações:** Se as migrações estiverem travadas, tente rodar `python manage.py migrate --fake-initial` ou verifique se o banco de dados já não possui as tabelas criadas por um script SQL anterior.
+### Erro de Conexão com o Banco?
+Verifique se o serviço do PostgreSQL está ativo no Windows e se as credenciais do DB coincidem com o `.env`.
 
 ---
 
-### Como gerar a `SECRET_KEY`?
-A `SECRET_KEY` é usada pelo Django para criptografia. Para desenvolvimento local, você pode usar qualquer texto longo e aleatório. Caso queira gerar uma chave profissional e segura, rode o seguinte comando no terminal (dentro da pasta `backend` com a `.venv` ativa):
-
-```bash
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-```
-Basta copiar o código gerado e colar no seu arquivo `.env`.
-
----
-
-## 📂 Estrutura do Projeto
-
-*   `/backend`: API REST desenvolvida em Django.
-*   `/frontend`: Interface SPA desenvolvida em React + Vite.
-*   `/Docs`: Documentação técnica e manuais de requisitos.
-
----
-Desenvolvido por **Aguinaldo Arnaldo**.
+## 👨‍� Desenvolvedor
+**Aguinaldo Arnaldo** - *Projeto Final de Curso*

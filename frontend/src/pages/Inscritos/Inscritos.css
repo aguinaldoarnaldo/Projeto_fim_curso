@@ -4,8 +4,38 @@
 .inscritos-page.page-container {
     padding: 24px;
     background-color: #f8fafc;
-    /* min-height removido para evitar forçar scroll global desnecessário no layout pai */
-    height: 100%; /* Ocupa a altura disp do content-wrapper */
+    height: calc(100vh - 80px); /* Ajuste dinâmico para o espaço disponível */
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;   /* Rolagem no container da página */
+    overflow-x: hidden;
+    gap: 0;
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+/* Remove limit do wrapper interno para que a página controle o scroll */
+.inscritos-page .table-wrapper {
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+
+/* Estilização da barra de rolagem interna do container */
+.inscritos-page.page-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.inscritos-page.page-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.inscritos-page.page-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.inscritos-page.page-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* Page Header Action Styles (Local Overrides) */
@@ -75,18 +105,19 @@
 }
 
 .data-table th {
-    background: #f8fafc;
+    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
     padding: 16px 20px;
     font-size: 11px;
     font-weight: 800;
-    color: #475569;
-    border-bottom: 1px solid #e2e8f0;
+    color: white; /* Header text should be white on blue */
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     white-space: nowrap;
     position: sticky;
     top: 0;
-    height: 50px;
+    height: 52px;
     z-index: 100;
 }
 
@@ -141,36 +172,46 @@
 }
 
 /* Sticky Columns Local Overrides */
+.inscritos-page .data-table .sticky-col-0 {
+    position: sticky;
+    left: 0;
+    z-index: 85; 
+    width: 120px; /* Slightly wider for full ID */
+    text-align: center !important;
+    background: white;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-weight: 600;
+    color: #475569;
+}
+
 .inscritos-page .data-table .sticky-col-1 {
     position: sticky;
-    left: 0;
-    z-index: 80; /* Match Global */
-    width: 60px; /* Match Global/Inline */
-    text-align: center;
-    border-right: 1px solid #f1f5f9;
+    left: 120px; /* After ID column - Adjusted */
+    z-index: 80;
+    width: 260px;
+    text-align: left !important;
     background: white;
-}
-
-.inscritos-page .data-table .sticky-col-2 {
-    position: sticky;
-    left: 60px; /* Match Global/Inline */
-    z-index: 80; /* Match Global */
     border-right: 1px solid #e2e8f0;
-    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.05); /* Local specific shadow */
-    background: white;
+    box-shadow: 4px 0 6px -4px rgba(0,0,0,0.1);
 }
 
-/* Header Sticky Overrides */
-.inscritos-page .data-table th.sticky-col-1 {
-    z-index: 100; /* Higher than content */
-    left: 0;
-    text-align: center;
-    width: 60px;
+/* Ensure sticky columns follow the hover state of the row */
+.inscritos-page .clickable-row:hover .sticky-col-0,
+.inscritos-page .clickable-row:hover .sticky-col-1 {
+    background-color: #f8fafc !important;
 }
-.inscritos-page .data-table th.sticky-col-2 {
-    z-index: 100;
-    left: 60px;
-    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.05);
+
+.inscritos-page .data-table thead th.sticky-col-0,
+.inscritos-page .data-table thead th.sticky-col-1 {
+    z-index: 110; /* Above regular headers */
+    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
+    color: white;
+}
+
+/* Ensure no borders break the premium feel */
+.data-table thead {
+    background: var(--primary-color);
 }
 
 /* Specific Column Widths */
@@ -1339,4 +1380,48 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
   ::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE OVERRIDES — Inscritos Table (Scroll Mode)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    /* Allow the table to grow beyond the wrapper (wrapper scrolls) */
+    .inscritos-page .data-table {
+        width: max-content !important;
+        min-width: 100%;
+    }
+
+    /* Keep ID and name columns sticky on the left while scrolling */
+    .inscritos-page .data-table .sticky-col-0 {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 10 !important;
+        background: white !important;
+        width: 80px !important;
+    }
+
+    .inscritos-page .data-table .sticky-col-1 {
+        position: sticky !important;
+        left: 80px !important;
+        z-index: 10 !important;
+        background: white !important;
+        border-right: 2px solid #e2e8f0 !important;
+        box-shadow: 4px 0 8px -2px rgba(0,0,0,0.08) !important;
+        width: 180px !important;
+    }
+
+    .inscritos-page .data-table thead th.sticky-col-0,
+    .inscritos-page .data-table thead th.sticky-col-1 {
+        z-index: 20 !important;
+        background: var(--primary-color) !important;
+        background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%) !important;
+        color: white !important;
+    }
+
+    /* Actions cell — always visible, overflow OK */
+    .inscritos-page .data-table td:last-child {
+        overflow: visible !important;
+    }
 }

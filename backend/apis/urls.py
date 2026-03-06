@@ -11,6 +11,7 @@ from apis.views import (
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
     UsuarioViewSet, # Added
     AlunoViewSet, AlunoEncarregadoViewSet,
+    AgendamentoBackupViewSet, BackupViewSet, # Added
     SalaViewSet, ClasseViewSet, DepartamentoViewSet, SeccaoViewSet,
     AreaFormacaoViewSet, CursoViewSet, PeriodoViewSet, TurmaViewSet, AnoLectivoViewSet,
     VagaCursoViewSet,
@@ -22,6 +23,7 @@ from apis.views import (
     ListaEsperaViewSet,
     RelatorioViewSet,
     AuditoriaViewSet,
+    ConfiguracaoViewSet,
 )
 
 # Criar router e registrar ViewSets
@@ -71,10 +73,9 @@ from apis.views.matricula_views import MatriculaViewSet
 router.register(r'matriculas', MatriculaViewSet, basename='matricula')
 
 # Configuração
-from apis.views.configuracao_views import ConfiguracaoViewSet
-from apis.views.backup_views import BackupViewSet
 router.register(r'config', ConfiguracaoViewSet, basename='config')
 router.register(r'backups', BackupViewSet, basename='backup')
+router.register(r'backup-agendamentos', AgendamentoBackupViewSet, basename='backup-agendamento')
 
 # Notificações
 from apis.views.notificacao import NotificacaoViewSet

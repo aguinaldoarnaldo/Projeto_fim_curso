@@ -1,61 +1,43 @@
-/* AlunosTableResponsive.css - Optimized for combined Photo + Name */
+/* AlunosTableResponsive.css - Specific overrides for Alunos page */
 
-.alunos-page .data-table {
-    table-layout: auto;
-}
-
-/* Single Sticky Column for Alunos (Avatar + Name) */
+/* Adjust sticky column for Alunos content */
 .alunos-page .data-table .sticky-col-1 {
-    position: sticky;
-    left: 0;
-    z-index: 80;
-    min-width: 260px;
+    min-width: 240px;
     max-width: 380px;
-    background: white;
-    border-right: 1px solid #e2e8f0;
     box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.1);
 }
 
-.alunos-page .data-table th.sticky-col-1 {
-    z-index: 100;
-}
-
-/* Specific column width optimizations */
-.alunos-page .data-table td:nth-child(2),
-.alunos-page .data-table th:nth-child(2) {
-    min-width: 140px;
-}
-
-.alunos-page .data-table td:nth-child(3),
-.alunos-page .data-table th:nth-child(3) {
-    min-width: 130px;
-}
-
-.alunos-page .data-table td:last-child {
-    width: 140px;
-    text-align: center;
-    overflow: visible !important;
-}
-
-/* Responsive adjustments */
+/* On medium screens/laptops, tighten the student column */
 @media (max-width: 1440px) {
-    .alunos-page .data-table th,
-    .alunos-page .data-table td {
-        padding: 10px 16px;
-        font-size: 13px;
+    .alunos-page .data-table .sticky-col-1 {
+        min-width: 200px;
+        max-width: 280px;
+    }
+}
+
+/* Hide some columns on small screens to reduce extreme horizontal scroll */
+@media (max-width: 900px) {
+    .alunos-page .data-table th:nth-child(3), /* Ano Lectivo */
+    .alunos-page .data-table td:nth-child(3) {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    /* On mobile, keep stickiness but make it narrower */
+    .alunos-page .data-table .sticky-col-1 {
+        min-width: 160px !important;
+        position: sticky !important;
+        left: 0;
+        z-index: 80;
     }
     
-    .alunos-page .data-table .sticky-col-1 {
-        min-width: 220px;
-        max-width: 300px;
-    }
-}
-
-/* On very small screens, disable stickiness to allow full scroll */
-@media (max-width: 768px) {
-    .alunos-page .sticky-col-1 {
-        position: static !important;
-        box-shadow: none !important;
-        min-width: 200px !important;
+    /* Ensure the actions column is also sticky at the end */
+    .alunos-page .data-table td:last-child {
+        position: sticky !important;
+        right: 0;
+        background: white;
+        z-index: 80;
+        box-shadow: -4px 0 6px -4px rgba(0, 0, 0, 0.1);
     }
 }

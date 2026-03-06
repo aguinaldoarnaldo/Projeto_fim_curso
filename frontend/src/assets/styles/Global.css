@@ -211,25 +211,29 @@ h1, h2, h3, h4, h5, h6 {
   flex: 1;
   padding: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  position: relative; /* Ensure it starts below navbar */
+  position: relative;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: 100px; /* Mais espaço para o scroll terminar suavemente */
 }
 
 .page-container {
   width: 100%;
-  max-width: 1920px; /* Allow wider content on large screens */
-  margin: 0 auto; /* Center content if screen > 1920px */
-  padding: 90px 24px 24px 24px; /* Optimized: 64px navbar + 26px gap */
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 80px 20px 80px 24px; /* Reduzido de 140px para 80px */
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: none; /* Remove all transitions */
+  transition: none;
 }
 
 @media (min-width: 1441px) {
   .page-container {
-    padding: 32px 40px;
+    padding: 32px 40px 60px 40px;
     gap: 24px;
   }
 }
@@ -241,6 +245,7 @@ h1, h2, h3, h4, h5, h6 {
     /* Preserve the top padding defined in general rule */
     padding-left: 32px !important; 
     padding-right: 32px !important;
+    padding-bottom: 80px !important; /* Reduzido de 150px para 80px */
 }
 
 .page-header {
@@ -329,14 +334,14 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #94a3b8;
 }
 
-/* Premium Scrollbar for the whole page */
+/* Premium Scrollbar for the whole page (Main Scrolling Area) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {

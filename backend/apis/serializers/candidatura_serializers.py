@@ -10,6 +10,7 @@ class CandidatoSerializer(serializers.ModelSerializer):
     exame_data = serializers.SerializerMethodField()
     exame_sala = serializers.SerializerMethodField()
     rupe_historico = serializers.SerializerMethodField()
+    lista_espera_id = serializers.SerializerMethodField()
     
     
     class Meta:
@@ -40,14 +41,6 @@ class CandidatoSerializer(serializers.ModelSerializer):
         return None
 
     def get_exame_data(self, obj):
-        # Ocultar data do exame se as candidaturas ainda estiverem abertas (prazo não atingido)
-        from apis.models import Configuracao
-        from django.utils import timezone
-        config = Configuracao.get_solo()
-        
-        if config.data_fim_candidatura and timezone.now() < config.data_fim_candidatura:
-            return None
-
         if hasattr(obj, 'exame'):
             return obj.exame.data_exame
         return None
@@ -67,21 +60,18 @@ class CandidatoSerializer(serializers.ModelSerializer):
         return None
 
     def get_exame_sala(self, obj):
-        # Ocultar sala do exame se as candidaturas ainda estiverem abertas
-        from apis.models import Configuracao
-        from django.utils import timezone
-        config = Configuracao.get_solo()
-        
-        if config.data_fim_candidatura and timezone.now() < config.data_fim_candidatura:
-            return "Disponível após o fim das inscrições"
-
         if hasattr(obj, 'exame') and obj.exame.sala:
-            return f"Sala {obj.exame.sala.numero_sala} ({obj.exame.sala.bloco or 'Bloco A'})"
+            return f"{obj.exame.sala.numero_sala} (Sala) | Bloco: {obj.exame.sala.bloco or 'Principal'}"
         return None
 
     def get_rupe_historico(self, obj):
         rupes = obj.rupes.all().order_by('-criado_em')
         return RupeCandidatoSerializer(rupes, many=True).data
+
+    def get_lista_espera_id(self, obj):
+        if hasattr(obj, 'lista_espera'):
+            return obj.lista_espera.id
+        return None
 
 class CandidatoCreateSerializer(serializers.ModelSerializer):
     """Serializer para inscricao publica"""

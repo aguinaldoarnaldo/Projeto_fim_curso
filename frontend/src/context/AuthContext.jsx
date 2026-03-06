@@ -129,6 +129,8 @@ export const AuthProvider = ({ children }) => {
                 tipo_usuario: 'usuario' 
             });
 
+            console.log("✅ [AuthContext] Resposta do Login:", response.status, response.data);
+
             const { access, user: userData } = response.data;
             const token = access || response.data.token;
             
@@ -137,6 +139,7 @@ export const AuthProvider = ({ children }) => {
 
             let fullUser = userData;
             if (!fullUser || !fullUser.permissoes) {
+                console.log("ℹ️ [AuthContext] Buscando perfil completo...");
                 const meRes = await api.get('auth/me/');
                 fullUser = meRes.data.user || meRes.data;
             }
@@ -145,7 +148,15 @@ export const AuthProvider = ({ children }) => {
             setUser(fullUser);
             return true;
         } catch (err) {
-            console.error("Erro no Login:", err);
+            console.error("❌ [AuthContext] Erro Crítico no Login:");
+            if (err.response) {
+                console.error("Status:", err.response.status);
+                console.error("Dados de Erro:", err.response.data);
+            } else if (err.request) {
+                console.error("O Servidor não respondeu. Verifique se o backend está rodando em http://127.0.0.1:8000");
+            } else {
+                console.error("Mensagem:", err.message);
+            }
             setError(err.response?.data?.error || err.response?.data?.detail || 'Credenciais inválidas.');
             return false;
         } finally {

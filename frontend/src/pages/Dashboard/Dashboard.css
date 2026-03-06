@@ -3,7 +3,7 @@
 
 .dashboard-container {
     font-family: var(--font-body);
-    padding: 24px;
+    padding: 24px 24px 200px 24px; /* Mais 200px de ar no fundo para scroll luxuoso */
     background-color: #f8fafc;
     min-height: 100vh;
     color: #1e293b;
@@ -178,9 +178,9 @@
 
 /* Color Themes for Cards - PREMIUM UPGRADE */
 .card-premium-blue {
-    background: linear-gradient(135deg, #ffffff 50%, #eff6ff 100%);
-    border: 1px solid #bfdbfe;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+    background: linear-gradient(135deg, #ffffff 40%, #dbeafe 100%);
+    border: 1px solid #93c5fd;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
 }
 .card-premium-blue .kpi-icon-floating {
     background: rgba(37, 99, 235, 0.1);
@@ -199,9 +199,9 @@
 }
 
 .card-premium-purple {
-    background: linear-gradient(135deg, #ffffff 50%, #f5f3ff 100%);
-    border: 1px solid #ddd6fe;
-    box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.1);
+    background: linear-gradient(135deg, #ffffff 40%, #ede9fe 100%);
+    border: 1px solid #c4b5fd;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.12);
 }
 .card-premium-purple .kpi-icon-floating {
     background: rgba(124, 58, 237, 0.1);
@@ -220,9 +220,9 @@
 }
 
 .card-premium-orange {
-    background: linear-gradient(135deg, #ffffff 50%, #fff7ed 100%);
-    border: 1px solid #fed7aa;
-    box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.1);
+    background: linear-gradient(135deg, #ffffff 40%, #ffedd5 100%);
+    border: 1px solid #fdba74;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.12);
 }
 .card-premium-orange .kpi-icon-floating {
     background: rgba(234, 88, 12, 0.1);

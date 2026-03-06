@@ -21,7 +21,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-it-in-p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+if '*' in ALLOWED_HOSTS and not DEBUG:
+    # Segurança: Impedir '*' em produção
+    ALLOWED_HOSTS = [h for h in ALLOWED_HOSTS if h != '*']
 
 
 # Application definition
@@ -50,14 +53,18 @@ INSTALLED_APPS = [
 ]
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
 
-CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOW_CREDENTIALS = True # Permitir cookies se necessário futuramente
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "cache-control",
     "pragma",
+    "x-csrftoken",
 ]
+
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -114,9 +121,16 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000 # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+# Configurações de Cookie de Segurança (Sempre ativas para boas práticas)
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True # Impede que scripts acessem o token CSRF
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 
 # Password validation
@@ -203,9 +217,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '30/minute',      # Limite para usuários não logados
-        'user': '1000/minute',     # Limite para usuários logados (Aumentado para suportar SPA burst)
-        'candidate_check': '10/minute', # Limite específico para consulta de status
+        'anon': '60/hour',
+        'user': '5000/hour',
+        'candidate_check': '10/minute',
+        'login': '10/minute',
     },
     'PAGE_SIZE_QUERY_PARAM': 'page_size',
 }

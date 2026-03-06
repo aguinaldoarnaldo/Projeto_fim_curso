@@ -93,6 +93,9 @@ const Configuracoes = () => {
     const [yearCurrentPage, setYearCurrentPage] = useState(1);
     const [yearTotalPages, setYearTotalPages] = useState(1);
     const [backupsList, setBackupsList] = useState([]);
+    const [agendamentos, setAgendamentos] = useState([]);
+    const [showAgendamentoModal, setShowAgendamentoModal] = useState(false);
+    const [newAgendamento, setNewAgendamento] = useState({ data_hora: '', descricao: '' });
 
     // Logs / Auditoria State
     const [logsTab, setLogsTab] = useState('logins'); // 'logins' | 'actividades'
@@ -156,6 +159,7 @@ const Configuracoes = () => {
         }
         if (activeTab === 'manutencao') {
             fetchBackups();
+            fetchAgendamentos();
         }
         if (activeTab === 'logs') {
             fetchLogsResumo();
@@ -260,6 +264,41 @@ const Configuracoes = () => {
             setBackupsList(response.data || []);
         } catch (error) {
             console.error("Erro ao buscar backups:", error);
+        }
+    };
+
+    const fetchAgendamentos = async () => {
+        try {
+            const response = await api.get('backup-agendamentos/');
+            setAgendamentos(response.data.results || response.data || []);
+        } catch (error) {
+            console.error("Erro ao buscar agendamentos:", error);
+        }
+    };
+
+    const handleCreateAgendamento = async () => {
+        if (!newAgendamento.data_hora) {
+            alert("Seleccione a data e hora.");
+            return;
+        }
+        try {
+            await api.post('backup-agendamentos/', newAgendamento);
+            setShowAgendamentoModal(false);
+            setNewAgendamento({ data_hora: '', descricao: '' });
+            fetchAgendamentos();
+        } catch (error) {
+            console.error("Erro ao agendar backup:", error);
+            alert("Erro ao salvar agendamento.");
+        }
+    };
+
+    const handleDeleteAgendamento = async (id) => {
+        if (!window.confirm("Deseja eliminar este agendamento?")) return;
+        try {
+            await api.delete(`backup-agendamentos/${id}/`);
+            fetchAgendamentos();
+        } catch (error) {
+            console.error("Erro ao eliminar agendamento:", error);
         }
     };
 
@@ -609,7 +648,9 @@ const Configuracoes = () => {
 
     const handleSaveConfig = async () => {
         try {
-            await api.patch('config/update_config/', config);
+            // Só enviar campos editáveis e relevantes para esta acção, evitando o campo logo (que falharia no JSON)
+            const { logo, proximo_fechamento, id_config, ...dataToSend } = config;
+            await api.patch('config/update_config/', dataToSend);
             alert("Configurações atualizadas com sucesso!");
         } catch (error) {
             console.error("Erro ao salvar config:", error);
@@ -651,9 +692,8 @@ const Configuracoes = () => {
             // Atualiza estado local
             setConfig(prev => ({ ...prev, candidaturas_abertas: novoStatus }));
             
-            // Salva no backend
+            // Salva no backend - Enviamos apenas o campo necessário para evitar erros de validação noutros campos
             await api.patch('config/update_config/', { 
-                ...config, 
                 candidaturas_abertas: novoStatus 
             });
             
@@ -1120,6 +1160,134 @@ const Configuracoes = () => {
                                 </div>
                             )}
                         </div>
+
+                        <div className="section-title-v2" style={{ marginTop: '48px', marginBottom: '24px' }}>
+                            <div className="icon-circle" style={{ background: '#fef3c7', color: '#d97706' }}>
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '18px', margin: 0 }}>Agendamento de Backups</h3>
+                                <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>Programe backups automáticos e receba notificações.</p>
+                            </div>
+                        </div>
+
+                        <div className="info-card-v2" style={{ border: '1px solid #e2e8f0', background: 'white' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <p style={{ fontSize: '14px', color: '#475569', fontWeight: 600, margin: 0 }}>Próximos Agendamentos</p>
+                                <button 
+                                    onClick={() => setShowAgendamentoModal(true)}
+                                    className="btn-premium"
+                                    style={{ background: 'var(--primary-color)', color: 'white', fontSize: '13px' }}
+                                >
+                                    <Plus size={16} /> Novo Agendamento
+                                </button>
+                            </div>
+
+                            {agendamentos.length === 0 ? (
+                                <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
+                                    <Calendar size={32} style={{ marginBottom: '12px', opacity: 0.3 }} />
+                                    <p style={{ margin: 0 }}>Nenhum backup agendado.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gap: '12px' }}>
+                                    {agendamentos.map((ag) => (
+                                        <div key={ag.id_agendamento} style={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'center',
+                                            padding: '16px',
+                                            background: '#f8fafc',
+                                            borderRadius: '12px',
+                                            border: '1px solid #e2e8f0'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ 
+                                                    width: '40px', height: '40px', borderRadius: '10px', 
+                                                    background: ag.notificado ? '#dcfce7' : '#fef3c7', 
+                                                    color: ag.notificado ? '#16a34a' : '#d97706',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}>
+                                                    {ag.notificado ? <CheckCircle size={20} /> : <Clock size={20} />}
+                                                </div>
+                                                <div>
+                                                    <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: '#1e293b' }}>
+                                                        {new Date(ag.data_hora).toLocaleString('pt-PT')}
+                                                    </p>
+                                                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{ag.descricao || 'Sem descrição'}</p>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                {ag.notificado && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 700, background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '20px' }}>
+                                                        Notificado
+                                                    </span>
+                                                )}
+                                                <button 
+                                                    onClick={() => handleDeleteAgendamento(ag.id_agendamento)}
+                                                    style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '5px' }}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MODAL PARA NOVO AGENDAMENTO */}
+                        {showAgendamentoModal && (
+                            <div className="sidebar-modal-overlay">
+                                <div className="sidebar-modal-card" style={{ maxWidth: '450px' }}>
+                                    <div className="modal-header-center">
+                                        <div className="modal-icon-badge" style={{ background: '#fef3c7', color: '#d97706' }}>
+                                            <Clock size={28} />
+                                        </div>
+                                        <h3>Agendar Backup</h3>
+                                        <p>Escolha uma data e hora para o sistema notificar sobre a realização do backup.</p>
+                                    </div>
+
+                                    <div style={{ padding: '20px' }}>
+                                        <div className="config-group-v2">
+                                            <label>Data e Hora</label>
+                                            <input 
+                                                type="datetime-local" 
+                                                className="input-v2"
+                                                value={newAgendamento.data_hora}
+                                                onChange={e => setNewAgendamento({...newAgendamento, data_hora: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="config-group-v2">
+                                            <label>Descrição (Opcional)</label>
+                                            <input 
+                                                type="text" 
+                                                className="input-v2"
+                                                value={newAgendamento.descricao}
+                                                onChange={e => setNewAgendamento({...newAgendamento, descricao: e.target.value})}
+                                                placeholder="Ex: Backup antes da migração"
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
+                                            <button 
+                                                className="btn-modal-cancel" 
+                                                style={{ flex: 1 }}
+                                                onClick={() => setShowAgendamentoModal(false)}
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button 
+                                                className="btn-premium"
+                                                style={{ flex: 1, background: 'var(--primary-color)', color: 'white' }}
+                                                onClick={handleCreateAgendamento}
+                                            >
+                                                Agendar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="section-title-v2" style={{ marginTop: '40px', marginBottom: '24px' }}>
                             <div className="icon-circle" style={{ background: '#f8fafc', color: '#64748b' }}>
@@ -2092,7 +2260,38 @@ const Configuracoes = () => {
                                             : 'O portal está exibindo a mensagem de encerramento abaixo.'}
                                     </p>
                                 </div>
-                                <div style={{ display: 'flex', gap: '12px' }}>
+                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '8px', 
+                                        marginRight: '16px',
+                                        padding: '10px 16px',
+                                        background: '#f8fafc',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e2e8f0'
+                                    }}>
+                                        <label className="switch-premium">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={config.fechamento_automatico}
+                                                onChange={async (e) => {
+                                                    const val = e.target.checked;
+                                                    setConfig({...config, fechamento_automatico: val});
+                                                    try {
+                                                        await api.patch('config/update_config/', { fechamento_automatico: val });
+                                                    } catch (err) {
+                                                        console.error("Erro ao alternar fecho automático:", err);
+                                                        setConfig({...config, fechamento_automatico: !val});
+                                                    }
+                                                }}
+                                            />
+                                            <span className="slider-premium round"></span>
+                                        </label>
+                                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                                            Gestão Automática
+                                        </span>
+                                    </div>
                                     <button 
                                         onClick={handleTogglePortal}
                                         className="btn-premium"
@@ -2106,6 +2305,18 @@ const Configuracoes = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            <p style={{ 
+                                fontSize: '12px', 
+                                color: '#64748b', 
+                                marginBottom: '20px',
+                                background: '#f1f5f9',
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                display: 'inline-block'
+                            }}>
+                                <strong>Gestão Automática:</strong> Se ativo, o portal fechará sozinho ao atingir o prazo do Ano Lectivo ativo.
+                            </p>
 
                             {/* Redundant date fields removed - now managed in Academic Year schedule */}
                             

@@ -106,6 +106,7 @@ const Login = () => {
                     className="form-input"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -124,6 +125,7 @@ const Login = () => {
                     className="form-input"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                   />
                   <button 
                     type="button"

@@ -13,7 +13,7 @@ from .matriculas import Inscricao, Matricula
 from .historico import HistoricoEscolar
 from .auditoria import Historico, HistoricoLogin
 from .candidatura import Candidato, RupeCandidato, ExameAdmissao, ListaEspera
-from .configuracao import Configuracao
+from .configuracao import Configuracao, AgendamentoBackup
 from .notificacao import Notificacao
 
 __all__ = [
@@ -28,6 +28,6 @@ __all__ = [
     'Historico', 'HistoricoLogin',
     # Candidatura
     'Candidato', 'RupeCandidato', 'ExameAdmissao', 'ListaEspera',
-    'Configuracao',
+    'Configuracao', 'AgendamentoBackup',
     'Notificacao',
 ]

@@ -246,11 +246,12 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def distribuir_exames(self, request):
         """
-        Distribui candidatos com status 'Pago' por salas disponíveis.
+        Distribui candidatos com status 'INSCRITO' por salas disponíveis.
+        Considera apenas candidatos do ano lectivo activo no sistema.
         Parâmetros: { data_inicio: str, hora_inicio: str, limite_candidatos: int }
         """
         import datetime
-        from apis.models import Sala, ExameAdmissao
+        from apis.models import Sala, ExameAdmissao, AnoLectivo
         
         data_inicio_str = request.data.get('data_inicio')
         hora_inicio_str = request.data.get('hora_inicio', '08:00')
@@ -260,8 +261,17 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
         if not data_inicio_str:
             return Response({'erro': 'Informe a data de início (data_inicio)'}, status=400)
             
-        # 1. Obter Candidatos Pagos que não possuem exame agendado em anos ativos
-        candidatos_qs = Candidato.objects.filter(status='Pago', ano_lectivo__status='Activo').order_by('id_candidato')
+        # 1. Obter Ano Lectivo Activo
+        active_year = AnoLectivo.get_active_year()
+        if not active_year:
+             return Response({'erro': 'Não existe um ano lectivo activo no sistema.'}, status=400)
+
+        # 2. Obter Candidatos Pagos (status INSCRITO) que não possuem exame agendado NESTE ano activo
+        # Filtramos por ano_lectivo=active_year para garantir o pedido do usuário
+        candidatos_qs = Candidato.objects.filter(
+            status='INSCRITO', 
+            ano_lectivo=active_year
+        ).exclude(exame__isnull=False).order_by('id_candidato')
         
         # Se houver um limite definido pelo usuário
         if limite_candidatos:
@@ -340,6 +350,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
         from apis.models import ExameAdmissao
         exames = ExameAdmissao.objects.select_related('candidato', 'sala', 'candidato__curso_primeira_opcao').filter(
             candidato__status='INSCRITO',
+            candidato__ano_lectivo__activo=True,
             realizado=False
         ).order_by('data_exame', 'sala__numero_sala', 'candidato__nome_completo')
         
@@ -357,7 +368,6 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             pautas[data_key][sala_key].append({
                 'numero_inscricao': ex.candidato.numero_inscricao,
                 'nome': ex.candidato.nome_completo,
-                'bi': ex.candidato.numero_bi,
                 'curso': ex.candidato.curso_primeira_opcao.nome_curso if ex.candidato.curso_primeira_opcao else 'N/A'
             })
             
@@ -576,15 +586,20 @@ class ListaEsperaViewSet(AuditMixin, viewsets.ModelViewSet):
         except Candidato.DoesNotExist:
              return Response({'erro': 'Candidato não encontrado'}, status=404)
 
-        # Check if already in list
-        if ListaEspera.objects.filter(candidato=candidato).exists():
-             return Response({'erro': 'Candidato já está na lista de espera'}, status=400)
+        try:
+             # Check if already in list
+             if ListaEspera.objects.filter(candidato=candidato).exists():
+                  return Response({'erro': 'Candidato já está na lista de espera'}, status=400)
 
-        item = ListaEspera.objects.create(
-            candidato=candidato,
-            prioridade=request.data.get('prioridade', 0),
-            observacao=request.data.get('observacao', '')
-        )
-        
-        serializer = self.get_serializer(item)
-        return Response(serializer.data, status=201)
+             item = ListaEspera.objects.create(
+                 candidato=candidato,
+                 prioridade=request.data.get('prioridade', 0),
+                 observacao=request.data.get('observacao', '')
+             )
+             
+             serializer = self.get_serializer(item)
+             return Response(serializer.data, status=201)
+        except ValidationError as e:
+             return Response({'erro': str(e.message) if hasattr(e, 'message') else str(e)}, status=400)
+        except Exception as e:
+             return Response({'erro': f'Erro ao adicionar: {str(e)}'}, status=400)

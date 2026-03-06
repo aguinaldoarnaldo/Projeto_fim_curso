@@ -936,32 +936,40 @@ const Candidatura = () => {
                                 <p style={{fontWeight: '800', fontSize: '18px', margin: '8px 0 0 0', color: '#1e3a8a'}}>{consultResult.nota_exame} Val.</p>
                             </div>
                         )}
-                        {consultResult.status === 'INSCRITO' && consultResult.exame_data && (
-                            <div style={{gridColumn: 'span 2', background: '#eff6ff', padding: '16px', borderRadius: '16px', border: '1px solid #dbeafe', marginTop: '16px'}}>
-                                <strong>📅 Agendamento de Exame</strong>
-                                {new Date() < new Date(config.proximo_fechamento) ? (
-                                    <p style={{fontSize: '14px', color: '#1e40af', marginTop: '12px'}}>
-                                        A data e sala do exame serão publicadas após o encerramento das inscrições (<strong>{new Date(config.proximo_fechamento).toLocaleDateString()}</strong>).
-                                    </p>
-                                ) : (
-                                    <>
-                                        <div style={{display: 'flex', gap: '24px', marginTop: '12px'}}>
-                                            <div>
-                                                <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>DATA E HORA</p>
-                                                <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>
-                                                    {new Date(consultResult.exame_data).toLocaleDateString()} às {new Date(consultResult.exame_data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p style={{fontSize: '12px', color: '#64748b', margin: 0}}>LOCAL / SALA</p>
-                                                <p style={{fontWeight: '700', color: '#1e40af', margin: 0}}>{consultResult.exame_sala || 'A definir'}</p>
-                                            </div>
-                                        </div>
-                                        <p style={{fontSize: '13px', color: '#1e40af', marginTop: '12px', opacity: 0.8}}>
-                                            * Compareça com 30 minutos de antecedência portando o seu BI original.
+                        {consultResult.exame_data && (
+                            <div style={{gridColumn: 'span 2', background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', marginTop: '16px', color: 'white', boxShadow: '0 10px 25px rgba(30, 58, 138, 0.15)'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px'}}>
+                                    <div style={{background: 'rgba(255,255,255,0.2)', padding: '10px', borderRadius: '12px'}}>
+                                        <Calendar size={24} color="white" />
+                                    </div>
+                                    <h4 style={{fontSize: '18px', margin: 0, fontWeight: '700', letterSpacing: '0.01em'}}>Agendamento do Exame de Admissão</h4>
+                                </div>
+                                
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '20px', background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)'}}>
+                                    <div>
+                                        <p style={{fontSize: '11px', color: 'rgba(255,255,255,0.7)', margin: '0 0 6px 0', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.05em'}}>Dia do Exame</p>
+                                        <p style={{fontWeight: '700', fontSize: '18px', margin: 0}}>
+                                            {new Date(consultResult.exame_data).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}
                                         </p>
-                                    </>
-                                )}
+                                    </div>
+                                    <div>
+                                        <p style={{fontSize: '11px', color: 'rgba(255,255,255,0.7)', margin: '0 0 6px 0', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.05em'}}>Hora de Início</p>
+                                        <p style={{fontWeight: '700', fontSize: '18px', margin: 0}}>
+                                            {new Date(consultResult.exame_data).toLocaleTimeString('pt-PT', { hour: '2-digit', minute:'2-digit' })}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p style={{fontSize: '11px', color: 'rgba(255,255,255,0.7)', margin: '0 0 6px 0', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.05em'}}>Local / Sala</p>
+                                        <p style={{fontWeight: '700', fontSize: '18px', margin: 0}}>{consultResult.exame_sala || 'Aguardando Sala'}</p>
+                                    </div>
+                                </div>
+                                
+                                <div style={{display: 'flex', gap: '10px', marginTop: '16px', alignItems: 'flex-start', padding: '0 4px'}}>
+                                    <AlertTriangle size={16} style={{marginTop: '2px', opacity: 0.9}} />
+                                    <p style={{fontSize: '13px', margin: 0, lineHeight: '1.5', opacity: 0.9}}>
+                                        <strong>AVISO:</strong> É obrigatório a apresentação do Bilhete de Identidade original e o comprovativo de inscrição. Compareça com pelo menos 30 minutos de antecedência.
+                                    </p>
+                                </div>
                             </div>
                         )}
                         

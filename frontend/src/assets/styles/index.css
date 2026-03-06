@@ -1,5 +1,6 @@
 @import './Global.css';
 @import './GlobalMobileFixes.css';
+@import './GlobalTableResponsive.css';
 
 :root {
   --font-heading: 'Outfit', 'Inter', 'Segoe UI', system-ui, sans-serif;
@@ -24,27 +25,35 @@
   scroll-behavior: smooth;
 }
 
-/* Custom Scrollbar Styling */
+/* Modern Premium Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px; /* Mais fina e elegante */
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent; /* Track transparente para um look flutuante */
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 5px;
-  border: 2px solid #f1f5f9;
+  border-radius: 20px;
+  transition: all 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
+/* Redução de ruído visual na rolagem */
+@supports (scrollbar-gutter: stable) {
+  .content-wrapper {
+    scrollbar-gutter: auto;
+  }
+}
+
 /* Global Table Scroll Container */
 .table-wrapper {
   overflow-x: auto;
+  scrollbar-width: thin;
 }

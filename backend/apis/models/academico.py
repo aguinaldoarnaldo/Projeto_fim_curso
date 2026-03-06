@@ -54,25 +54,42 @@ class AnoLectivo(BaseModel):
     def is_inscricoes_abertas(self):
         """Verifica se as inscrições estão abertas com base no cronograma"""
         if not self.inicio_inscricoes or not self.fim_inscricoes:
-            return True # Se não houver data, assume que o controle é manual
+            return True # Se não houver data, assume que o controle é manual (Portal aberto)
         
         from django.utils import timezone
+        import datetime
+        
         now = timezone.now()
         
-        # Combinar data de fim com hora de fechamento
+        # Garantir que a hora de fechamento existe
+        hora_fecho = self.hora_fechamento or datetime.time(23, 59)
+        
         try:
-            fim_datetime = timezone.make_aware(
-                datetime.datetime.combine(self.fim_inscricoes, self.hora_fechamento)
-            )
-        except:
-             # Fallback if timezone issues
-             fim_datetime = datetime.datetime.combine(self.fim_inscricoes, self.hora_fechamento)
+            # Combinar data de fim com hora de fechamento
+            fim_dt = datetime.datetime.combine(self.fim_inscricoes, hora_fecho)
+            # Tornar ciente do fuso horário se o Django estiver configurado para isso
+            if timezone.is_naive(fim_dt):
+                fim_datetime = timezone.make_aware(fim_dt)
+            else:
+                fim_datetime = fim_dt
+        except Exception:
+             # Fallback: Se falhar a timezone, tratamos como naive e comparamos com naive now
+             fim_datetime = datetime.datetime.combine(self.fim_inscricoes, hora_fecho)
+             if timezone.is_aware(now):
+                 now = timezone.make_naive(now)
 
-        inicio_datetime = timezone.make_aware(
-            datetime.datetime.combine(self.inicio_inscricoes, datetime.time(0, 0))
-        ) if self.inicio_inscricoes else None
+        try:
+            inicio_dt = datetime.datetime.combine(self.inicio_inscricoes, datetime.time(0, 0))
+            if timezone.is_naive(inicio_dt):
+                inicio_datetime = timezone.make_aware(inicio_dt)
+            else:
+                inicio_datetime = inicio_dt
+        except Exception:
+            inicio_datetime = datetime.datetime.combine(self.inicio_inscricoes, datetime.time(0, 0))
+            if timezone.is_aware(now):
+                now = timezone.make_naive(now)
 
-        if inicio_datetime and now < inicio_datetime:
+        if now < inicio_datetime:
             return False
             
         if now > fim_datetime:

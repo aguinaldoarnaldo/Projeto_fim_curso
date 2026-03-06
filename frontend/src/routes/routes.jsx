@@ -11,7 +11,7 @@ import Login from "../pages/Login/Login";
 // Imports diretos para páginas principais (Navegação Instantânea)
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Alunos from "../pages/Alunos/Alunos";
-import Inscrito from "../pages/Inscritos/Inscritos";
+import Inscritos from "../pages/Inscritos/Inscritos";
 import Matriculas from "../pages/Matriculas/Matriculas";
 import Turma from "../pages/Turmas/Turmas";
 
@@ -27,6 +27,7 @@ import VagasCursos from "../pages/VagasCursos/VagasCursos";
 
 import ListaEspera from "../pages/ListaEspera/ListaEspera";
 import Perfil from "../pages/Perfil/Perfil";
+import NotFound from "../pages/NotFound/NotFound";
 
 // PrivateRoute now keeps the layout mounted even during loading
 const PrivateRoute = ({ children }) => {
@@ -94,9 +95,11 @@ export default function Routers() {
                         <PermissionRoute permission={PERMISSIONS.VIEW_ALUNOS}><Alunos /></PermissionRoute>
                     } />
                     
-                    <Route path="/inscrito" element={
-                        <PermissionRoute permission={PERMISSIONS.VIEW_INSCRITOS}><Inscrito /></PermissionRoute>
+                    <Route path="/inscritos" element={
+                        <PermissionRoute permission={PERMISSIONS.VIEW_INSCRITOS}><Inscritos /></PermissionRoute>
                     } />
+                    
+                    <Route path="/inscrito" element={<Navigate to="/inscritos" replace />} />
                     
                     <Route path="/matriculas" element={
                         <PermissionRoute permission={PERMISSIONS.VIEW_MATRICULAS}><Matriculas /></PermissionRoute>
@@ -126,6 +129,8 @@ export default function Routers() {
                         <PermissionRoute permission={PERMISSIONS.VIEW_CONFIGURACOES}><Configuracoes /></PermissionRoute>
                     } />
                     
+                    <Route path="/configuracoes/backup" element={<Navigate to="/configuracoes" replace />} />
+                    
                     <Route path="/relatorios" element={
                         <PermissionRoute permission={PERMISSIONS.VIEW_RELATORIOS}><Relatorios /></PermissionRoute>
                     } />
@@ -137,6 +142,9 @@ export default function Routers() {
                     <Route path="/perfil" element={<Perfil />} />
 
                 </Route>
+
+                {/* Rota para páginas não encontradas */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </Suspense>
     );
