@@ -77,7 +77,7 @@ const Alunos = () => {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(24);
+    const [itemsPerPage] = useState(23);
 
     const statusMenuTimeoutRef = useRef(null);
 

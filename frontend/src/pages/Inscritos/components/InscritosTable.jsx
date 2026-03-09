@@ -32,7 +32,7 @@ const InscritosTable = ({
       <table className="data-table">
         <thead>
           <tr>
-            <th className="sticky-col-0">ID</th>
+            <th className="sticky-col-0">Nº Candidato</th>
             <th 
                 className={`sticky-col-1 sortable-header ${sortConfig.key === 'nome' ? 'active-sort' : ''}`} 
                 onClick={() => requestSort('nome')}
@@ -87,7 +87,7 @@ const InscritosTable = ({
           {data.length > 0 ? (
             data.map((i, index) => (
               <tr key={i.id} className="clickable-row animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
-                <td className="sticky-col-0" data-label="ID">
+                <td className="sticky-col-0" data-label="Nº Candidato">
                   {i.id}
                 </td>
                 <td className="sticky-col-1" data-label="Candidato" style={{ fontWeight: 600 }}>{i.nome}</td>
@@ -104,10 +104,11 @@ const InscritosTable = ({
                 <span className={`status-badge ${
                   i.status === 'INSCRITO' ? 'status-pending' :
                   i.status === 'CLASSIFICADO' ? 'status-approved' :
-                  i.status === 'MATRICULADO' ? 'status-confirmed' : 
+                  i.status === 'MATRICULADO' ? 'status-confirmed' :
+                  i.status === 'LISTA_ESPERA' ? 'status-waiting' :
                   i.status === 'AUSENTE' ? 'status-analysis' : 'status-rejected'
                 }`}>
-                  {i.status}
+                  {i.status === 'LISTA_ESPERA' ? 'LISTA ESPERA' : i.status}
                 </span>
               </td>
               <td data-label="Pagamento (RUP)">
@@ -165,15 +166,15 @@ const InscritosTable = ({
 
                   {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                     <button
-                        className={`btn-icon btn-enroll ${i.status === 'CLASSIFICADO' ? 'can-enroll' : ''}`}
-                        disabled={i.status !== 'CLASSIFICADO' || i.status === 'MATRICULADO'}
+                        className={`btn-icon btn-enroll ${(i.status === 'CLASSIFICADO' || i.status === 'LISTA_ESPERA') ? 'can-enroll' : ''}`}
+                        disabled={!(i.status === 'CLASSIFICADO' || i.status === 'LISTA_ESPERA') || i.status === 'MATRICULADO'}
                         onClick={(e) => { 
                             e.stopPropagation(); 
                             navigate('/matriculas/nova', { state: { candidato: i } });
                         }}
                         title={
                             i.status === 'MATRICULADO' ? "Candidato já matriculado" :
-                            i.status === 'CLASSIFICADO' ? "Matricular Candidato" : 
+                            (i.status === 'CLASSIFICADO' || i.status === 'LISTA_ESPERA') ? "Matricular Candidato" : 
                             "Matrícula indisponível (Candidato não classificado)"
                         }
                     >

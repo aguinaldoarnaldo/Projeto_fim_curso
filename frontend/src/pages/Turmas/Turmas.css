@@ -1,5 +1,26 @@
 /* Turmas.css */
 
+.turmas-page.page-container {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: calc(100vh - 80px);
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: visible;
+    overflow-x: hidden;
+    gap: 0;
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+/* Remove limit do wrapper interno para que a página controle o scroll */
+.turmas-page .table-wrapper {
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+
+
 .btn-new-turma {
     height: 48px;
     display: flex;
@@ -453,4 +474,58 @@ table td, .table td {
     font-weight: 550;
     font-size: 13.5px;
     color: #1f2937;
+}
+
+/* New Form Enhancements */
+.modal-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 16px;
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-section-title span {
+    color: var(--primary-color);
+}
+
+.generated-code-box {
+    background: #f1f5f9;
+    padding: 2px;
+    border-radius: 12px;
+    border: 2px dashed #cbd5e1;
+}
+
+.form-input-turmas.code-input {
+    background: white !important;
+    border: none !important;
+    color: var(--primary-color) !important;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-weight: 800;
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+.input-helper-text {
+    color: #64748b;
+    font-size: 11px;
+    margin-top: 6px;
+    display: block;
+    font-style: italic;
+}
+
+.success-banner {
+    animation: slideDownFade 0.4s ease-out;
+}
+
+@keyframes slideDownFade {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

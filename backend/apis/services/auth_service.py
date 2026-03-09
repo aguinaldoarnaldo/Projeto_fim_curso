@@ -14,20 +14,55 @@ class AuthService:
     def authenticate_user(email, password, user_type='funcionario'):
         """
         Autentica um usuário baseado no tipo e credenciais.
-        Retorna uma tupla (user_obj, user_data_dict) ou lança exceção.
+        Suporta login unificado: se o tipo inicial falhar e for 'usuario' ou 'funcionario', 
+        tenta outros tipos (aluno, encarregado).
         """
+        # Lista de tipos a tentar se o primeiro falhar (para suportar login unificado do frontend)
+        # Se o frontend enviar 'usuario', ele quer um login genérico
+        types_to_try = [user_type]
+        if user_type in ['usuario', 'funcionario']:
+            # Se falhar como staff, tenta como aluno e depois encarregado
+            other_types = ['aluno', 'encarregado']
+            for t in other_types:
+                if t not in types_to_try:
+                    types_to_try.append(t)
+        
+        last_exception = None
+        
+        for current_type in types_to_try:
+            try:
+                user, user_data = AuthService._perform_auth(email, password, current_type)
+                return user, user_data
+            except ValueError as e:
+                last_exception = e
+                # Se for erro de senha incorreta ou conta desativada para um usuário que EXISTE, 
+                # interrompe e retorna o erro real em vez de tentar outros tipos
+                if any(msg in str(e) for msg in ['Senha incorreta', 'desativada', 'bloqueada']):
+                    raise e
+                continue
+            except Exception as e:
+                last_exception = e
+                continue
+                
+        if last_exception:
+            raise last_exception
+        raise ValueError('Credenciais inválidas.')
+
+    @staticmethod
+    def _perform_auth(email, password, user_type):
+        """Lógica interna de autenticação para um tipo específico"""
         user = None
         user_data = {}
         
         # 1. Autenticação para Funcionários e Usuários Administrativos
         if user_type in ['funcionario', 'usuario']:
-            # Tenta encontrar o perfil de Usuário
+            # Tenta encontrar o perfil de Usuário (busca case-insensitive)
             try:
-                user_profile = Usuario.objects.get(email=email)
+                user_profile = Usuario.objects.get(email__iexact=email)
             except Usuario.DoesNotExist:
                 # Fallback: Tenta encontrar Auth User nativo e criar perfil (Migration on-the-fly)
                 try:
-                    django_user = User.objects.get(email=email)
+                    django_user = User.objects.get(email__iexact=email)
                     user_profile, _ = Usuario.objects.get_or_create(
                         user=django_user,
                         defaults={
@@ -51,10 +86,18 @@ class AuthService:
                             }
                         )
                     except User.DoesNotExist:
-                        raise ValueError('Credenciais inválidas.')
+                        raise ValueError('Usuário não encontrado.')
 
             user = user_profile
             
+            # Verifica se a conta está activa
+            if not user.is_active:
+                raise ValueError('Esta conta está desativada. Contacte o administrador.')
+            
+            # Verifica se o Django Auth User está activo (se existir)
+            if user.user and not user.user.is_active:
+                raise ValueError('Esta conta está bloqueada. Contacte o administrador.')
+
             # Validação da Senha
             password_valid = False
             if user.user:
@@ -67,16 +110,14 @@ class AuthService:
 
             # Determinar tipo real (Funcionário vs Usuário Simples)
             real_type = 'usuario'
-            if hasattr(user, 'funcionario_perfil') and user.funcionario_perfil:
-                real_type = 'funcionario'
+            try:
+                if hasattr(user, 'funcionario_perfil') and user.funcionario_perfil:
+                    real_type = 'funcionario'
+            except Exception:
+                real_type = 'usuario'
             
             # ID para o Token (Auth User se possível)
-            auth_user_id = user.user.id if user.user else user.id_usuario
-
-            # Lógica de Permissões Consistente
-            perms = user.permissoes or []
-            if not perms and real_type == 'funcionario' and hasattr(user, 'funcionario_perfil'):
-                perms = user.funcionario_perfil.permissoes_adicionais or []
+            auth_user_id = user.user.id if (user.user and user.user.id) else user.id_usuario
 
             user_data = {
                 'id': auth_user_id,
@@ -90,7 +131,7 @@ class AuthService:
                 'status': 'Activo' if user.is_active else 'Inactivo',
                 'papel': 'Admin' if (user.is_superuser or (user.user and user.user.is_superuser)) else user.papel,
                 'role': 'Admin' if (user.is_superuser or (user.user and user.user.is_superuser)) else user.papel,
-                'permissoes': perms,
+                'permissoes': user.permissoes or [],
                 'is_superuser': user.is_superuser or (user.user and user.user.is_superuser),
                 'foto_obj': user.img_path
             }
@@ -98,9 +139,14 @@ class AuthService:
         # 2. Autenticação para Alunos
         elif user_type == 'aluno':
             try:
-                user = Aluno.objects.get(email=email)
+                # Tenta por email
+                user = Aluno.objects.get(email__iexact=email)
             except Aluno.DoesNotExist:
-                raise ValueError('Aluno não encontrado.')
+                # Tenta por número de matrícula
+                try:
+                    user = Aluno.objects.get(numero_matricula=email)
+                except (Aluno.DoesNotExist, ValueError, TypeError):
+                    raise ValueError('Aluno não encontrado.')
                 
             if not check_password(password, user.senha_hash):
                 raise ValueError('Senha incorreta.')
@@ -108,20 +154,27 @@ class AuthService:
             user_data = {
                 'id': user.id_aluno,
                 'tipo': 'aluno',
+                'papel': 'Aluno',
                 'nome': user.nome_completo,
                 'email': user.email,
                 'numero_matricula': user.numero_matricula,
                 'turma': user.id_turma.codigo_turma if user.id_turma else None,
                 'status': user.status_aluno,
+                'permissoes': [],
                 'foto_obj': user.img_path
             }
 
         # 3. Autenticação para Encarregados
         elif user_type == 'encarregado':
             try:
-                user = Encarregado.objects.get(email=email)
+                # Tenta por email
+                user = Encarregado.objects.get(email__iexact=email)
             except Encarregado.DoesNotExist:
-                raise ValueError('Encarregado não encontrado.')
+                # Tenta por número de BI
+                try:
+                    user = Encarregado.objects.get(numero_bi=email)
+                except Encarregado.DoesNotExist:
+                    raise ValueError('Encarregado não encontrado.')
                 
             if not check_password(password, user.senha_hash):
                 raise ValueError('Senha incorreta.')
@@ -129,8 +182,10 @@ class AuthService:
             user_data = {
                 'id': user.id_encarregado,
                 'tipo': 'encarregado',
+                'papel': 'Encarregado',
                 'nome': user.nome_completo,
                 'email': user.email,
+                'permissoes': [],
                 'foto_obj': user.img_path
             }
             
@@ -201,8 +256,15 @@ class AuthService:
         user_data = {}
         
         if user_type == 'funcionario':
-            # Busca via Auth User ID
-            user = Funcionario.objects.get(usuario__user__id=user_id)
+            # Busca via Auth User ID ou Profile ID
+            try:
+                user = Funcionario.objects.get(usuario__user__id=user_id)
+            except Funcionario.DoesNotExist:
+                try:
+                    user = Funcionario.objects.get(id_funcionario=user_id)
+                except Funcionario.DoesNotExist:
+                    # Tenta via usuario perfil
+                    user = Funcionario.objects.get(usuario__id_usuario=user_id)
             
             # Permissões com fallback
             perms = user.permissoes_adicionais or []
@@ -210,8 +272,15 @@ class AuthService:
                 perms = user.usuario.permissoes
                 
             # Determinar se é SuperUsuário
-            is_super = (user.usuario.is_superuser if user.usuario else False) or (user.usuario and user.usuario.user and user.usuario.user.is_superuser)
+            is_super = False
+            if user.usuario:
+                is_super = user.usuario.is_superuser or (user.usuario.user and user.usuario.user.is_superuser)
             
+            if not is_super and user.id_cargo:
+                 cargo_nome = user.id_cargo.nome_cargo.lower()
+                 if any(role in cargo_nome for role in ['diretor', 'administrador', 'admin']):
+                     is_super = True
+
             user_data = {
                 'id': user_id, 
                 'tipo': 'funcionario',
@@ -232,7 +301,11 @@ class AuthService:
             }
             
         elif user_type == 'usuario':
-            user = Usuario.objects.get(user__id=user_id)
+            try:
+                user = Usuario.objects.get(user__id=user_id)
+            except Usuario.DoesNotExist:
+                user = Usuario.objects.get(id_usuario=user_id)
+
             is_super = user.is_superuser or (user.user and user.user.is_superuser)
             user_data = {
                 'id': user_id,
@@ -492,19 +565,65 @@ class AuthService:
         elif user_type == 'encarregado':
             user = Encarregado.objects.get(id_encarregado=user_id)
             
-        if not user:
-            raise ValueError('Usuário não encontrado.')
-            
-        # Atualizar senha
-        from django.contrib.auth.hashers import make_password as _make_password
-        hashed_password = _make_password(new_password)
-        
-        # Se tiver Auth User
-        if hasattr(user, 'user') and user.user:
-             user.user.set_password(new_password)
-             user.user.save()
-        
-        # Usa update() direto para bypassar validações do modelo
-        # (necessário para alunos com estado final poderem recuperar senha)
         user.__class__.objects.filter(pk=user.pk).update(senha_hash=hashed_password)
         return True
+
+    @staticmethod
+    def request_password_recovery(email):
+        """
+        Verifica se o e-mail existe em algum dos perfis e inicia processo de recuperação.
+        """
+        print(f"--- DEBUG RECOVERY ATTEMPT FOR {email} ---")
+        # Tenta encontrar o e-mail em qualquer tipo de usuário
+        user = None
+        user_type = None
+        
+        # 1. Tentar Usuario/Funcionario
+        try:
+            user = Usuario.objects.get(email=email)
+            user_type = 'usuario'
+            print(f"Found Usuario: {user.nome_completo}")
+            try:
+                if user.funcionario_perfil:
+                    user_type = 'funcionario'
+            except: pass
+        except Usuario.DoesNotExist:
+            # 2. Tentar Aluno
+            try:
+                user = Aluno.objects.get(email=email)
+                user_type = 'aluno'
+                print(f"Found Aluno: {user.nome_completo}")
+            except Aluno.DoesNotExist:
+                # 3. Tentar Encarregado
+                try:
+                    user = Encarregado.objects.get(email=email)
+                    user_type = 'encarregado'
+                    print(f"Found Encarregado: {user.nome_completo}")
+                except Encarregado.DoesNotExist:
+                    print(f"ERROR: No user found for {email}")
+                    raise ValueError('Nenhuma conta encontrada com este email.')
+
+        # Gerar tokens e enviar e-mail real
+        from apis.utils.auth_utils import generate_password_token, send_password_definition_email
+        
+        user_id = user.id_usuario if hasattr(user, 'id_usuario') else (user.id_aluno if hasattr(user, 'id_aluno') else user.id_encarregado)
+        
+        token = generate_password_token(user_id, user_type)
+        
+        # Enviar e-mail chamando o utilitário
+        email_sent = send_password_definition_email(user, token)
+        
+        if not email_sent:
+            # Em desenvolvimento, podemos logar o token para teste rápido
+            from django.conf import settings as django_settings
+            if django_settings.DEBUG:
+                print(f"--- DEBUG RECOVERY TOKEN FOR {email} ---")
+                print(f"TOKEN: {token}")
+                print(f"LINK: http://localhost:5173/definir-senha?token={token}")
+
+        return {
+            'user_id': user_id,
+            'user_type': user_type,
+            'email': email,
+            'email_sent': email_sent
+        }

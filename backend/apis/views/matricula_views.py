@@ -38,9 +38,86 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         'update': 'edit_matricula',
         'partial_update': 'edit_matricula',
         'destroy': 'delete_matricula',
+        'update_status': 'edit_matricula',
         'matricular_novo_aluno': 'create_matricula',
         'permutar': 'change_matricula',
     }
+
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, HasAdditionalPermission])
+    def update_status(self, request, pk=None):
+        """
+        Actualiza apenas o status da matrícula, contornando a validação de ano lectivo
+        encerrado que bloqueia o .save() do modelo.
+        """
+        VALID_STATUSES = ['Ativa', 'Concluida', 'Desistente', 'Transferido']
+        new_status = request.data.get('status')
+
+        if not new_status:
+            return Response({'erro': 'O campo status é obrigatório.'}, status=400)
+
+        if new_status not in VALID_STATUSES:
+            return Response({'erro': f'Status inválido. Escolha entre: {", ".join(VALID_STATUSES)}'}, status=400)
+
+        # Usar .update() para evitar o gatilho do .save() do modelo que bloqueia edições em anos fechados
+        updated = Matricula.objects.filter(pk=pk).update(status=new_status)
+
+        if updated:
+            # Sincronizar status do aluno se for final
+            matricula = Matricula.objects.get(pk=pk)
+            if new_status in ['Concluida', 'Desistente', 'Transferido']:
+                from apis.models import Aluno
+                # Mapeamento para status do aluno
+                aluno_status_map = {
+                    'Concluida': 'Concluido',
+                    'Desistente': 'Inativo',
+                    'Transferido': 'Transferido'
+                }
+                status_aluno = aluno_status_map.get(new_status)
+                if status_aluno:
+                    Aluno.objects.filter(pk=matricula.id_aluno_id).update(status_aluno=status_aluno)
+
+            return Response({'mensagem': 'Estado da matrícula actualizado com sucesso!'})
+        
+        return Response({'erro': 'Matrícula não encontrada.'}, status=404)
+
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Retorna contagem total de matrículas (geral) e breakdown por estado (global)"""
+        from django.db.models import Count
+        
+        # Filtro de ano opcional para o total específico do ano
+        ano_nome = request.query_params.get('ano')
+        total_ano = 0
+        if ano_nome:
+            total_ano = Matricula.objects.filter(ano_lectivo__nome=ano_nome).count()
+            
+        # O utilizador solicitou o total de TODA a matrícula no sistema (Global)
+        stats = Matricula.objects.values('status').annotate(total=Count('status'))
+        total_historico = Matricula.objects.count()
+        
+        # Formatar breakdown global para o frontend
+        breakdown = {
+            'Ativa': 0,
+            'Concluida': 0,
+            'Desistente': 0,
+            'Transferido': 0
+        }
+        
+        for item in stats:
+            status_val = item['status']
+            # Normalizar "Concluída" (com acento) para "Concluida" (sem acento)
+            if status_val == 'Concluída':
+                status_val = 'Concluida'
+                
+            if status_val in breakdown:
+                breakdown[status_val] += item['total']
+                
+        return Response({
+            'total_geral': total_historico,
+            'total_ano': total_ano,
+            'breakdown': breakdown
+        })
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ['id_aluno__nome_completo', 'id_matricula', 'id_aluno__numero_bi', 'id_aluno__numero_matricula']

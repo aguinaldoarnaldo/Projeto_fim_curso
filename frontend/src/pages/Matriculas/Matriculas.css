@@ -1,5 +1,25 @@
 /* Matriculas.css */
 
+.matriculas-page.page-container {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: calc(100vh - 80px);
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: visible;
+    overflow-x: hidden;
+    gap: 0;
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+/* Remove limit do wrapper interno para que a página controle o scroll */
+.matriculas-page .table-wrapper {
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+
 /* Animation Optimization */
 .page-container {
     transition: opacity 0.2s ease-out;

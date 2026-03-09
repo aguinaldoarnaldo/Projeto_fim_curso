@@ -1,15 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useDataCache } from '../../hooks/useDataCache';
 import CalendarWidget from '../../components/Dashboard/CalendarWidget';
 import './Dashboard.css';
 import { 
-    Search, Bell, GraduationCap, Users, Layers, BookOpen, Megaphone, DoorOpen 
+    Search, Bell, GraduationCap, Users, Layers, BookOpen, Megaphone, DoorOpen, ClipboardCheck 
 } from 'lucide-react';
 import {
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,7 +16,11 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area
 } from 'recharts';
 
 import { usePermission } from '../../hooks/usePermission';
@@ -28,215 +30,143 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermission();
 
+  const displayName = (user && (user.nome_completo || user.username || (user.email && typeof user.email === 'string' && user.email.split('@')[0]))) || 'Administrador';
   
-  // Get user name for display
-  const displayName = (user && (user.nome_completo || user.username || (user.email && user.email.split('@')[0]))) || 'Administrador';
-  
-  // Get initials
-  const getInitials = (name) => {
-      if (!name) return 'AD';
-      const parts = name.split(' ');
-      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  };
+  const currentYearStr = new Date().getFullYear().toString();
+  const [selectedYear, setSelectedYear] = useState(currentYearStr);
+  const [hasSyncActiveYear, setHasSyncActiveYear] = useState(false);
 
-  // 1. GLOBAL DASHBOARD DATA CACHE
-   const fetchDashboardStats = async (yearName = null) => {
-        const queryParams = yearName ? `?ano=${yearName}` : '';
-        
-        // Carregamento Estratégico em duas fases para não engasgar o navegador
-        
-        // Fase 1: Essencial (Anos Lectivos completos e Estatísticas para os Gráficos circulares)
-        const [responseAnos, responseAlunoStats] = await Promise.all([
-            api.get('anos-lectivos/?all=true').catch(e => ({ data: [] })),
-            api.get(`alunos/stats/${queryParams}`).catch(e => ({ data: { total: 0, ativos: 0, genero: [], cursos: [] } }))
-        ]);
+  // 1. GLOBAL STATS FETCHING (KPIs, Years, Gender, Courses)
+  const fetchDashboardStats = useCallback(async () => {
+    const q = selectedYear ? `?ano=${encodeURIComponent(selectedYear)}` : '';
+    try {
+      const [rAnos, rStats, rMatriculas, rTurmas, rCursos, rClasses, rSalas] = await Promise.all([
+        api.get('anos-lectivos/?all=true').catch(() => ({ data: [] })),
+        api.get(`alunos/stats/${q}`).catch(() => ({ data: { total: 0, ativos: 0, genero: [], cursos: [] } })),
+        api.get(`matriculas/summary/${q}`).catch(() => ({ data: { total: 0, breakdown: {} } })),
+        api.get('turmas/summary/').catch(() => ({ data: { total: 0, ativas: 0 } })),
+        api.get('cursos/').catch(() => ({ data: [] })),
+        api.get('classes/').catch(() => ({ data: [] })),
+        api.get('salas/').catch(() => ({ data: [] }))
+      ]);
 
-        // Fase 2: Secundário (Contadores dos mini-cards)
-        const [
-            responseCursos,
-            responseClasses,
-            responseSalas,
-            responseTurmas
-        ] = await Promise.all([
-            api.get('cursos/').catch(e => ({ data: [] })),
-            api.get('classes/').catch(e => ({ data: [] })),
-            api.get('salas/').catch(e => ({ data: [] })),
-            api.get('turmas/summary/').catch(e => ({ data: { total: 0, ativas: 0, concluidas: 0 } }))
-        ]);
-
-       // Process Counts
-       const dataCursos = responseCursos.data?.results || responseCursos.data || [];
-       const dataClasses = responseClasses.data?.results || responseClasses.data || [];
-       const dataSalas = responseSalas.data?.results || responseSalas.data || [];
-       const alunoStats = responseAlunoStats.data || { total: 0, ativos: 0, genero: [], cursos: [] };
-       const turmasStats = responseTurmas.data || { total: 0, ativas: 0, concluidas: 0 };
-       const dataAnos = responseAnos.data?.results || responseAnos.data || [];
-
-       // Process Gender from Stats
-       let countM = 0;
-       let countF = 0;
-       if (alunoStats.genero && Array.isArray(alunoStats.genero)) {
-           const m = alunoStats.genero.find(g => g.genero === 'M');
-           const f = alunoStats.genero.find(g => g.genero === 'F');
-           countM = m ? m.total : 0;
-           countF = f ? f.total : 0;
-       }
-
-       // Process Courses Top 5 from Stats
-       const sortedCourses = (alunoStats.cursos || []).map(c => ({
-           name: c.nome,
-           qnty: c.total
-       }));
-
-       // Process Years
-       let yearObjs = Array.isArray(dataAnos) ? dataAnos.map(a => ({ 
-           id: a.id_ano, 
-           nome: a.nome, 
-           activo: a.activo,
-           inicio_inscricoes: a.inicio_inscricoes,
-           fim_inscricoes: a.fim_inscricoes,
-           inicio_matriculas: a.inicio_matriculas,
-           fim_matriculas: a.fim_matriculas,
-           data_exame_admissao: a.data_exame_admissao,
-           data_teste_diagnostico: a.data_teste_diagnostico
-       })) : [];
-       
-        if (!yearObjs.find(y => y.nome === '2024')) {
-            yearObjs.push({ id: null, nome: '2024', activo: false });
-        }
-        // Sort ASCENDING (maiores primeiro: 2026, 2025, 2024...)
-        yearObjs.sort((a, b) => a.nome.localeCompare(b.nome)).reverse();
-
-       return {
-           counts: {
-               cursos: Array.isArray(dataCursos) ? dataCursos.length : 0,
-               classes: Array.isArray(dataClasses) ? dataClasses.length : 0,
-               salas: Array.isArray(dataSalas) ? dataSalas.length : 0,
-           },
-           kpi: {
-               alunos: { total: alunoStats.total, ativos: alunoStats.ativos, trancados: 0 },
-               turmas: { total: turmasStats.total, ativas: turmasStats.ativas, concluidas: turmasStats.concluidas }
-           },
-           gender: [
-               { name: 'Masculino', value: countM },
-               { name: 'Feminino', value: countF },
-           ],
-           courses: sortedCourses,
-           years: yearObjs
-       };
-  };
-
-   const currentYearStr = new Date().getFullYear().toString();
-   const [selectedYear, setSelectedYear] = useState(currentYearStr);
-
-   const { data: dashboardStats, loading: loadingStats, refresh: refreshStats } = useDataCache(
-     `dashboard_stats_${selectedYear || 'initial'}`, 
-     () => fetchDashboardStats(selectedYear),
-     false // Desativa auto-carregamento paralelo
-   );
-
-  // Default values from cache or initial
-  const kpiData = dashboardStats?.kpi || { alunos: { total: 0, ativos: 0, trancados: 0 }, turmas: { total: 0, ativas: 0, concluidas: 0 } };
-  const countCursos = dashboardStats?.counts?.cursos || 0;
-  const countClasses = dashboardStats?.counts?.classes || 0;
-  const countSalas = dashboardStats?.counts?.salas || 0;
-  const genderData = dashboardStats?.gender || [{ name: 'Masculino', value: 0 }, { name: 'Feminino', value: 0 }];
-  const courseData = dashboardStats?.courses || [];
-  const academicYears = dashboardStats?.years || [];
-   const COLORS_GENDER = ['#2563eb', '#db2777'];
-   const [hasSyncActiveYear, setHasSyncActiveYear] = useState(false);
-
-    // 1. Sincronização Inteligente Inicial
-    // Se o ano atual (ex: 2026) não for encontrado exatamente, mas houver um ano ATIVO,
-    // sincronizamos para o ano ativo apenas na primeira vez que os dados chegam.
-    useEffect(() => {
-        if (academicYears.length > 0 && !hasSyncActiveYear) {
-            const hasExactMatch = academicYears.find(y => y.nome === selectedYear);
-            if (!hasExactMatch) {
-                const activeYear = academicYears.find(y => y.activo);
-                if (activeYear) {
-                    setSelectedYear(activeYear.nome);
-                }
-            }
-            setHasSyncActiveYear(true);
-        }
-    }, [academicYears, selectedYear, hasSyncActiveYear]);
-
-   // REGRAS: Removido o auto-selecionamento para que a escolha do usuário seja mantida.
-   // O valor inicial é definido na criação do estado (currentYearStr).
-
-
-
-  // 2. CHART DATA CACHE - com carregamento instantâneo
-  const fetchChartStats = useMemo(() => {
-    return async () => {
-      if (!selectedYear || academicYears.length === 0) return [];
+      const anos = rAnos.data?.results || rAnos.data || [];
+      const stats = rStats.data || {};
       
-      const yearObj = academicYears.find(y => y.nome === selectedYear);
-      if (!yearObj || !yearObj.id) return [];
+      return {
+        years: anos.map(y => ({ 
+          id: y.id_ano, 
+          nome: y.nome, 
+          activo: y.activo,
+          inicio_inscricoes: y.inicio_inscricoes,
+          fim_inscricoes: y.fim_inscricoes,
+          inicio_matriculas: y.inicio_matriculas,
+          fim_matriculas: y.fim_matriculas,
+          data_exame_admissao: y.data_exame_admissao,
+          data_teste_diagnostico: y.data_teste_diagnostico
+        })),
+        kpis: {
+          alunos: { 
+            total: stats.total || 0, 
+            ativos: stats.ativos || 0,
+            concluidos: stats.concluidos || 0,
+            inativos: stats.inativos || 0,
+            transferidos: stats.transferidos || 0
+          },
+          matriculas: {
+            total: rMatriculas.data?.total_ano || 0,
+            total_geral: rMatriculas.data?.total_geral || 0,
+            ativa: rMatriculas.data?.breakdown?.Ativa || 0,
+            concluida: rMatriculas.data?.breakdown?.Concluida || 0,
+            desistente: rMatriculas.data?.breakdown?.Desistente || 0,
+            transferido: rMatriculas.data?.breakdown?.Transferido || 0
+          },
+          turmas: { 
+            total: rTurmas.data?.total || 0, 
+            ativas: rTurmas.data?.ativas || 0,
+            concluidas: rTurmas.data?.concluidas || 0
+          }
+        },
+        counts: {
+          cursos: rCursos.data?.results?.length || rCursos.data?.length || 0,
+          classes: rClasses.data?.results?.length || rClasses.data?.length || 0,
+          salas: rSalas.data?.results?.length || rSalas.data?.length || 0
+        },
+        gender: [
+          { name: 'Masculino', value: stats.genero?.find(g => g.genero === 'M')?.total || 0 },
+          { name: 'Feminino', value: stats.genero?.find(g => g.genero === 'F')?.total || 0 }
+        ],
+        courses: (stats.cursos || []).map(c => ({ name: c.nome, qnty: c.total }))
+      };
+    } catch (err) {
+      console.error("Dashboard Stats Fetch Error:", err);
+      return null;
+    }
+  }, [selectedYear]);
 
-      try {
-        const response = await api.get(`anos-lectivos/${yearObj.id}/stats_by_year/`);
-        return response.data || [];
-      } catch (error) {
-        console.error('Erro ao carregar gráfico:', error);
-        return [];
-      }
+  const { data: dbData, loading: loadingStats, refresh: refreshStats } = useDataCache(
+    `db_stats_${selectedYear}`, fetchDashboardStats, false
+  );
+
+  const academicYears = useMemo(() => dbData?.years || [], [dbData]);
+  const kpiData = useMemo(() => {
+    const base = dbData?.kpis || {};
+    return {
+      alunos: base.alunos || { total: 0, ativos: 0, concluidos: 0, inativos: 0, transferidos: 0 },
+      matriculas: base.matriculas || { total: 0, total_geral: 0, ativa: 0, concluida: 0, desistente: 0, transferido: 0 },
+      turmas: base.turmas || { total: 0, ativas: 0, concluidas: 0 }
     };
+  }, [dbData]);
+  const counts = useMemo(() => dbData?.counts || { cursos: 0, classes: 0, salas: 0 }, [dbData]);
+  const genderData = useMemo(() => dbData?.gender || [], [dbData]);
+  const courseData = useMemo(() => dbData?.courses || [], [dbData]);
+
+  // Sync year selection to active year once loaded
+  useEffect(() => {
+    if (academicYears.length > 0 && !hasSyncActiveYear) {
+      const active = academicYears.find(y => y.activo);
+      if (active && active.nome !== selectedYear) {
+        setSelectedYear(active.nome);
+      }
+      setHasSyncActiveYear(true);
+    }
+  }, [academicYears, hasSyncActiveYear, selectedYear]);
+
+  // Initial and reactive trigger for core stats
+  useEffect(() => {
+    refreshStats(false);
+  }, [selectedYear, refreshStats]);
+
+  // 2. FLOW CHART DATA FETCHING
+  const fetchFlowStats = useCallback(async () => {
+    if (!selectedYear || academicYears.length === 0) return [];
+    const yearObj = academicYears.find(y => y.nome === selectedYear);
+    if (!yearObj?.id) return [];
+
+    try {
+      const response = await api.get(`anos-lectivos/${yearObj.id}/stats_by_year/`);
+      return response.data || [];
+    } catch (err) {
+      console.error("Flow Stats Fetch Error:", err);
+      return [];
+    }
   }, [selectedYear, academicYears]);
 
-   const { data: chartData = [], loading: loadingChart, refresh: refreshChart } = useDataCache(
-     `dashboard_chart_${selectedYear}`, 
-     fetchChartStats,
-     false // Desativa auto-carregamento paralelo
-   );
+  const { data: flowData = [], loading: loadingFlow, refresh: refreshFlow } = useDataCache(
+    `db_flow_${selectedYear}`, fetchFlowStats, false
+  );
 
-   // CARREGAMENTO SEQUENCIAL: Um de cada vez para não sobrecarregar
-   useEffect(() => {
-     const loadSequence = async () => {
-       if (!selectedYear) return;
-
-       // Passo 1: Carrega estatísticas básicas e contadores (KPIs + Gênero + Cursos)
-       await refreshStats(false); 
-     };
-     loadSequence();
-   }, [selectedYear]);
-
-   // Passo 2: Só dispara o gráfico de fluxo DEPOIS que as estatísticas básicas (que trazem a lista de anos) terminarem
-   useEffect(() => {
-     if (selectedYear && academicYears.length > 0) {
-       const loadFlowChart = async () => {
-         await refreshChart(false);
-       };
-       loadFlowChart();
-     }
-   }, [selectedYear, academicYears.length > 0]);
-
-  // Polling Inteligente para Dashboard (Sincronização Silenciosa)
+  // Trigger flow data when core stats (years list) become available
   useEffect(() => {
-      const syncIfVisible = () => {
-          if (!document.hidden) {
-              refreshStats(true); 
-              refreshChart(true);
-          }
-      };
+    if (academicYears.length > 0) {
+      refreshFlow(false);
+    }
+  }, [academicYears, selectedYear, refreshFlow]);
 
-      const interval = setInterval(syncIfVisible, 60000); // Atualiza a cada 60 segundos
-      
-      window.addEventListener('focus', syncIfVisible);
-
-      return () => {
-          clearInterval(interval);
-          window.removeEventListener('focus', syncIfVisible);
-      };
-  }, [refreshStats, refreshChart]);
-
-
+  const COLORS_GENDER = ['#3b82f6', '#ec4899'];
 
   return (
     <div className="dashboard-container">
-      {/* HEADER */}
       <header className="dashboard-header">
         <div className="header-text">
           <h1>Olá, {displayName}</h1>
@@ -244,266 +174,126 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* KPI GRID */}
       <div className="kpi-grid">
-        {/* 1. ALUNOS */}
-        {hasPermission(PERMISSIONS.VIEW_ALUNOS) && (
-          <div className="kpi-card card-premium-blue">
-            <div className="kpi-icon-floating"><Users size={24} /></div>
-            <div className="kpi-content">
-              <h3>{kpiData.alunos.total}</h3>
-              <span className="kpi-label">Total Alunos</span>
-            </div>
-            <div className="kpi-mini-stats">
-              <span className="mini-stat active">Ativos: {kpiData.alunos.ativos}</span>
-              <span className="mini-stat locked">Trancados: {kpiData.alunos.trancados}</span>
-            </div>
+        <div className="kpi-card card-premium-green">
+          <div className="kpi-icon-floating"><ClipboardCheck size={24} /></div>
+          <div className="kpi-content"><h3>{kpiData.matriculas?.total_geral || 0}</h3><span className="kpi-label">Total Matrículas</span></div>
+          <div className="kpi-mini-stats">
+            <span className="mini-stat active">Ativas: {kpiData.matriculas?.ativa || 0}</span>
+            <span className="mini-stat completed">Concluídas: {kpiData.matriculas?.concluida || 0}</span>
+            <span className="mini-stat inactive">Desistentes: {kpiData.matriculas?.desistente || 0}</span>
+            <span className="mini-stat transferred">Transferidos: {kpiData.matriculas?.transferido || 0}</span>
           </div>
-        )}
-
-        {/* 2. TURMAS */}
-        {hasPermission(PERMISSIONS.VIEW_TURMAS) && (
-          <div className="kpi-card card-premium-purple">
-            <div className="kpi-icon-floating"><Layers size={24} /></div>
-            <div className="kpi-content">
-              <h3>{kpiData.turmas.total}</h3>
-              <span className="kpi-label">Total Turmas</span>
-            </div>
-            <div className="kpi-mini-stats">
-              <span className="mini-stat active">Ativas: {kpiData.turmas.ativas}</span>
-              <span className="mini-stat">Concluídas: {kpiData.turmas.concluidas}</span>
-            </div>
+        </div>
+        
+        <div className="kpi-card card-premium-blue">
+          <div className="kpi-icon-floating"><Users size={24} /></div>
+          <div className="kpi-content"><h3>{kpiData.alunos.total}</h3><span className="kpi-label">Total Alunos</span></div>
+          <div className="kpi-mini-stats">
+            <span className="mini-stat active">Ativos: {kpiData.alunos.ativos}</span>
+            <span className="mini-stat completed">Concluídos: {kpiData.alunos.concluidos}</span>
+            <span className="mini-stat inactive">Inativos: {kpiData.alunos.inativos}</span>
+            <span className="mini-stat transferred">Transferidos: {kpiData.alunos.transferidos}</span>
           </div>
-        )}
-
-        {/* 3. SALAS */}
-        {hasPermission(PERMISSIONS.VIEW_SALAS) && (
-          <div className="kpi-card card-premium-orange">
-            <div className="kpi-icon-floating"><DoorOpen size={24} /></div>
-            <div className="kpi-content">
-              <h3>{countSalas}</h3>
-              <span className="kpi-label">Salas</span>
-            </div>
+        </div>
+        
+        <div className="kpi-card card-premium-purple">
+          <div className="kpi-icon-floating"><Layers size={24} /></div>
+          <div className="kpi-content"><h3>{kpiData.turmas.total}</h3><span className="kpi-label">Total Turmas</span></div>
+          <div className="kpi-mini-stats">
+            <span className="mini-stat active">Ativas: {kpiData.turmas.ativas}</span>
+            <span className="mini-stat completed">Concluídas: {kpiData.turmas.concluidas}</span>
           </div>
-        )}
-
-        {/* 4. CLASSES */}
-        {hasPermission(PERMISSIONS.VIEW_CURSOS) && (
-          <div className="kpi-card card-premium-teal">
-            <div className="kpi-icon-floating"><BookOpen size={24} /></div>
-            <div className="kpi-content">
-              <h3>{countClasses}</h3>
-              <span className="kpi-label">Classes</span>
-            </div>
-          </div>
-        )}
-
-        {/* 5. CURSOS */}
-        {hasPermission(PERMISSIONS.VIEW_CURSOS) && (
-          <div className="kpi-card card-premium-indigo">
-            <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
-            <div className="kpi-content">
-              <h3>{countCursos}</h3>
-              <span className="kpi-label">Cursos</span>
-            </div>
-          </div>
-        )}
+        </div>
+        <div className="kpi-card card-premium-orange">
+          <div className="kpi-icon-floating"><DoorOpen size={24} /></div>
+          <div className="kpi-content"><h3>{counts.salas}</h3><span className="kpi-label">Salas</span></div>
+        </div>
+        <div className="kpi-card card-premium-teal">
+          <div className="kpi-icon-floating"><BookOpen size={24} /></div>
+          <div className="kpi-content"><h3>{counts.classes}</h3><span className="kpi-label">Classes</span></div>
+        </div>
+        <div className="kpi-card card-premium-indigo">
+          <div className="kpi-icon-floating"><GraduationCap size={24} /></div>
+          <div className="kpi-content"><h3>{counts.cursos}</h3><span className="kpi-label">Cursos</span></div>
+        </div>
       </div>
 
-      {/* GRID: CHARTS + CALENDAR */}
       <div className="dashboard-content-grid">
-
-        {/* LEFT: Charts */}
         <div className="charts-column">
-
-          {/* CHART 1: Enrollments Area Chart */}
           <div className="chart-card-new">
             <div className="chart-header">
-              <div>
-                <h2>Fluxo de Entrada</h2>
-                <p>Matrículas e Inscrições (Comparativo)</p>
-              </div>
-              <select
-                className="chart-filter-select"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-              >
-                {academicYears.length > 0 ? (
-                  <>
-                    <optgroup label="Anos Principais">
-                      {academicYears.filter(y => y.activo || parseInt(y.nome) >= new Date().getFullYear() - 2).map(year => (
-                        <option key={year.nome} value={year.nome}>
-                          {year.nome} {year.activo ? '(Ativo)' : ''}
-                        </option>
-                      ))}
-                    </optgroup>
-                    
-                    {academicYears.filter(y => !y.activo && parseInt(y.nome) < new Date().getFullYear() - 2).length > 0 && (
-                      <optgroup label="Histórico / Anos Anteriores">
-                        {academicYears.filter(y => !y.activo && parseInt(y.nome) < new Date().getFullYear() - 2).map(year => (
-                          <option key={year.nome} value={year.nome}>
-                            {year.nome}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </>
-                ) : (
-                     <option value="2024">2024</option>
-                )}
+              <div><h2>Fluxo de Entrada</h2><p>Matrículas e Inscrições (Comparativo)</p></div>
+              <select className="chart-filter-select" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                {academicYears.map(year => (
+                  <option key={year.nome} value={year.nome}>{year.nome} {year.activo ? '(Ativo)' : ''}</option>
+                ))}
               </select>
             </div>
-            <div className="chart-body">
-              {loadingChart ? (
-                <div style={{ 
-                  height: '280px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: '#94a3b8',
-                  fontSize: '14px'
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ marginBottom: '10px' }}>⏳</div>
-                    <div>Carregando dados de {selectedYear}...</div>
-                  </div>
+            <div className="chart-body" style={{ minHeight: '340px' }}>
+              {loadingFlow ? <div className="no-data">Carregando dados...</div> : 
+               flowData.length === 0 ? <div className="no-data">Sem dados para {selectedYear}</div> : (
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={flowData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorMat" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      <Legend verticalAlign="bottom" align="center" iconType="circle" />
+                      <Area type="monotone" dataKey="matriculas" name="Matrículas" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorMat)" />
+                      <Area type="monotone" dataKey="inscritos" name="Inscrições" stroke="#f59e0b" strokeWidth={4} fill="transparent" />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
-              ) : chartData.length === 0 ? (
-                <div style={{ 
-                  height: '280px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: '#94a3b8',
-                  fontSize: '14px'
-                }}>
-                  Sem dados disponíveis para {selectedYear}
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={280} debounce={300}>
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorMat" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.6} />
-                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1} />
-                      </linearGradient>
-                      <linearGradient id="colorIns" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.6} />
-                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0.1} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                    <Legend />
-                    <Area type="monotone" dataKey="matriculas" name="Matrículas" stroke="#2563eb" strokeWidth={4} fillOpacity={1} fill="url(#colorMat)" />
-                    <Area type="monotone" dataKey="inscritos" name="Inscrições" stroke="#ea580c" strokeWidth={4} fillOpacity={1} fill="url(#colorIns)" />
-                  </AreaChart>
-                </ResponsiveContainer>
               )}
             </div>
           </div>
 
-          {/* CHARTS ROW: Gender & Course Distribution */}
           <div className="dashboard-charts-row">
-
-            {/* CHART 2: Gender Donut Chart */}
             <div className="chart-card-new">
-              <div className="chart-header">
-                <div>
-                  <h2>Distribuição por Género</h2>
-                  <p>Equilíbrio entre Masculino e Feminino</p>
-                </div>
-              </div>
-              <div className="chart-body gender-chart-body" style={{ minHeight: '300px' }}>
-                <ResponsiveContainer width="100%" height={300} debounce={300}>
+              <div className="chart-header"><div><h2>Distribuição por Género</h2><p>Masculino e Feminino</p></div></div>
+              <div className="chart-body" style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={genderData}
-                      cx="50%"
-                      cy="60%"
-                      innerRadius={70}
-                      outerRadius={90}
-                      paddingAngle={5}
-                      startAngle={180}
-                      endAngle={0}
-                      dataKey="value"
-                    >
-                      {genderData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS_GENDER[index % COLORS_GENDER.length]} />
-                      ))}
+                    <Pie data={genderData} cx="50%" cy="65%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" startAngle={180} endAngle={0}>
+                      {genderData.map((entry, index) => <Cell key={index} fill={COLORS_GENDER[index % 2]} />)}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      align="center"
-                      layout="horizontal"
-                      iconType="circle"
-                      wrapperStyle={{ paddingTop: '20px' }}
-                    />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                    <Legend verticalAlign="bottom" iconType="circle" />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* CHART 3: Bar Chart for Courses */}
             <div className="chart-card-new">
-              <div className="chart-header">
-                <div>
-                  <h2>Popularidade dos Cursos</h2>
-                  <p>Inscrições por área de estudo</p>
-                </div>
-              </div>
-              <div className="chart-body course-chart-body">
-                <ResponsiveContainer width="100%" height={Math.max(280, courseData.length * 45)} debounce={300}>
-                  <AreaChart
-                    layout="vertical"
-                    data={courseData.length > 0 ? courseData : [
-                      { name: 'Sem dados', qnty: 0 }
-                    ]}
-                    margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+              <div className="chart-header"><div><h2>Popularidade dos Cursos</h2><p>Inscritos por curso</p></div></div>
+              <div className="chart-body" style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={courseData} margin={{ left: 10, right: 30, top: 20, bottom: 20 }}>
                     <XAxis type="number" hide />
-                    <YAxis 
-                      dataKey="name" 
-                      type="category" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#64748b', fontSize: 12 }}
-                      width={140}
-                    />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} width={120} />
                     <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                    <Area
-                      type="monotone"
-                      dataKey="qnty"
-                      stroke="none"
-                      fill="#4f46e5"
-                      fillOpacity={1}
-                      radius={[0, 10, 10, 0]}
-                    />
-                  </AreaChart>
+                    <Bar dataKey="qnty" name="Alunos" fill="#6366f1" radius={[0, 6, 6, 0]} barSize={24} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
-
         </div>
 
-        {/* RIGHT: Calendar */}
         <div className="calendar-column">
           <div className="calendar-card-wrapper">
-            <div className="calendar-title-card">
-              <Megaphone size={20} className="shake-icon" />
-              <span>Agenda & Feriados</span>
-            </div>
-            <CalendarWidget scheduling={academicYears.find(y => y.nome === selectedYear)} />
+             <div className="calendar-title-card"><Megaphone size={20} /> <span>Agenda & Feriados</span></div>
+             <CalendarWidget scheduling={academicYears.find(y => y.nome === selectedYear)} />
           </div>
         </div>
-
       </div>
     </div>
   );

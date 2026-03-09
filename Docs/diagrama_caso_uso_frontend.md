@@ -1,77 +1,125 @@
 # Diagrama de Caso de Uso Completo - Frontend SGM (React)
 
-Este diagrama representa a totalidade das funcionalidades implementadas na interface do sistema, organizadas por módulos e permissões de acesso.
+Este diagrama representa a totalidade das funcionalidades implementadas na interface do sistema, com casos de uso detalhados e específicos por acção.
 
 ## 1. Atores e Responsabilidades
-*   **Candidato:** Interage com o portal externo para ingresso.
-*   **Funcionário (Secretaria):** Gere o ciclo de vida do aluno e operações acadêmicas.
-*   **Administrador:** Superintende o sistema, herda permissões de secretaria e controla infraestrutura/regras.
+*   **Candidato:** Interage com o portal externo de forma **pública e anónima**, sem necessidade de autenticação.
+*   **Funcionário (Secretaria):** Gere o ciclo de vida do candidato e do aluno, e operações académicas. Requer autenticação no sistema.
+*   **Administrador:** Superintende o sistema, herda todas as permissões da secretaria e controla infraestrutura/regras globais. Requer autenticação no sistema.
+
+> **Nota:** O Candidato é um actor **externo e não autenticado**. A autenticação (login e recuperação de senha) aplica-se **apenas** aos utilizadores internos (Funcionários e Administradores).
 
 ## 2. Diagrama de Caso de Uso Exhaustivo (Mermaid)
 
 ```mermaid
 useCaseDiagram
-    actor "Candidato" as C
+    actor "Candidato (Público)" as C
     actor "Funcionário (Secretaria)" as S
     actor "Administrador" as A
 
-    package "Módulo 1: Portal do Candidato (Público)" {
-        usecase "Realizar Inscrição Online" as UC155
-        usecase "Consultar Estado da Candidatura" as UC2
-        usecase "Gerar RUP para Pagamento" as UC3
-        usecase "Autenticar-se no Portal" as UC4
-        usecase "Redefinir Senha de Acesso" as UC5
+    package "Módulo 1: Portal do Candidato (Acesso Público — Sem Login)" {
+        usecase "Preencher e Submeter Formulário de Inscrição" as UC1
+        usecase "Consultar Estado da Candidatura por BI ou Nº Inscrição" as UC2
+        usecase "Gerar Referência RUP para Pagamento" as UC3
+        usecase "Confirmar Pagamento do RUP" as UC4
+        usecase "Descarregar Comprovativo de Inscrição em PDF" as UC5
     }
 
-    package "Módulo 2: Gestão de Candidaturas (Inscritos)" {
-        usecase "Visualizar Lista de Inscritos" as UC6
-        usecase "Validar Documentos e Aprovar Candidato" as UC7
-        usecase "Agendar Exame de Admissão" as UC8
-        usecase "Lançar Resultados de Exames" as UC9
-        usecase "Imprimir Pautas e Listas de Chamada" as UC10
-        usecase "Gerir Lista de Espera (Chamamento)" as UC11
+    package "Módulo 2: Acesso Interno ao Sistema" {
+        usecase "Iniciar Sessão no Sistema (Login)" as UC6
+        usecase "Solicitar Recuperação de Senha por Email" as UC7
+        usecase "Definir Nova Senha via Link de Recuperação" as UC8
+        usecase "Editar Dados do Perfil Pessoal" as UC9
     }
 
-    package "Módulo 3: Secretaria e Matrículas" {
-        usecase "Efetivar Matrícula (Converter Inscrito em Aluno)" as UC12
-        usecase "Gerir Cadastro de Alunos (Fichas)" as UC13
-        usecase "Emitir Provas de Matrícula (PDF)" as UC14
-        usecase "Anular ou Editar Matrícula" as UC15
-        usecase "Consultar Histórico do Aluno" as UC16
+    package "Módulo 3: Gestão de Candidaturas (Inscritos)" {
+        usecase "Listar Todos os Candidatos Inscritos" as UC10
+        usecase "Pesquisar Candidato por Nome, BI ou Nº Inscrição" as UC11
+        usecase "Visualizar Ficha Detalhada do Candidato" as UC12
+        usecase "Editar Dados do Candidato" as UC13
+        usecase "Filtrar Candidatos por Status, Ano ou Curso" as UC14
+        usecase "Lançar Nota de Exame do Candidato" as UC15
+        usecase "Distribuir Candidatos por Salas de Exame" as UC16
+        usecase "Imprimir Lista de Chamada por Sala e Data" as UC17
+        usecase "Adicionar Candidato à Lista de Espera" as UC18
+        usecase "Chamar Candidato da Lista de Espera para Vaga" as UC19
+        usecase "Remover Candidato da Lista de Espera" as UC20
+        usecase "Matricular Candidato Aprovado (Converter em Aluno)" as UC21
     }
 
-    package "Módulo 4: Gestão Académica e Estrutura" {
-        usecase "Gerir Cursos e Currículos" as UC17
-        usecase "Gerir Classes e Disciplinas" as UC18
-        usecase "Gerir Salas e Capacidades" as UC19
-        usecase "Gerir Turmas e Horários" as UC20
-        usecase "Alocar Alunos em Turmas Específicas" as UC21
-        usecase "Controlar Vagas por Curso e Turno" as UC22
+    package "Módulo 4: Alunos e Matrículas" {
+        usecase "Listar Todos os Alunos Matriculados" as UC22
+        usecase "Pesquisar Aluno por Nome ou Número de Matrícula" as UC23
+        usecase "Visualizar Ficha Completa do Aluno" as UC24
+        usecase "Editar Dados Pessoais do Aluno" as UC25
+        usecase "Alterar Status do Aluno (Activo, Inactivo, Transferido)" as UC26
+        usecase "Emitir Comprovativo de Matrícula em PDF" as UC27
+        usecase "Anular Matrícula do Aluno" as UC28
+        usecase "Consultar Histórico de Matrículas do Aluno" as UC29
     }
 
-    package "Módulo 5: Analítico e Inteligência de Dados" {
-        usecase "Monitorar Dashboard em Tempo Real" as UC23
-        usecase "Visualizar Gráficos de Fluxo e Ocupação" as UC24
-        usecase "Gerar Relatórios de Estatística Geral" as UC25
-        usecase "Exportar Mapas de Aproveitamento" as UC26
+    package "Módulo 5: Turmas" {
+        usecase "Listar Todas as Turmas" as UC30
+        usecase "Criar Nova Turma" as UC31
+        usecase "Editar Dados da Turma" as UC32
+        usecase "Eliminar Turma" as UC33
+        usecase "Alocar Aluno a uma Turma" as UC34
+        usecase "Transferir Aluno entre Turmas" as UC35
     }
 
-    package "Módulo 6: Administração e Configurações" {
-        usecase "Gerir Anos Lectivos (Abertura/Fecho)" as UC27
-        usecase "Administrar Usuários e Cargos" as UC28
-        usecase "Configurar Permissões de Acesso" as UC29
-        usecase "Executar e Agendar Backups" as UC30
-        usecase "Gerir Perfil e Preferências" as UC31
+    package "Módulo 6: Cursos" {
+        usecase "Listar Todos os Cursos" as UC36
+        usecase "Criar Novo Curso" as UC37
+        usecase "Editar Dados do Curso" as UC38
+        usecase "Eliminar Curso" as UC39
     }
 
-    %% Relações do Candidato
+    package "Módulo 7: Salas" {
+        usecase "Listar Todas as Salas" as UC40
+        usecase "Criar Nova Sala" as UC41
+        usecase "Editar Dados da Sala (Capacidade, Bloco)" as UC42
+        usecase "Eliminar Sala" as UC43
+    }
+
+    package "Módulo 8: Vagas e Capacidade" {
+        usecase "Visualizar Ocupação de Vagas por Curso" as UC44
+        usecase "Definir Número de Vagas por Curso e Turno" as UC45
+        usecase "Actualizar Vagas Disponíveis Manualmente" as UC46
+    }
+
+    package "Módulo 9: Dashboard e Relatórios" {
+        usecase "Visualizar KPIs no Dashboard em Tempo Real" as UC47
+        usecase "Consultar Totais de Alunos por Status" as UC48
+        usecase "Consultar Totais de Turmas Activas e Concluídas" as UC49
+        usecase "Visualizar Agenda de Eventos Académicos" as UC50
+        usecase "Gerar Relatório Geral de Estatísticas" as UC51
+        usecase "Exportar Mapa de Aproveitamento" as UC52
+    }
+
+    package "Módulo 10: Administração do Sistema" {
+        usecase "Listar Todos os Utilizadores do Sistema" as UC53
+        usecase "Criar Novo Utilizador (Funcionário ou Admin)" as UC54
+        usecase "Editar Dados do Utilizador" as UC55
+        usecase "Desactivar ou Reactivar Utilizador" as UC56
+        usecase "Atribuir Cargo e Permissões ao Utilizador" as UC57
+        usecase "Criar Novo Ano Lectivo" as UC58
+        usecase "Definir Ano Lectivo como Activo" as UC59
+        usecase "Fechar Ano Lectivo" as UC60
+        usecase "Configurar Datas do Cronograma Académico" as UC61
+        usecase "Abrir ou Fechar Portal de Candidaturas" as UC62
+        usecase "Criar Backup da Base de Dados" as UC63
+        usecase "Restaurar Backup da Base de Dados" as UC64
+        usecase "Configurar Dados e Logo da Escola" as UC65
+    }
+
+    %% ── Candidato (Público, sem login) ──────────────────────────
     C --> UC1
     C --> UC2
     C --> UC3
     C --> UC4
     C --> UC5
 
-    %% Relações da Secretaria
+    %% ── Funcionário (autenticado) ────────────────────────────────
     S --> UC6
     S --> UC7
     S --> UC8
@@ -83,37 +131,94 @@ useCaseDiagram
     S --> UC14
     S --> UC15
     S --> UC16
+    S --> UC17
+    S --> UC18
+    S --> UC19
     S --> UC20
     S --> UC21
+    S --> UC22
     S --> UC23
     S --> UC24
-    S --> UC31
+    S --> UC25
+    S --> UC26
+    S --> UC27
+    S --> UC28
+    S --> UC29
+    S --> UC30
+    S --> UC34
+    S --> UC35
+    S --> UC44
+    S --> UC47
+    S --> UC48
+    S --> UC49
+    S --> UC50
 
-    %% Relações do Administrador
+    %% ── Administrador (herda Secretaria + privilégios extra) ─────
     A --|> S
-    A --> UC17
-    A --> UC18
-    A --> UC19
-    A --> UC22
-    A --> UC25
-    A --> UC26
-    A --> UC27
-    A --> UC28
-    A --> UC29
-    A --> UC30
+    A --> UC31
+    A --> UC32
+    A --> UC33
+    A --> UC36
+    A --> UC37
+    A --> UC38
+    A --> UC39
+    A --> UC40
+    A --> UC41
+    A --> UC42
+    A --> UC43
+    A --> UC45
+    A --> UC46
+    A --> UC51
+    A --> UC52
+    A --> UC53
+    A --> UC54
+    A --> UC55
+    A --> UC56
+    A --> UC57
+    A --> UC58
+    A --> UC59
+    A --> UC60
+    A --> UC61
+    A --> UC62
+    A --> UC63
+    A --> UC64
+    A --> UC65
 ```
 
-## 3. Matriz de Cobertura de Funcionalidades
+## 3. Separação Clara de Acesso
 
-| Módulo Frontend | Funcionalidades Cobertas (Casos de Uso) |
+| Actor | Autenticação? | Scope de Acção |
+| :--- | :---: | :--- |
+| **Candidato** | ❌ Não — acesso público e anónimo | Inscrição, consulta de estado, geração de RUP, pagamento, comprovativo |
+| **Funcionário** | ✅ Sim — login obrigatório | Candidatos, alunos, matrículas, alocar alunos em turmas, dashboard, relatórios |
+| **Administrador** | ✅ Sim — login obrigatório | Tudo do Funcionário + criar/editar/eliminar turmas, cursos, salas, anos lectivos, utilizadores, permissões, backups, configurações |
+
+## 4. Matriz de Cobertura de Funcionalidades
+
+| Módulo Frontend | Casos de Uso Detalhados |
 | :--- | :--- |
-| **Acesso e Segurança** | Autenticação, Redefinição de Senha, Gestão de Usuários, Cargos e Permissões. |
-| **Portal Público** | Inscrição, Consulta de Status, Geração de RUP. |
-| **Gestão de Candidatos** | Listagem, Validação, Agendamento, Notas de Exame, Pautas de Exame, Lista de Espera. |
-| **Matrículas e Alunos** | Conversão de Candidato, Ficha de Aluno, Edição de Matrícula, Comprovativos PDF. |
-| **Estrutura Escolar** | Cursos, Classes, Salas, Turmas, Disciplinas, Gestão Dinâmica de Vagas. |
-| **BI e Dashboards** | Dashboard de Vagas, Fluxo de Matrícula, Gráficos de Gênero, Relatórios Estatísticos. |
-| **Manutenção** | Gestão de Anos Lectivos (Ciclo de Vida), Backup e Recuperação de Dados. |
+| **Portal Público (Candidato)** | Submeter inscrição, consultar estado por BI/Nº, gerar RUP, confirmar pagamento, descarregar comprovativo PDF |
+| **Acesso Interno** | Iniciar sessão, recuperar senha por email, definir nova senha, editar perfil pessoal |
+
+
+| **Gestão de Candidatos** | Listar, pesquisar, visualizar ficha, editar, filtrar, lançar nota, distribuir por salas, imprimir lista de chamada, lista de espera (adicionar, chamar, remover), matricular |
+
+
+| **Alunos e Matrículas** | Listar, pesquisar, visualizar ficha, editar dados, alterar status, emitir comprovativo PDF, anular matrícula, historial |
+
+
+| **Turmas** | Listar, criar, editar, eliminar, alocar aluno, transferir aluno entre turmas |
+
+
+| **Cursos** | Listar, criar, editar, eliminar |
+
+| **Salas** | Listar, criar, editar (capacidade, bloco), eliminar |
+
+| **Vagas** | Visualizar ocupação, definir vagas por curso/turno, actualizar manualmente |
+
+| **Dashboard e Relatórios** | KPIs em tempo real, totais por status de aluno/turma, agenda académica, relatórios, exportar mapas |
+
+| **Administração** | Utilizadores (listar, criar, editar, desactivar, atribuir cargo), anos lectivos (criar, activar, fechar, cronograma), portal (abrir/fechar), backups (criar, restaurar), configurações da escola |
 
 ---
 *Este documento reflete a versão final do sistema de gestão escolar.*

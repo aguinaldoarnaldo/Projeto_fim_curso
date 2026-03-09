@@ -85,9 +85,13 @@ def login_view(request):
         print(f"Login failed for {email}: {str(e)}")
         return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
-        # Logar erro real no servidor se necessário
+        import traceback
         print(f"Erro Crítico no Login: {str(e)}")
-        return Response({'error': 'Erro interno ao processar login.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print(traceback.format_exc())
+        # Em desenvolvimento expor o erro real; em produção usar mensagem genérica
+        from django.conf import settings as django_settings
+        error_msg = str(e) if django_settings.DEBUG else 'Erro interno ao processar login. Tente novamente.'
+        return Response({'error': error_msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -131,11 +135,15 @@ def me_view(request):
         user_id = token.payload.get('user_id')
         user_type = token.payload.get('user_type')
         
-        # Tentar recuperar do cache primeiro
+        # Tentar recuperar do cache primeiro (a menos que o cliente peça dados frescos)
         cache_key = f'user_profile_{user_type}_{user_id}'
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response({'user': cached_data}, status=status.HTTP_200_OK)
+        no_cache = request.META.get('HTTP_CACHE_CONTROL', '') == 'no-cache' or \
+                   request.META.get('HTTP_PRAGMA', '') == 'no-cache'
+        
+        if not no_cache:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response({'user': cached_data}, status=status.HTTP_200_OK)
 
         # Recuperar perfil via Serviço
         user_data = AuthService.get_user_profile(user_id, user_type)
@@ -179,17 +187,28 @@ def update_profile_view(request):
         
         # 2. Delegar atualização para o Serviço
         user = AuthService.update_user_profile(user_id, user_type, request.data, request.FILES)
-        
+
+        # Invalidar cache do perfil para que /me/ devolva dados frescos
+        from django.core.cache import cache
+        cache.delete(f'user_profile_{user_type}_{user_id}')
+
         # 3. Preparar resposta com dados atualizados
         user_resp = {
             'nome': getattr(user, 'nome_completo', ''),
             'nome_completo': getattr(user, 'nome_completo', ''),
             'email': getattr(user, 'email', ''),
             'username': getattr(user, 'email', ''),
-            'foto': request.build_absolute_uri(user.img_path.url) if user.img_path else None,
+            'foto': request.build_absolute_uri(user.img_path.url) if getattr(user, 'img_path', None) else None,
             'telefone': '',
-            'endereco': ''
+            'endereco': '',
+            'cargo': None
         }
+        
+        # Cargo (Funcionario tem id_cargo, Usuario tem cargo)
+        if hasattr(user, 'id_cargo') and user.id_cargo:
+            user_resp['cargo'] = user.id_cargo.nome_cargo
+        elif hasattr(user, 'cargo') and user.cargo:
+            user_resp['cargo'] = user.cargo.nome_cargo if hasattr(user.cargo, 'nome_cargo') else str(user.cargo)
         
         # Mapeamento dinâmico de telefone
         if hasattr(user, 'telefone'):
@@ -216,6 +235,36 @@ def update_profile_view(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({'error': f'Erro interno ao atualizar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
+def recover_password_view(request):
+    """
+    Solicita recuperação de senha verificando o e-mail.
+    """
+    request.throttle_scope = 'password_recovery'
+    from apis.services.auth_service import AuthService
+    
+    email = request.data.get('email')
+    if not email:
+        return Response({'error': 'E-mail é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        result = AuthService.request_password_recovery(email)
+        if result.get('email_sent'):
+            return Response({
+                'message': 'E-mail de recuperação enviado com sucesso! Verifique a sua caixa de entrada.'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'error': 'O utilizador foi encontrado, mas houve um erro técnico ao disparar o e-mail. Verifique as configurações de SMTP ou tente novamente mais tarde.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': f'Erro ao processar: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

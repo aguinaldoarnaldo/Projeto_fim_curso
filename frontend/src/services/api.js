@@ -1,7 +1,19 @@
 import axios from 'axios';
 
+export const getServerIP = () => {
+    // Se existir uma URL de API definida no ambiente (ex: Hosting real), usa ela
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    
+    // Fallback para rede local
+    const hostname = window.location.hostname;
+    const ip = hostname === 'localhost' ? '127.0.0.1' : hostname;
+    return `http://${ip}:8000/api/v1/`;
+};
+
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api/v1/',
+    baseURL: getServerIP(),
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',

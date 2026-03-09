@@ -11,7 +11,26 @@ const TopNavbar = ({ onMenuClick }) => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showHint, setShowHint] = useState(false);
     const userMenuRef = useRef(null);
+
+    // Monitor screen size for navigation hint (Laptops <= 1366px)
+    useEffect(() => {
+        const checkSize = () => {
+            // Se for laptop (1366 ou menos) e não for mobile extremo
+            if (window.innerWidth <= 1366 && window.innerWidth > 768) {
+                setShowHint(true);
+                // Esconder após 8 segundos para não poluir
+                const timer = setTimeout(() => setShowHint(false), 8000);
+                return () => clearTimeout(timer);
+            } else {
+                setShowHint(false);
+            }
+        };
+        checkSize();
+        window.addEventListener('resize', checkSize);
+        return () => window.removeEventListener('resize', checkSize);
+    }, []);
 
 
     // Logic to determine display name
@@ -49,6 +68,14 @@ const TopNavbar = ({ onMenuClick }) => {
                 <button className="mobile-menu-toggle" onClick={onMenuClick}>
                     <Menu size={20} />
                 </button>
+                {showHint && (
+                    <div className="sidebar-hint-container">
+                        <div className="sidebar-hint-arrow">←</div>
+                        <div className="sidebar-hint-message">
+                            Feche o menu para ter mais espaço de visualização
+                        </div>
+                    </div>
+                )}
                 {/*<div className="search-bar-top">
                     <Search size={18} className="search-icon-top" />
                     <input type="text" placeholder="Pesquisar..." />

@@ -217,10 +217,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '60/hour',
+        'anon': '300/hour',
         'user': '5000/hour',
-        'candidate_check': '10/minute',
-        'login': '10/minute',
+        'candidate_check': '20/minute',
+        'login': '15/minute',
+        'password_recovery': '10/minute',
     },
     'PAGE_SIZE_QUERY_PARAM': 'page_size',
 }
@@ -469,5 +470,18 @@ UNFOLD = {
    
 }
 
-# Import static helper
+# Static files (CSS, JavaScript, Images)
 from django.templatetags.static import static
+
+# =============================================================================
+# EMAIL CONFIGURATION (Forgot Password)
+# =============================================================================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
+ADMIN_CONTACT_WHATSAPP = os.getenv('ADMIN_CONTACT_WHATSAPP', '244900000000')

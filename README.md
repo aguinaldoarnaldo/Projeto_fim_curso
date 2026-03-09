@@ -85,7 +85,6 @@ Certifique-se de que `DEBUG=True` está no seu `.env`. Se for `False`, o Django 
 
 ### Erro de Conexão com o Banco?
 Verifique se o serviço do PostgreSQL está ativo no Windows e se as credenciais do DB coincidem com o `.env`.
-
 ---
 
 ## 👨‍� Desenvolvedor

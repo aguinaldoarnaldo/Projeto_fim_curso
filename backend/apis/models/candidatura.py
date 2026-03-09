@@ -11,6 +11,7 @@ class Candidato(BaseModel):
     STATUS_CHOICES = [
         ('INSCRITO', 'INSCRITO'),
         ('AUSENTE', 'AUSENTE'),
+        ('LISTA_ESPERA', 'LISTA DE ESPERA'),
         ('CLASSIFICADO', 'CLASSIFICADO'),
         ('NAO_CLASSIFICADO', 'NAO_CLASSIFICADO'),
         ('MATRICULADO', 'MATRICULADO')

@@ -555,19 +555,25 @@ class ListaEsperaViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = ListaEsperaSerializer
     permission_classes = [IsAuthenticated]
 
+    def destroy(self, request, *args, **kwargs):
+        """Ao remover da lista de espera, reverte status do candidato"""
+        espera = self.get_object()
+        candidato = espera.candidato
+        espera.delete()
+        if candidato.status == 'LISTA_ESPERA':
+            candidato.status = 'NAO_CLASSIFICADO'
+            candidato.save()
+        return Response({'mensagem': 'Candidato removido da lista de espera.'}, status=200)
+
     @action(detail=True, methods=['post'])
     def chamar_candidato(self, request, pk=None):
         """Altera status para Chamado e notifica (simulado)"""
         espera = self.get_object()
         if espera.status == 'Chamado':
-             return Response({'mensagem': 'Candidato já foi chamado.'}, status=200)
-
+             return Response({'mensagem': 'Candidato ja foi chamado.'}, status=200)
         espera.status = 'Chamado'
         espera.save()
-        
-        # Simula envio de email/SMS
-        msg = f"Olá {espera.candidato.nome_completo}, surgiu uma vaga! Compareça à secretaria."
-        
+        msg = f"Ola {espera.candidato.nome_completo}, surgiu uma vaga! Compareca a secretaria."
         return Response({
             'mensagem': 'Candidato chamado com sucesso!',
             'notificacao': msg,
@@ -576,30 +582,29 @@ class ListaEsperaViewSet(AuditMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def adicionar_candidato_reprovado(self, request):
-        """Adiciona um candidato (provavelmente Reprovado ou Pendente) à lista de espera"""
+        """Adiciona candidato a lista de espera e actualiza o seu status"""
+        from django.core.exceptions import ValidationError as DjangoValidationError
         id_candidato = request.data.get('id_candidato')
         if not id_candidato:
             return Response({'erro': 'Informe o id_candidato'}, status=400)
-            
         try:
-             candidato = Candidato.objects.get(pk=id_candidato)
+            candidato = Candidato.objects.get(pk=id_candidato)
         except Candidato.DoesNotExist:
-             return Response({'erro': 'Candidato não encontrado'}, status=404)
-
+            return Response({'erro': 'Candidato nao encontrado'}, status=404)
         try:
-             # Check if already in list
-             if ListaEspera.objects.filter(candidato=candidato).exists():
-                  return Response({'erro': 'Candidato já está na lista de espera'}, status=400)
-
-             item = ListaEspera.objects.create(
-                 candidato=candidato,
-                 prioridade=request.data.get('prioridade', 0),
-                 observacao=request.data.get('observacao', '')
-             )
-             
-             serializer = self.get_serializer(item)
-             return Response(serializer.data, status=201)
-        except ValidationError as e:
-             return Response({'erro': str(e.message) if hasattr(e, 'message') else str(e)}, status=400)
+            if ListaEspera.objects.filter(candidato=candidato).exists():
+                return Response({'erro': 'Candidato ja esta na lista de espera'}, status=400)
+            item = ListaEspera.objects.create(
+                candidato=candidato,
+                prioridade=request.data.get('prioridade', 0),
+                observacao=request.data.get('observacao', '')
+            )
+            # Update candidato status
+            candidato.status = 'LISTA_ESPERA'
+            candidato.save()
+            serializer = self.get_serializer(item)
+            return Response(serializer.data, status=201)
+        except DjangoValidationError as e:
+            return Response({'erro': str(e.message) if hasattr(e, 'message') else str(e)}, status=400)
         except Exception as e:
-             return Response({'erro': f'Erro ao adicionar: {str(e)}'}, status=400)
+            return Response({'erro': f'Erro ao adicionar: {str(e)}'}, status=400)

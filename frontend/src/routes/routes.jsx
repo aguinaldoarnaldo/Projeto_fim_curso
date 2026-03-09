@@ -25,8 +25,9 @@ import NovaMatricula from "../pages/Matriculas/NovaMatricula";
 import Relatorios from "../pages/Relatorios/Relatorios";
 import VagasCursos from "../pages/VagasCursos/VagasCursos";
 
-import ListaEspera from "../pages/ListaEspera/ListaEspera";
+
 import Perfil from "../pages/Perfil/Perfil";
+import RecuperarSenha from "../pages/RecuperarSenha/RecuperarSenha";
 import NotFound from "../pages/NotFound/NotFound";
 
 // PrivateRoute now keeps the layout mounted even during loading
@@ -85,6 +86,7 @@ export default function Routers() {
                 <Route path="/definir-senha" element={<DefinirSenha />} />
                 <Route path="/candidatura" element={<Candidatura />} />
                 <Route path="/candidatos" element={<Candidatura />} />
+                <Route path="/recuperar-senha" element={<RecuperarSenha />} />
                 <Route path="/" element={<Login />} />
 
                 {/* Persistent Layout and Protected Routes */}
@@ -135,9 +137,7 @@ export default function Routers() {
                         <PermissionRoute permission={PERMISSIONS.VIEW_RELATORIOS}><Relatorios /></PermissionRoute>
                     } />
                     
-                    <Route path="/lista-espera" element={
-                        <PermissionRoute permission={PERMISSIONS.VIEW_INSCRITOS}><ListaEspera /></PermissionRoute>
-                    } />
+                    <Route path="/lista-espera" element={<Navigate to="/inscritos" replace />} />
                     
                     <Route path="/perfil" element={<Perfil />} />
 

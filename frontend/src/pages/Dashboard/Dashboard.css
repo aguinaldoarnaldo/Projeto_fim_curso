@@ -261,6 +261,27 @@
     -webkit-text-fill-color: transparent;
 }
 
+.card-premium-green {
+    background: linear-gradient(135deg, #ffffff 40%, #f0fdf4 100%);
+    border: 1px solid #86efac;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.12);
+}
+.card-premium-green .kpi-icon-floating {
+    background: rgba(22, 163, 74, 0.1);
+    color: #16a34a;
+}
+.card-premium-green:hover {
+    box-shadow: 0 20px 25px -5px rgba(22, 163, 74, 0.15), 0 10px 10px -5px rgba(22, 163, 74, 0.04);
+    border-color: #22c55e;
+    transform: translateY(-5px);
+}
+.card-premium-green h3 {
+    background: linear-gradient(to right, #14532d, #16a34a);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
 .card-premium-indigo {
     background: linear-gradient(135deg, #ffffff 50%, #e0e7ff 100%);
     border: 1px solid #c7d2fe;
@@ -313,6 +334,9 @@
 }
 
 .mini-stat.active { color: #059669; font-weight: 600; }
+.mini-stat.completed { color: #3b82f6; font-weight: 600; }
+.mini-stat.inactive { color: #ef4444; font-weight: 600; }
+.mini-stat.transferred { color: #f59e0b; font-weight: 600; }
 .mini-stat.locked { color: #d97706; }
 
 

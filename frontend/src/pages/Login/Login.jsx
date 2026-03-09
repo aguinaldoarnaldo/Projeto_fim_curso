@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, LogIn, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
@@ -47,6 +47,8 @@ const Login = () => {
     // or we can keep it here for redundancy/immediacy.
     if (success) {
       navigate('/dashboard');
+    } else {
+      setPassword('');
     }
     setLoading(false);
   };
@@ -89,9 +91,10 @@ const Login = () => {
             </div>
 
             {error && (
-                <div className="error-message" style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                    {error}
-                </div>
+              <div className="error-box">
+                <AlertCircle size={18} />
+                <span>{error}</span>
+              </div>
             )}
 
             <form onSubmit={handleLogin} className="login-form">
@@ -114,7 +117,13 @@ const Login = () => {
               <div className="form-group">
                 <div className="password-label-row">
                   <label>Palavra-passe</label>
-                  <a href="#" className="forgot-link">Esqueceu?</a>
+                  <button 
+                    type="button" 
+                    className="forgot-link-btn"
+                    onClick={() => navigate('/recuperar-senha')}
+                  >
+                    Esqueceu?
+                  </button>
                 </div>
                 <div className="input-group">
                   <Lock className="input-icon" size={20} />
@@ -145,7 +154,7 @@ const Login = () => {
             </form>
 
             <div className="form-footer">
-              <p>Ainda não tem conta? <a href="#">Contacte o Administrador</a></p>
+              <p>Ainda não tem conta? <a href="#!" onClick={(e) => { e.preventDefault(); window.open('https://wa.me/244942125043', '_blank'); }}>Contacte o Administrador</a></p>
             </div>
           </div>
         </div>

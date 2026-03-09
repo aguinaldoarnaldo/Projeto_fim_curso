@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   
   server: {
+    host: true, // Permite acesso pela rede local via IP
     // Mantém o warmup que é seguro e ajuda no carregamento
     warmup: {
       clientFiles: [

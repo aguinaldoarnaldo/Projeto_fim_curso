@@ -38,10 +38,11 @@ const Turmas = () => {
     const [selectedTurma, setSelectedTurma] = useState(null);
     const tableRef = useRef(null);
     const filterButtonRef = useRef(null);
+    const [successMessage, setSuccessMessage] = useState('');
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(24);
+    const [itemsPerPage] = useState(23);
 
 
 
@@ -195,7 +196,9 @@ const Turmas = () => {
             }
             
             setShowModal(false);
-            fetchData(true); // Refresh list to ensure consistency
+            setSuccessMessage(modalMode === 'add' ? "Turma criada com sucesso!" : "Turma atualizada com sucesso!");
+            setTimeout(() => setSuccessMessage(''), 4000);
+            refresh(true); // Refresh list to ensure consistency
         } catch (err) {
             console.error("Erro ao salvar turma:", err);
             const msg = parseApiError(err, "Erro ao salvar turma.");
@@ -362,11 +365,32 @@ const Turmas = () => {
                             className="btn-primary-action"
                         >
                             <Plus size={20} />
-                            Novo Turma
+                            Nova Turma
                         </button>
                     )}
                 </div>
             </header>
+
+            {successMessage && (
+                <div className="success-banner animate-fade-in" style={{
+                    backgroundColor: '#ecfdf5',
+                    color: '#065f46',
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    border: '1px solid #10b981',
+                    fontWeight: '600',
+                    boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)'
+                }}>
+                    <div style={{ backgroundColor: '#10b981', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ChevronRight size={16} />
+                    </div>
+                    <span>{successMessage}</span>
+                </div>
+            )}
 
             <div className="table-card" style={{ padding: '0' }} ref={tableRef}>
                 <div className="search-filters-header">
@@ -523,32 +547,64 @@ const Turmas = () => {
                         </div>
 
                         <form className="modal-form-turmas" onSubmit={(e) => e.preventDefault()}>
+                            <div className="modal-section-title">
+                                <Users size={18} /> <span>Identificação da Turma</span>
+                            </div>
+                            
                             <div className="form-grid-turmas-modal">
-                                <div style={{ gridColumn: 'span 2' }}>
+                                <div style={{ gridColumn: 'span 3' }}>
                                     <label className="form-label-turmas">Código/Nome da Turma</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Gerado automaticamente..." 
-                                        value={(() => {
-                                            if (modalMode === 'edit') return formData.codigo_turma;
-                                            
-                                            // Preview generation logic
-                                            const sala = salas.find(s => s.id_sala == formData.id_sala)?.numero_sala || '';
-                                            const curso = cursosDisponiveis.find(c => c.id_curso == formData.id_curso)?.nome_curso?.substring(0,2).toUpperCase() || '';
-                                            const classe = classesDisponiveis.find(c => c.id_classe == formData.id_classe)?.nivel || '';
-                                            const periodo = periodosDisponiveis.find(p => p.id_periodo == formData.id_periodo)?.periodo?.charAt(0).toUpperCase() || '';
-                                            const ano = formData.ano?.substring(formData.ano.length - 2) || '';
-                                            
-                                            const preview = `${sala}${curso}${classe}${periodo}${ano}`;
-                                            return preview.length > 0 ? preview : 'Aguardando seleções...';
-                                        })()}
-                                        readOnly
-                                        className="form-input-turmas" 
-                                        style={{ background: '#f8fafc', fontWeight: 'bold', color: 'var(--primary-color)' }}
-                                    />
-                                    <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
-                                        * O nome é gerado automaticamente com base nas seleções abaixo (Sala + Curso + Classe + Turno + Ano).
+                                    <div className="generated-code-box">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Gerado automaticamente..." 
+                                            value={(() => {
+                                                if (modalMode === 'edit') return formData.codigo_turma;
+                                                
+                                                const sala = salas.find(s => s.id_sala == formData.id_sala)?.numero_sala || '';
+                                                const curso = cursosDisponiveis.find(c => c.id_curso == formData.id_curso)?.nome_curso?.substring(0,2).toUpperCase() || '';
+                                                const classeNum = classesDisponiveis.find(c => c.id_classe == formData.id_classe)?.nivel || '';
+                                                const periodo = periodosDisponiveis.find(p => p.id_periodo == formData.id_periodo)?.periodo?.charAt(0).toUpperCase() || '';
+                                                const anoSuffix = formData.ano?.substring(formData.ano.length - 2) || '';
+                                                
+                                                const preview = `${sala}${curso}${classeNum}${periodo}${anoSuffix}`;
+                                                return preview.length > 0 ? preview : 'Aguardando seleções...';
+                                            })()}
+                                            readOnly
+                                            className="form-input-turmas code-input" 
+                                        />
+                                    </div>
+                                    <small className="input-helper-text">
+                                        * Formato Automático: [Sala][Curso][Classe][Turno][Ano]
                                     </small>
+                                </div>
+                            </div>
+
+                            <div className="modal-section-title" style={{ marginTop: '24px' }}>
+                                <Calendar size={18} /> <span>Configurações Académicas</span>
+                            </div>
+
+                            <div className="form-grid-turmas-modal">
+                                <div>
+                                    <label className="form-label-turmas">Ano Lectivo</label>
+                                    <select 
+                                        value={formData.ano_lectivo_id}
+                                        onChange={e => {
+                                            const selectedId = e.target.value;
+                                            const yearObj = anosDisponiveis.find(a => (a.id || a.id_ano) == selectedId);
+                                            setFormData({
+                                                ...formData, 
+                                                ano_lectivo_id: selectedId,
+                                                ano: yearObj ? yearObj.nome : ''
+                                            });
+                                        }}
+                                        className="form-input-turmas"
+                                    >
+                                        <option value="">Seleccionar Ano</option>
+                                        {anosDisponiveis.map(ano => (
+                                            <option key={ano.id || ano.id_ano} value={ano.id || ano.id_ano}>{ano.nome} {ano.activo ? '(Activo)' : ''}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="form-label-turmas">Curso</label>
@@ -577,20 +633,7 @@ const Turmas = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="form-label-turmas">Turno</label>
-                                    <select 
-                                        value={formData.id_periodo} 
-                                        onChange={e => setFormData({...formData, id_periodo: e.target.value})}
-                                        className="form-input-turmas"
-                                    >
-                                        <option value="">Seleccionar Turno</option>
-                                        {periodosDisponiveis.map(p => (
-                                            <option key={p.id_periodo} value={p.id_periodo}>{p.periodo}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="form-label-turmas">Sala</label>
+                                    <label className="form-label-turmas">Sala de Aula</label>
                                     <select 
                                         value={formData.id_sala}
                                         onChange={e => {
@@ -613,6 +656,19 @@ const Turmas = () => {
                                     </select>
                                 </div>
                                 <div>
+                                    <label className="form-label-turmas">Turno/Período</label>
+                                    <select 
+                                        value={formData.id_periodo} 
+                                        onChange={e => setFormData({...formData, id_periodo: e.target.value})}
+                                        className="form-input-turmas"
+                                    >
+                                        <option value="">Seleccionar Turno</option>
+                                        {periodosDisponiveis.map(p => (
+                                            <option key={p.id_periodo} value={p.id_periodo}>{p.periodo}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
                                     <label className="form-label-turmas">Estado</label>
                                     <select 
                                         value={formData.status}
@@ -623,8 +679,8 @@ const Turmas = () => {
                                         <option value="Concluida">Concluída</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="form-label-turmas">Capacidade Máxima</label>
+                                <div style={{ gridColumn: 'span 1' }}>
+                                    <label className="form-label-turmas">Lotação (Alunos)</label>
                                     <input 
                                         type="number" 
                                         className="form-input-turmas"
@@ -633,27 +689,6 @@ const Turmas = () => {
                                         min="1"
                                         max="100"
                                     />
-                                </div>
-                                <div>
-                                    <label className="form-label-turmas">Ano Lectivo</label>
-                                    <select 
-                                        value={formData.ano_lectivo_id}
-                                        onChange={e => {
-                                            const selectedId = e.target.value;
-                                            const yearObj = anosDisponiveis.find(a => (a.id || a.id_ano) == selectedId);
-                                            setFormData({
-                                                ...formData, 
-                                                ano_lectivo_id: selectedId,
-                                                ano: yearObj ? yearObj.nome : ''
-                                            });
-                                        }}
-                                        className="form-input-turmas"
-                                    >
-                                        <option value="">Seleccionar Ano</option>
-                                        {anosDisponiveis.map(ano => (
-                                            <option key={ano.id || ano.id_ano} value={ano.id || ano.id_ano}>{ano.nome} {ano.activo ? '(Activo)' : ''}</option>
-                                        ))}
-                                    </select>
                                 </div>
                             </div>
 

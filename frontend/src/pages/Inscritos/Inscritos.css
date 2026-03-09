@@ -4,10 +4,11 @@
 .inscritos-page.page-container {
     padding: 24px;
     background-color: #f8fafc;
-    height: calc(100vh - 80px); /* Ajuste dinâmico para o espaço disponível */
+    min-height: calc(100vh - 80px); /* Garante pelo menos o tamanho da tela */
+    height: auto;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;   /* Rolagem no container da página */
+    overflow-y: visible;   /* Deixa o scroll para o container principal ou do app */
     overflow-x: hidden;
     gap: 0;
     position: relative;
@@ -1425,3 +1426,245 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
         overflow: visible !important;
     }
 }
+
+/* ================================================================
+   TABS — Inscricoes / Lista de Espera
+   ================================================================ */
+.inscritos-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 16px 0 8px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 6px;
+    width: fit-content;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.inscritos-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.inscritos-tab:hover { background: #f8fafc; color: #1e293b; }
+
+.inscritos-tab.active {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.inscritos-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    background: rgba(0,0,0,0.08);
+    color: inherit;
+}
+.inscritos-tab.active .inscritos-tab-count { background: rgba(255,255,255,0.25); color: white; }
+.inscritos-tab-count.waiting { background: #fff7ed; color: #c2410c; }
+.inscritos-tab.active .inscritos-tab-count.waiting { background: rgba(255,255,255,0.25); color: white; }
+
+/* ================================================================
+   LISTA DE ESPERA PANEL (embedded)
+   ================================================================ */
+.le-panel { display: flex; flex-direction: column; gap: 0; }
+
+.le-panel-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+}
+
+.le-pstat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+}
+.le-pstat-val { display: block; font-size: 20px; font-weight: 900; line-height: 1; }
+.le-pstat-lbl { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-top: 2px; }
+.le-pstat-total { color: #1e3a8a; }
+.le-pstat-total .le-pstat-val { color: #1e3a8a; }
+.le-pstat-waiting { color: #ea580c; }
+.le-pstat-waiting .le-pstat-val { color: #c2410c; }
+.le-pstat-called { color: #16a34a; }
+.le-pstat-called .le-pstat-val { color: #15803d; }
+
+.le-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+.le-add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3); }
+
+.le-info-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 24px;
+    background: #eff6ff;
+    border-bottom: 1px solid #dbeafe;
+    font-size: 13px;
+    color: #1e40af;
+    line-height: 1.5;
+}
+.le-info-bar svg { flex-shrink: 0; margin-top: 1px; }
+
+.le-table thead th {
+    background: linear-gradient(to right, #1e3a8a, #2563eb);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 13px 16px;
+    border: none;
+    white-space: nowrap;
+}
+
+.le-prio-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    min-width: 34px;
+    text-align: center;
+}
+.le-prio-badge.high { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.le-prio-badge.medium { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.le-prio-badge.low { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+/* Modal */
+.le-add-modal {
+    max-width: 640px;
+    width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #ffffff !important;   /* Fundo branco garantido */
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    animation: scaleUp 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Garante que o header do modal também é branco */
+.le-add-modal .modal-header {
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 22px 28px;
+}
+
+/* Botão primário dentro do modal da lista de espera */
+.le-add-modal .btn-primary,
+.inscritos-page .le-add-modal .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 24px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+.le-add-modal .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+.le-add-modal .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+.le-modal-icon-wrap {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #2563eb; flex-shrink: 0;
+}
+.le-close-btn {
+    width: 34px; height: 34px;
+    background: #f1f5f9; border: none; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #64748b; transition: all 0.2s; flex-shrink: 0;
+}
+.le-close-btn:hover { background: #e2e8f0; color: #1e293b; }
+
+.le-steps-bar {
+    display: flex; align-items: center;
+    padding: 12px 28px; background: #fafafa;
+    border-bottom: 1px solid #f1f5f9; gap: 0;
+}
+.le-step-indicator { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #94a3b8; }
+.le-step-indicator.active { color: #2563eb; }
+.le-step-indicator.done { color: #16a34a; }
+.le-step-num { width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+.le-step-indicator.active .le-step-num { background: #2563eb; color: white; }
+.le-step-indicator.done .le-step-num { background: #16a34a; color: white; }
+.le-step-connector { flex: 1; height: 2px; background: #e2e8f0; margin: 0 12px; max-width: 60px; }
+
+.le-info-note { display: flex; align-items: flex-start; gap: 10px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 12px; padding: 12px 16px; font-size: 13px; color: #1e40af; line-height: 1.5; }
+.le-info-note svg { flex-shrink: 0; margin-top: 1px; }
+
+.le-results-box { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; min-height: 80px; max-height: 260px; overflow-y: auto; background: white; }
+.le-results-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; color: #94a3b8; font-size: 13px; text-align: center; }
+
+.le-candidate-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
+.le-candidate-row:last-child { border-bottom: none; }
+.le-candidate-row:hover { background: #eff6ff; }
+
+.le-cand-avatar { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+.le-selected-box { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; border-radius: 14px; padding: 14px 18px; }
+
+.le-modal-footer-btns { display: flex; justify-content: flex-end; gap: 12px; }
+
+@media (max-width: 1366px) {
+    .inscritos-tabs { flex-wrap: wrap; }
+    .le-panel-stats { gap: 10px; padding: 14px 16px; }
+    .le-pstat { padding: 8px 12px; }
+    .le-pstat-val { font-size: 18px; }
+}
+

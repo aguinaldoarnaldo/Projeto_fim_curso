@@ -499,15 +499,45 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Tighter squeeze for smaller 1280px/1366px screens if needed */
-@media (max-width: 1366px) {
+@media (max-width: 1366px), (max-height: 800px) and (max-width: 1440px) {
     .data-table th, 
     .data-table td {
-        padding: 8px 12px; /* Even tighter */
+        padding: 6px 10px !important; /* Super compact */
     }
     
+    .data-table td {
+        height: 42px !important;
+    }
+
+    .data-table th {
+        height: 38px !important;
+        font-size: 11px !important;
+    }
+
     .page-container {
+        padding-top: 70px !important; /* Gains 15px vertically */
         padding-left: 16px !important;
         padding-right: 16px !important;
+        gap: 12px !important;
+    }
+
+    .table-wrapper {
+        max-height: calc(100vh - 160px) !important;
+        overflow-x: auto !important;
+    }
+
+    .data-table {
+        min-width: 1000px; /* Força scroll horizontal em vez de espremer conteúdo */
+    }
+
+    /* Adjust sticky columns for 1366px width */
+    .sticky-col-1 {
+        min-width: 180px !important;
+        max-width: 220px !important;
+    }
+
+    .pagination-container {
+        padding: 8px 16px !important; /* Mais compacta */
     }
 }
 
@@ -626,6 +656,9 @@ tbody tr:hover .sticky-col-2 {
 
 .status-rejected { background: #fee2e2; color: #b91c1c; }
 .status-rejected::before { background: #b91c1c; }
+
+.status-waiting { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.status-waiting::before { background: #ea580c; }
 
 .status-aguardando { background: #fffbeb; color: #d97706; }
 .status-aguardando::before { background: #d97706; }
@@ -754,6 +787,33 @@ tbody tr:hover .sticky-col-2 {
   z-index: 500;
   pointer-events: auto;
   width: 100%;
+}
+
+/* Sidebar Hint for Laptops */
+.sidebar-hint-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1e3a8a;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    animation: bounceLeft 2s infinite ease-in-out;
+    margin-left: 10px;
+    position: relative;
+    white-space: nowrap;
+}
+
+.sidebar-hint-arrow {
+    font-size: 16px;
+}
+
+@keyframes bounceLeft {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-5px); }
 }
 
 .top-navbar-left, .top-navbar-right {
@@ -1214,6 +1274,43 @@ tbody tr:hover .sticky-col-2 {
     position: relative;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     overflow: hidden;
+}
+
+/* Generic Modal Card — white, centred, premium shadow */
+.modal-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0,0,0,0.05);
+    overflow: hidden;
+    animation: scaleUp 0.2s ease-out;
+}
+
+/* Modal header & footer base */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 28px;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 18px 28px;
+    background: #fafafa;
+    border-top: 1px solid #f1f5f9;
+    flex-shrink: 0;
 }
 
 @keyframes fadeIn {

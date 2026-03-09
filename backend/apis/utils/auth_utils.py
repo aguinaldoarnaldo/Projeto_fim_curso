@@ -31,19 +31,20 @@ def send_password_definition_email(user, token, request=None):
     base_url = "http://localhost:5173" 
     link = f"{base_url}/definir-senha?token={token}"
     
-    subject = "Definição de Senha - Sistema Gestão de Matricula"
+    subject = "Recuperação de Senha - SGMatrícula"
     message = f"""
     Olá {user.nome_completo},
     
-    Você foi cadastrado no Sistema Gestão de Matricula.
-    Para acessar sua conta, clique no link abaixo e defina sua senha:
+    Recebemos um pedido para redefinir a sua senha no Sistema de Gestão de Matrículas (SGMatrícula).
+    Para prosseguir, clique no link abaixo:
     
     {link}
     
-    Este link expira em 24 horas.
+    Se não solicitou esta alteração, por favor ignore este e-mail.
+    Este link é válido por 24 horas.
     
     Atenciosamente,
-    Administração
+    Suporte Técnico SGMatrícula
     """
     
     try:

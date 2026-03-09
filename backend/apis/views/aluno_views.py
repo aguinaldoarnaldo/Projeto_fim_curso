@@ -37,6 +37,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         'update': 'edit_aluno',
         'partial_update': 'edit_aluno',
         'destroy': 'delete_aluno',
+        'update_status': 'edit_aluno',
         'ativos': 'view_alunos',
         'stats': 'view_dashboard',
         'notas': 'view_notas',
@@ -44,6 +45,42 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         'boletim': 'view_notas',
         'encarregados': 'view_alunos',
     }
+
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, HasAdditionalPermission])
+    def update_status(self, request, pk=None):
+        """
+        Actualiza apenas o status_aluno, contornando as validações do modelo
+        que bloqueiam edições em estados finais ou anos lectivos encerrados.
+        Esta operação é sempre administrativa e deve ser permitida.
+        """
+        VALID_STATUSES = {'Activo', 'Inativo', 'Transferido', 'Concluido'}
+        new_status = request.data.get('status_aluno')
+
+        if not new_status:
+            return Response(
+                {'error': 'O campo status_aluno é obrigatório.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if new_status not in VALID_STATUSES:
+            return Response(
+                {'error': f'Status inválido. Valores permitidos: {", ".join(VALID_STATUSES)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # update() directo na BD sem chamar o save() do modelo (contorna os bloqueios)
+        updated = Aluno.objects.filter(pk=pk).update(status_aluno=new_status)
+
+        if updated == 0:
+            return Response(
+                {'error': 'Aluno não encontrado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        aluno = Aluno.objects.get(pk=pk)
+        serializer = AlunoListSerializer(aluno, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['status_aluno', 'id_turma', 'genero']
@@ -87,10 +124,12 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         if target_year:
             aluno_filter['id_turma__ano_lectivo'] = target_year
         
-        # 1. Total e Ativos (Globais ou por Ano?) 
-        # Vamos manter globais para os contadores principais, mas filtrados para os gráficos
+        # 1. Total e outros status (Globais)
         total = Aluno.objects.count()
         ativos = Aluno.objects.filter(status_aluno='Activo').count()
+        inativos = Aluno.objects.filter(status_aluno='Inativo').count()
+        transferidos = Aluno.objects.filter(status_aluno='Transferido').count()
+        concluidos = Aluno.objects.filter(status_aluno='Concluido').count()
         
         # 2. Por Gênero (Filtrado por Ano)
         genero = Aluno.objects.filter(**aluno_filter).values('genero').annotate(total=Count('id_aluno'))
@@ -105,6 +144,9 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         return Response({
             'total': total,
             'ativos': ativos,
+            'inativos': inativos,
+            'transferidos': transferidos,
+            'concluidos': concluidos,
             'genero': list(genero),
             'cursos': [
                 {

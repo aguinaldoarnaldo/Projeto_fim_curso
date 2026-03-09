@@ -31,6 +31,24 @@ const Layout = ({ children }) => {
         setIsSidebarOpen(prev => !prev);
     }, []);
 
+    // Auto-close sidebar on smaller laptop screens (1366px or less)
+    useEffect(() => {
+        const checkScreenSize = () => {
+            if (window.innerWidth <= 1366) {
+                setIsSidebarOpen(false);
+            } else {
+                setIsSidebarOpen(true);
+            }
+        };
+
+        // Run once on mount
+        checkScreenSize();
+
+        // Optional: listen for resize if the user changes window size
+        window.addEventListener('resize', checkScreenSize);
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
+
     return (
         <div className="app-container">
             {/* Barra de Progresso Superior (Puramente Visual para Percepção de Velocidade) */}

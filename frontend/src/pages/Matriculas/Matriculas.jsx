@@ -76,7 +76,7 @@ const Matriculas = () => {
     
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(24);
+    const [itemsPerPage] = useState(23);
 
 
 
@@ -309,7 +309,8 @@ const Matriculas = () => {
 
     const handleUpdateStatus = async (matriculaId, newStatus) => {
         try {
-            await api.patch(`matriculas/${matriculaId}/`, { status: newStatus });
+            // Usar o endpoint específico para contornar bloqueios de ano letivo encerrado
+            await api.patch(`matriculas/${matriculaId}/update_status/`, { status: newStatus });
             
             // Sync with open modal if it's the same matricula
             if (selectedMatricula && selectedMatricula.real_id === matriculaId) {
