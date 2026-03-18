@@ -249,7 +249,7 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
               </td></tr>
             ) : currentData.map((item, idx) => {
               // Find the full candidate from inscritos list for matricula
-              const inscrito = inscritosList.find(i => i.id === item.candidato_numero);
+              const inscrito = inscritos.find(i => i.id === item.candidato_numero);
               return (
                 <tr key={item.id} className="animate-fade-in" style={{ animationDelay: `${idx * 0.04}s` }}>
                   <td data-label="Prioridade">
@@ -258,18 +258,18 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
                     </span>
                   </td>
                   <td data-label="Candidato">
-                    <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>{item.candidato_nome}</div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', fontWeight: 600 }}>{item.candidato_numero}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-color)', fontSize: '14px' }}>{item.candidato_nome}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600 }}>{item.candidato_numero}</div>
                   </td>
-                  <td data-label="Curso" style={{ fontSize: '13px', color: '#475569' }}>{item.curso1 || '—'}</td>
-                  <td data-label="Média" style={{ fontWeight: 800, color: '#1e3a8a' }}>{item.media || '—'}</td>
-                  <td data-label="Data" style={{ fontSize: '13px', color: '#64748b' }}>
+                  <td data-label="Curso" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item.curso1 || '—'}</td>
+                  <td data-label="Média" style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{item.media || '—'}</td>
+                  <td data-label="Data" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     {item.data_entrada ? new Date(item.data_entrada).toLocaleDateString('pt-PT') : '—'}
                   </td>
-                  <td data-label="Observação" style={{ fontSize: '12px', color: '#64748b', maxWidth: '160px' }}>
+                  <td data-label="Observação" style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '160px' }}>
                     {item.observacao
                       ? <span title={item.observacao} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>{item.observacao}</span>
-                      : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>—</span>
+                      : <span style={{ color: 'var(--border-color)', fontStyle: 'italic' }}>—</span>
                     }
                   </td>
                   <td data-label="Estado">
@@ -288,7 +288,7 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
                           className="btn-icon btn-view"
                           onClick={() => handleCall(item.id, item.candidato_nome)}
                           title="Chamar Candidato"
-                          style={{ background: '#eff6ff', color: '#2563eb' }}
+                          style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-light)' }}
                         >
                           <Bell size={15} />
                         </button>
@@ -334,19 +334,19 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
         <div
           className="modal-overlay"
           onClick={resetModal}
-          style={{
-            position: 'fixed',
-            top: 0, left: 0,
-            width: '100vw', height: '100vh',
-            background: 'rgba(15, 23, 42, 0.5)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            padding: '20px',
-            boxSizing: 'border-box'
-          }}
+            style={{
+              position: 'fixed',
+              top: 0, left: 0,
+              width: '100vw', height: '100vh',
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 99999,
+              padding: '20px',
+              boxSizing: 'border-box'
+            }}
         >
           <div
             className="le-add-modal"
@@ -368,10 +368,10 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div className="le-modal-icon-wrap"><UserPlus size={20} /></div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Adicionar à Lista de Espera</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>
-                    Passo {addStep} de 2 — {addStep === 1 ? 'Selecione o candidato' : 'Confirme os detalhes'}
-                  </p>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Adicionar à Lista de Espera</h3>
+                <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                  Passo {addStep} de 2 — {addStep === 1 ? 'Selecione o candidato' : 'Confirme os detalhes'}
+                </p>
                 </div>
               </div>
               <button onClick={resetModal} className="le-close-btn"><X size={18} /></button>
@@ -424,14 +424,14 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
                               <span>•</span>
                               <span>{c.numero_bi}</span>
                               <span>•</span>
-                              <span style={{ color: '#2563eb', fontWeight: 600 }}>{c.curso1_nome || 'Sem curso'}</span>
+                              <span style={{ color: 'var(--primary-light)', fontWeight: 600 }}>{c.curso1_nome || 'Sem curso'}</span>
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                             <span className={`status-badge ${c.status === 'NAO_CLASSIFICADO' ? 'status-rejected' : c.status === 'INSCRITO' ? 'status-pending' : 'status-analysis'}`} style={{ fontSize: '10px' }}>
                               {c.status}
                             </span>
-                            <ArrowRight size={14} style={{ color: '#94a3b8' }} />
+                            <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
                           </div>
                         </div>
                       ))
@@ -451,18 +451,18 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos }) => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {/* Selected preview */}
                   <div className="le-selected-box">
-                    <div className="le-cand-avatar" style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', width: '48px', height: '48px', fontSize: '18px' }}>
+                    <div className="le-cand-avatar" style={{ background: 'var(--primary-color)', color: 'white', width: '48px', height: '48px', fontSize: '18px' }}>
                       {(selectedCandidate.nome_completo || '?')[0].toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, color: '#14532d', fontSize: '15px' }}>{selectedCandidate.nome_completo}</div>
-                      <div style={{ fontSize: '12px', color: '#166534', marginTop: '2px' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--primary-color)', fontSize: '15px' }}>{selectedCandidate.nome_completo}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {selectedCandidate.numero_inscricao} • {selectedCandidate.curso1_nome || 'Sem curso'}
                       </div>
                     </div>
                     <button
                       onClick={() => { setAddStep(1); setSelectedCandidate(null); setCandidateSearch(''); }}
-                      style={{ background: 'white', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: '#16a34a', cursor: 'pointer' }}
+                      style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: 'var(--primary-color)', cursor: 'pointer' }}
                     >
                       Alterar
                     </button>
@@ -640,9 +640,13 @@ const Inscritos = () => {
 
   useEffect(() => {
     const syncIfVisible = () => { if (!document.hidden) refresh(true); };
-    const interval = setInterval(syncIfVisible, 60000);
+    // REMOVIDO: Refresh automático periódico (atendendo ao pedido do usuário)
+    // const interval = setInterval(syncIfVisible, 60000);
     window.addEventListener('focus', syncIfVisible);
-    return () => { clearInterval(interval); window.removeEventListener('focus', syncIfVisible); };
+    return () => { 
+      // clearInterval(interval); 
+      window.removeEventListener('focus', syncIfVisible); 
+    };
   }, [refresh]);
 
   const [sortConfig, setSortConfig] = useState({ key: 'real_id', direction: 'desc' });
@@ -652,7 +656,7 @@ const Inscritos = () => {
 
   // Counts for tabs
   const inscricoesCount = useMemo(() =>
-    inscritos.filter(i => i.status !== 'LISTA_ESPERA').length, [inscritos]);
+    inscritos.length, [inscritos]);
   const listaEsperaCount = useMemo(() =>
     inscritos.filter(i => i.status === 'LISTA_ESPERA').length, [inscritos]);
 

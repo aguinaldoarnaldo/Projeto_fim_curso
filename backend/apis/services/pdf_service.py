@@ -25,48 +25,44 @@ class PDFService:
             """
             Converte URIs de arquivos estáticos/mídia em caminhos absolutos do sistema
             """
-            sUrl = settings.STATIC_URL # Could be 'static/' or '/static/'
-            sRoot = settings.STATIC_ROOT # Path object
-            mUrl = settings.MEDIA_URL # 'media/' or '/media/'
-            mRoot = settings.MEDIA_ROOT # Path object
+            sUrl = settings.STATIC_URL
+            sRoot = settings.STATIC_ROOT
+            mUrl = settings.MEDIA_URL
+            mRoot = settings.MEDIA_ROOT
 
-            # Helper to strip leading slash if present in uri but not in prefix
-            # Convert uri to properly formatted relative path matching settings logic
-            
-            # Normalize sUrl and mUrl to have leading slash
+            # Normalização de URIs e URLs de configuração
             sUrl_norm = sUrl if sUrl.startswith('/') else '/' + sUrl
             mUrl_norm = mUrl if mUrl.startswith('/') else '/' + mUrl
-            
-            # Normalize uri to have leading slash
             uri_norm = uri if uri.startswith('/') else '/' + uri
             
+            # Caminho final padrão
             path = uri
-            
-            # Check Media
+
+            # Prioridade 1: Media Files
             if uri_norm.startswith(mUrl_norm):
-                # Remove prefix
-                relative = uri_norm[len(mUrl_norm):]
+                relative = uri_norm[len(mUrl_norm):].lstrip('/')
                 path = os.path.join(mRoot, relative)
             
-            # Check Static
+            # Prioridade 2: Static Files
             elif uri_norm.startswith(sUrl_norm):
-                 relative = uri_norm[len(sUrl_norm):]
-                 path = os.path.join(sRoot, relative)
-                 
-                 # Fallback for dev: if file not found in STATIC_ROOT, look in STATICFILES_DIRS
-                 if not os.path.isfile(path) and settings.DEBUG:
-                     for static_dir in settings.STATICFILES_DIRS:
-                         possible_path = os.path.join(str(static_dir), relative) # Ensure str
-                         if os.path.isfile(possible_path):
-                             path = possible_path
-                             break
+                relative = uri_norm[len(sUrl_norm):].lstrip('/')
+                path = os.path.join(sRoot, relative)
+                
+                # Fallback para desenvolvimento (look in STATICFILES_DIRS)
+                if not os.path.isfile(path) and settings.DEBUG:
+                    for static_dir in settings.STATICFILES_DIRS:
+                        possible_path = os.path.join(str(static_dir), relative)
+                        if os.path.isfile(possible_path):
+                            path = possible_path
+                            break
 
-            # Normalize path for OS (Windows backslashes)
+            # Normalização de barras (essencial para Windows)
             path = os.path.normpath(path)
             
-            # Verifica se o arquivo existe e é acessível
+            # Se o arquivo não existir localmente, retorna o URI original 
+            # (o xhtml2pdf tentará buscar via HTTP, o que pode causar deadlock no runserver)
             if not os.path.isfile(path):
-                # Se não for arquivo local, xhtml2pdf tentará buscar via rede
+                print(f"⚠️ [PDFService] Recurso não encontrado localmente: {path}")
                 return uri 
                 
             return path

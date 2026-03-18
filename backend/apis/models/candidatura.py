@@ -1,7 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from .base import BaseModel
-from .base import BaseModel
 from .academico import Curso, Sala, AnoLectivo
 import uuid
 
@@ -26,7 +25,7 @@ class Candidato(BaseModel):
     nome_completo = models.CharField(max_length=150)
     genero = models.CharField(max_length=1, choices=GENERO_CHOICES)
     data_nascimento = models.DateField()
-    numero_bi = models.CharField(max_length=20, unique=True)
+    numero_bi = models.CharField(max_length=20)
     nacionalidade = models.CharField(max_length=50, default='Angolana')
     naturalidade = models.CharField(max_length=100, default='Luanda', verbose_name="Naturalidade (Local de Nascimento)")
     # Novo Campo
@@ -137,6 +136,12 @@ class Candidato(BaseModel):
         verbose_name = 'Candidato'
         verbose_name_plural = 'Candidatos'
         ordering = ['-criado_em']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['numero_bi', 'ano_lectivo'],
+                name='unique_bi_por_ano_lectivo'
+            )
+        ]
 
     def __str__(self):
         return f"{self.numero_inscricao} - {self.nome_completo}"
@@ -231,7 +236,7 @@ class ListaEspera(BaseModel):
         db_table = 'lista_espera'
         verbose_name = 'Lista de Espera'
         verbose_name_plural = 'Listas de Espera'
-        ordering = ['-prioridade', 'data_entrada']
+        ordering = ['data_entrada']
     
     def __str__(self):
         return f"Espera: {self.candidato.nome_completo}"

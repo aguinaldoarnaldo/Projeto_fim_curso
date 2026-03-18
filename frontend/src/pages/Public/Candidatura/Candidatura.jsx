@@ -89,13 +89,16 @@ const Candidatura = () => {
         genero: '',
         data_nascimento: '',
         nacionalidade: 'Angolana',
+        naturalidade: '',
+        deficiencia: 'Não',
         numero_bi: '',
         telefone: '',
         email: '',
         provincia: '',
         municipio: '',
-        residencia: '', // Bairro / Endereço
-        nome_escola_origem: '', // frontend field mapping mismatch check
+        residencia: '', 
+        tipo_escola: 'Pública',
+        escola_proveniencia: '', 
         municipio_escola: '',
         ano_conclusao: '',
         media_final: '',
@@ -105,8 +108,11 @@ const Candidatura = () => {
         nome_encarregado: '',
         parentesco_encarregado: '',
         telefone_encarregado: '',
+        telefone_alternativo_encarregado: '',
         email_encarregado: '',
-        numero_bi_encarregado: ''
+        numero_bi_encarregado: '',
+        profissao_encarregado: '',
+        residencia_encarregado: ''
     });
 
     useEffect(() => {
@@ -115,11 +121,12 @@ const Candidatura = () => {
         fetchCourses();
         refreshConfig();
 
-        // Polling every 30 seconds for real-time updates
-        const interval = setInterval(() => {
-            refreshConfig();
-        }, 30000);
-        return () => clearInterval(interval);
+        // REMOVIDO: Refresh automático de configuração (atendendo ao pedido do usuário)
+        // const interval = setInterval(() => {
+        //     refreshConfig();
+        // }, 30000);
+        // return () => clearInterval(interval);
+        return () => {};
     }, []);
 
     const fetchCourses = () => {
@@ -137,6 +144,31 @@ const Candidatura = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleVerificarBI = async () => {
+        if (!formData.numero_bi || formData.numero_bi.length < 5) return;
+        
+        console.log("Verificando BI:", formData.numero_bi);
+        try {
+            // Adicionada barra final em 'verificar_candidato_existente/'
+            const response = await api.get(`candidaturas/verificar_candidato_existente/?numero_bi=${formData.numero_bi.trim()}`);
+            console.log("Resposta do servidor:", response.data);
+            
+            if (response.data.encontrado) {
+                const dados = response.data.dados;
+                setFormData(prev => ({
+                    ...prev,
+                    ...dados
+                }));
+                alert("Dados recuperados de uma candidatura anterior!");
+            } else {
+                console.log("BI não encontrado no histórico.");
+            }
+        } catch (error) {
+            console.error("Erro ao verificar BI:", error);
+            // Se houver erro de rede, pelo menos logamos
+        }
     };
 
     const handleNextStep = (e) => {
@@ -256,7 +288,14 @@ const Candidatura = () => {
                     </div>
                     <div className="form-control">
                         <label>Nº do Bilhete (BI)</label>
-                        <input name="numero_bi" value={formData.numero_bi} onChange={handleChange} required />
+                        <input 
+                            name="numero_bi" 
+                            value={formData.numero_bi} 
+                            onChange={handleChange} 
+                            onBlur={handleVerificarBI}
+                            required 
+                            placeholder="Digite e clique fora para buscar dados"
+                        />
                     </div>
                     <div className="form-control">
                         <label>Nacionalidade</label>

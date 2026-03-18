@@ -52,7 +52,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
 
     def get_permissions(self):
         """Permite criacao anonima de candidaturas para ações publicas"""
-        if self.action in ['create', 'gerar_rupe', 'consultar_status', 'simular_pagamento', 'download_comprovativo']:
+        if self.action in ['create', 'gerar_rupe', 'consultar_status', 'simular_pagamento', 'download_comprovativo', 'verificar_candidato_existente']:
             return [AllowAny()]
         return [IsAuthenticated(), HasAdditionalPermission()]
 
@@ -83,6 +83,15 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             )
 
         try:
+            # Validação: Um candidato não pode se inscrever duas vezes no mesmo Ano Lectivo
+            numero_bi = request.data.get('numero_bi')
+            if numero_bi and active_year:
+                if Candidato.objects.filter(numero_bi=numero_bi, ano_lectivo=active_year).exists():
+                    return Response({
+                        'erro': 'Candidatura já existe.',
+                        'detalhe': f'O BI {numero_bi} já possui uma candidatura neste Ano Lectivo ({active_year.nome}).'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
             serializer = self.get_serializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -127,7 +136,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             
         return Response({'erro': 'Erro ao gerar PDF'}, status=500)
 
-    @action(detail=True, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny], authentication_classes=[])
     def gerar_rupe(self, request, pk=None):
         """Gera RUPE para o candidato (limite de 2 referências)"""
         candidato = self.get_object()
@@ -193,7 +202,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             'expira_em': rupe.data_expiracao
         })
 
-    @action(detail=True, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny], authentication_classes=[])
     def simular_pagamento(self, request, pk=None):
         """Simula o pagamento do RUPE e agenda exame (apenas para testes/demo)"""
         return self._processar_pagamento()
@@ -373,7 +382,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             
         return Response(pautas)
 
-    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
     def consultar_status(self, request):
         """Consulta status pelo numero de inscricao ou BI com cache e throttling"""
         self.throttle_scope = 'candidate_check'
@@ -400,6 +409,49 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
         cache.set(cache_key, data, 600)
         
         return Response(data)
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
+    def verificar_candidato_existente(self, request):
+        """Verifica se o BI já existe e retorna os dados pessoais para auto-preenchimento num novo ano lectivo"""
+        numero_bi = request.query_params.get('numero_bi')
+        if not numero_bi:
+            return Response({'erro': 'Informe o BI do candidato'}, status=400)
+            
+        # Pega a ultima candidatura desse BI para reaproveitar os dados
+        candidato = Candidato.objects.filter(numero_bi__iexact=numero_bi.strip()).order_by('-criado_em').first()
+        
+        if not candidato:
+            return Response({'encontrado': False}, status=200)
+            
+        return Response({
+            'encontrado': True,
+            'dados': {
+                'nome_completo': candidato.nome_completo,
+                'genero': candidato.genero,
+                'data_nascimento': candidato.data_nascimento.isoformat() if hasattr(candidato.data_nascimento, 'isoformat') else str(candidato.data_nascimento),
+                'telefone': candidato.telefone,
+                'email': candidato.email,
+                'nacionalidade': candidato.nacionalidade,
+                'naturalidade': candidato.naturalidade,
+                'provincia': candidato.provincia,
+                'municipio': candidato.municipio,
+                'residencia': candidato.residencia,
+                'deficiencia': candidato.deficiencia,
+                'escola_proveniencia': candidato.escola_proveniencia,
+                'municipio_escola': candidato.municipio_escola,
+                'ano_conclusao': candidato.ano_conclusao,
+                'media_final': str(candidato.media_final),
+                'tipo_escola': candidato.tipo_escola,
+                'nome_encarregado': candidato.nome_encarregado,
+                'parentesco_encarregado': candidato.parentesco_encarregado,
+                'telefone_encarregado': candidato.telefone_encarregado,
+                'telefone_alternativo_encarregado': candidato.telefone_alternativo_encarregado,
+                'email_encarregado': candidato.email_encarregado,
+                'numero_bi_encarregado': candidato.numero_bi_encarregado,
+                'profissao_encarregado': candidato.profissao_encarregado,
+                'residencia_encarregado': candidato.residencia_encarregado,
+            }
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def avaliar(self, request, pk=None):

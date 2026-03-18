@@ -106,15 +106,15 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        // Polling a cada 60 segundos (apenas se visível)
-        const interval = setInterval(syncIfVisible, 60000); 
+        // REMOVIDO: Polling automático a cada 60 segundos (atendendo ao pedido do usuário de não "fazer pull sempre")
+        // const interval = setInterval(syncIfVisible, 60000); 
         
-        // Sincronizar imediatamente ao focar na janela/aba
+        // Sincronizar imediatamente ao focar na janela/aba (ação deliberada do usuário)
         window.addEventListener('focus', syncIfVisible);
 
         return () => {
             console.log('🧹 [AuthContext] Parando sincronização.');
-            clearInterval(interval);
+            // clearInterval(interval);
             window.removeEventListener('focus', syncIfVisible);
         };
     }, [user?.id]); // Apenas reinicia se o ID do usuário mudar (login/logout diferente)

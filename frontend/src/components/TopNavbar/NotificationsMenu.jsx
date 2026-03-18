@@ -40,12 +40,13 @@ const NotificationsMenu = () => {
             }
         };
 
-        const interval = setInterval(syncIfVisible, 60000); // 1 minuto
+        // REMOVIDO: Polling automático de notificações
+        // const interval = setInterval(syncIfVisible, 60000); // 1 minuto
         
         window.addEventListener('focus', syncIfVisible);
         
         return () => {
-            clearInterval(interval);
+            // clearInterval(interval);
             window.removeEventListener('focus', syncIfVisible);
         };
     }, []);

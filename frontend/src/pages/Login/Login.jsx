@@ -41,7 +41,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     
-    const success = await signIn(email, password);
+    const success = await signIn(email.trim(), password);
     
     // Navigation will be handled by the useEffect above when 'signed' becomes true
     // or we can keep it here for redundancy/immediacy.

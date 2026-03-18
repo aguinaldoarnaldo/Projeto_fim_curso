@@ -14,38 +14,52 @@ class AuthService:
     def authenticate_user(email, password, user_type='funcionario'):
         """
         Autentica um usuário baseado no tipo e credenciais.
-        Suporta login unificado: se o tipo inicial falhar e for 'usuario' ou 'funcionario', 
-        tenta outros tipos (aluno, encarregado).
+        Suporta login unificado: tenta todos os tipos de usuários possíveis se o tipo principal falhar.
+        Garante que mesmo que um usuário exista em múltiplas tabelas com senhas diferentes, 
+        ele consiga entrar se a senha bater com uma das contas.
         """
-        # Lista de tipos a tentar se o primeiro falhar (para suportar login unificado do frontend)
-        # Se o frontend enviar 'usuario', ele quer um login genérico
         types_to_try = [user_type]
         if user_type in ['usuario', 'funcionario']:
-            # Se falhar como staff, tenta como aluno e depois encarregado
             other_types = ['aluno', 'encarregado']
             for t in other_types:
                 if t not in types_to_try:
                     types_to_try.append(t)
         
-        last_exception = None
+        # Se começou por um tipo específico (ex: aluno), também tenta como funcionário/usuário como fallback
+        if user_type in ['aluno', 'encarregado']:
+            for t in ['funcionario', 'usuario']:
+                if t not in types_to_try:
+                    types_to_try.append(t)
+
+        errors = []
         
         for current_type in types_to_try:
             try:
                 user, user_data = AuthService._perform_auth(email, password, current_type)
+                # Se chegou aqui, a autenticação foi um sucesso para este tipo!
                 return user, user_data
             except ValueError as e:
-                last_exception = e
-                # Se for erro de senha incorreta ou conta desativada para um usuário que EXISTE, 
-                # interrompe e retorna o erro real em vez de tentar outros tipos
-                if any(msg in str(e) for msg in ['Senha incorreta', 'desativada', 'bloqueada']):
-                    raise e
+                error_msg = str(e)
+                errors.append({'type': current_type, 'msg': error_msg})
+                # Não interrompemos aqui. Continuamos a tentar outros tipos.
+                # Ex: Pode ser "Senha incorreta" para Funcionário, mas ser a senha certa para Aluno.
                 continue
             except Exception as e:
-                last_exception = e
+                errors.append({'type': current_type, 'msg': str(e)})
                 continue
                 
-        if last_exception:
-            raise last_exception
+        # Se nenhum tipo funcionou, decidimos qual erro retornar.
+        # Prioridade para "Senha incorreta" ou "bloqueada" sobre "não encontrado".
+        critical_msgs = ['Senha incorreta', 'desativada', 'bloqueada']
+        for err in errors:
+            if any(msg in err['msg'] for msg in critical_msgs):
+                raise ValueError(err['msg'])
+        
+        # Se não teve nenhum erro crítico, retorna o último capturado ou um genérico
+        if errors:
+            # Filtra erros de "não encontrado" para dar uma mensagem mais amigável se possível
+            raise ValueError(errors[0]['msg'])
+            
         raise ValueError('Credenciais inválidas.')
 
     @staticmethod
@@ -546,26 +560,63 @@ class AuthService:
     def update_password_via_token(user_id, user_type, new_password):
         """
         Define nova senha usando token de recuperação (sem checar senha antiga).
+        Garante sincronização entre o Perfil (senha_hash) e o Django User (set_password).
         """
+        from django.contrib.auth.hashers import make_password
+        hashed_password = make_password(new_password)
         user = None
+
+        # 1. Recuperar o objeto do usuário baseado no tipo
         if user_type == 'funcionario':
-             # Tenta achar funcionario
-             try:
+            try:
                 user = Funcionario.objects.get(id_funcionario=user_id)
-             except Funcionario.DoesNotExist:
-                 # Pode ser usuario admin puro
-                 try:
+            except Funcionario.DoesNotExist:
+                try:
                     user = Usuario.objects.get(id_usuario=user_id)
-                 except: 
-                    pass
+                except: pass
         elif user_type == 'usuario':
-            user = Usuario.objects.get(id_usuario=user_id)
+            try:
+                user = Usuario.objects.get(id_usuario=user_id)
+            except Usuario.DoesNotExist:
+                try:
+                    # Token pode ter o ID do Auth User em alguns casos legados
+                    user = Usuario.objects.get(user__id=user_id)
+                except: pass
         elif user_type == 'aluno':
-            user = Aluno.objects.get(id_aluno=user_id)
+            try:
+                user = Aluno.objects.get(id_aluno=user_id)
+            except: pass
         elif user_type == 'encarregado':
-            user = Encarregado.objects.get(id_encarregado=user_id)
-            
-        user.__class__.objects.filter(pk=user.pk).update(senha_hash=hashed_password)
+            try:
+                user = Encarregado.objects.get(id_encarregado=user_id)
+            except: pass
+
+        if not user:
+            raise ValueError("Utilizador não encontrado para atualização de senha.")
+
+        # 2. Atualizar Django Auth User (se existir)
+        auth_user = None
+        if hasattr(user, 'user') and user.user:
+            auth_user = user.user
+        elif hasattr(user, 'usuario') and user.usuario and user.usuario.user:
+            auth_user = user.usuario.user
+
+        if auth_user:
+            auth_user.set_password(new_password)
+            auth_user.save()
+
+        # 3. Atualizar Campo senha_hash no Perfil (Usuario e Funcionario/Aluno/Encarregado)
+        if hasattr(user, 'usuario') and user.usuario:
+            user.usuario.senha_hash = hashed_password
+            user.usuario.save()
+        elif isinstance(user, Usuario):
+             user.senha_hash = hashed_password
+             user.save()
+
+        # Update the main object (Funcionario, Aluno, or Encarregado)
+        user.senha_hash = hashed_password
+        user.save()
+
         return True
 
     @staticmethod
