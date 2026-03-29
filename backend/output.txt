@@ -1,0 +1,16 @@
+Recent users:
+User ID: 8, Username: aguinaldoarnaldo4@gmail.com, Superuser: True
+ -> Profile: Papel=Admin, Cargo=None, Perms=['view_dashboard', 'view_relatorios', 'manage_usuarios', 'view_configuracoes', 'manage_configuracoes', 'manage_backup', 'view_logs', 'view_alunos', 'create_aluno', 'edit_aluno', 'delete_aluno', 'view_inscritos', 'manage_inscritos', 'view_lista_espera', 'manage_lista_espera', 'view_vagas', 'manage_vagas', 'view_matriculas', 'create_matricula', 'edit_matricula', 'view_turmas', 'manage_turmas', 'view_salas', 'manage_salas', 'view_cursos', 'manage_cursos', 'manage_disciplinas', 'view_notas', 'manage_notas', 'view_faltas', 'manage_faltas', 'view_financeiro', 'manage_financeiro', 'create_pagamento', 'delete_financeiro']
+---
+User ID: 7, Username: nirella@gmail.com, Superuser: False
+ -> Profile: Papel=Comum, Cargo=None, Perms=['view_dashboard']
+---
+User ID: 6, Username: gabrielpedroaurelio1@gmail.com, Superuser: False
+ -> Profile: Papel=Comum, Cargo=None, Perms=['view_dashboard', 'view_alunos', 'create_aluno', 'edit_aluno', 'view_matriculas', 'create_matricula', 'edit_matricula', 'view_turmas', 'view_salas', 'view_financeiro', 'create_pagamento', 'view_inscritos', 'view_configuracoes', 'manage_configuracoes', 'manage_inscritos', 'view_cursos', 'manage_salas', 'manage_turmas', 'view_lista_espera', 'manage_lista_espera']
+---
+User ID: 5, Username: arnaldoarnaldoarmando@gmail.com, Superuser: False
+ -> Profile: Papel=Comum, Cargo=None, Perms=['view_dashboard', 'view_relatorios', 'manage_usuarios', 'view_configuracoes', 'manage_configuracoes', 'manage_backup', 'view_alunos', 'create_aluno', 'edit_aluno', 'delete_aluno', 'view_inscritos', 'manage_inscritos', 'view_lista_espera', 'manage_lista_espera', 'view_matriculas', 'create_matricula', 'edit_matricula', 'view_turmas', 'manage_turmas', 'view_salas', 'manage_salas', 'view_cursos', 'manage_cursos', 'manage_disciplinas', 'view_notas', 'manage_notas', 'view_faltas', 'manage_faltas', 'view_financeiro', 'manage_financeiro', 'create_pagamento', 'delete_financeiro']
+---
+User ID: 4, Username: manuelalisboa207@gmail.com, Superuser: True
+ -> Profile: Papel=Admin, Cargo=Secretário, Perms=['view_dashboard', 'view_alunos', 'create_aluno', 'edit_aluno', 'view_inscritos', 'manage_inscritos', 'view_matriculas', 'create_matricula', 'edit_matricula', 'view_turmas', 'view_salas', 'view_cursos', 'view_relatorios', 'view_configuracoes', 'view_financeiro', 'create_pagamento']
+---

@@ -571,7 +571,7 @@ const Inscritos = () => {
   const [anosDisponiveis, setAnosDisponiveis] = useState([]);
 
   const fetchCandidatesData = async () => {
-    const response = await api.get('candidaturas/');
+    const response = await api.get('candidaturas/?page_size=5000');
     const data = response.data.results || response.data;
     if (!Array.isArray(data)) return [];
     return data.map(c => ({
@@ -635,7 +635,7 @@ const Inscritos = () => {
 
   useEffect(() => {
     api.get('cursos/').then(r => setCursosDisponiveis(r.data.results || r.data || [])).catch(() => {});
-    api.get('anos-lectivos/').then(r => setAnosDisponiveis(r.data.results || r.data || [])).catch(() => {});
+    api.get('anos-lectivos/?all=true').then(r => setAnosDisponiveis(r.data.results || r.data || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -814,7 +814,7 @@ const Inscritos = () => {
         <div className="page-header-content">
           <div>
             <h1>Gestão de Inscrições</h1>
-            <p>Acompanhe, avalie e matricule os candidatos inscritos no sistema.</p>
+            <p>Controle de {inscritos.length} candidaturas submetidas ao sistema.</p>
           </div>
           <div className="page-header-actions">
             {activeTab === 'inscricoes' && hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (

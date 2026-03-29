@@ -242,33 +242,8 @@ export const hasPermission = (user, permission) => {
         return true;
     }
     
-    // 3. GESTÃO INDIVIDUAL (Permissões Explícitas) - PRIORIDADE MÁXIMA
-    // Se o usuário tem uma lista personalizada (mesmo vazia), ela manda em tudo.
-    let listPerms = null;
-    if (user.permissoes && Array.isArray(user.permissoes)) {
-        listPerms = user.permissoes;
-    } else if (user.permissoes_adicionais && Array.isArray(user.permissoes_adicionais)) {
-        listPerms = user.permissoes_adicionais;
-    }
-
-    // Se a lista existe E TEM ITENS (não vazia), ela é a VERDADE ABSOLUTA (True/False)
-    // Se for vazia ([]), assume que não há overrides e deixa cair para o papel
-    if (listPerms !== null && listPerms.length > 0) {
-        if (DEBUG) console.log('🎯 [hasPermission] Usando modo de permissões explícitas:', listPerms);
-        
-        // Se 'NO_ACCESS' estiver na lista, significa que ele foi bloqueado de tudo intencionalmente
-        if (listPerms.includes('NO_ACCESS')) {
-            if (DEBUG) console.log('🚫 [hasPermission] NO_ACCESS detectado - bloqueio total');
-            return false;
-        }
-        
-        const hasExplicitPermission = listPerms.includes(permission);
-        if (DEBUG) console.log(`${hasExplicitPermission ? '✅' : '❌'} [hasPermission] Permissão "${permission}" ${hasExplicitPermission ? 'encontrada' : 'NÃO encontrada'} na lista explícita`);
-        return hasExplicitPermission;
-    }
-
-    // 4. FALLBACK PELO PAPEL / ADMIN (Apenas se não houver lista personalizada/campo estiver null)
-    // Se for Admin (no dropdown) e não tiver lista de exceção, tem acesso total
+    // 3. ADMINISTRADOR (Override Total)
+    // Se for Admin (no dropdown) ou cargo de alta hierarquia, tem acesso total
     if (user.papel === 'Admin') {
         if (DEBUG) console.log('✅ [hasPermission] Papel é Admin - acesso garantido');
         return true;
@@ -282,6 +257,29 @@ export const hasPermission = (user, permission) => {
             if (DEBUG) console.log('✅ [hasPermission] Cargo de alta hierarquia detectado - acesso garantido');
             return true;
         }
+    }
+
+    // 4. GESTÃO INDIVIDUAL (Permissões Explícitas) - PRIORIDADE MÁXIMA PARA NÃO ADMINS
+    // Se o usuário tem uma lista personalizada (mesmo vazia []), ela manda em tudo e ignora o papel.
+    let listPerms = null;
+    if (user.permissoes && Array.isArray(user.permissoes)) {
+        listPerms = user.permissoes;
+    } else if (user.permissoes_adicionais && Array.isArray(user.permissoes_adicionais)) {
+        listPerms = user.permissoes_adicionais;
+    }
+
+    if (listPerms !== null) {
+        if (DEBUG) console.log('🎯 [hasPermission] Usando modo de permissões explícitas (Override de Papel):', listPerms);
+        
+        // Se 'NO_ACCESS' estiver na lista, significa que ele foi bloqueado de tudo intencionalmente
+        if (listPerms.includes('NO_ACCESS')) {
+            if (DEBUG) console.log('🚫 [hasPermission] NO_ACCESS detectado - bloqueio total');
+            return false;
+        }
+        
+        const hasExplicitPermission = listPerms.includes(permission);
+        if (DEBUG) console.log(`${hasExplicitPermission ? '✅' : '❌'} [hasPermission] Permissão "${permission}" ${hasExplicitPermission ? 'encontrada' : 'NÃO encontrada'} na lista explícita`);
+        return hasExplicitPermission;
     }
 
     // 5. PAPÉIS PADRÃO (Legado / Fallback para quando não se quer gerir individualmente)

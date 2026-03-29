@@ -17,6 +17,7 @@ import { parseApiError } from '../../utils/errorParser';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
 import { useConfig } from '../../context/ConfigContext';
+import Pagination from '../../components/Common/Pagination';
 
 const VagasCursos = () => {
     const { hasPermission } = usePermission();
@@ -27,6 +28,9 @@ const VagasCursos = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedYear, setSelectedYear] = useState('');
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(23);
 
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingVaga, setEditingVaga] = useState(null);
@@ -105,6 +109,11 @@ const VagasCursos = () => {
         return matchesYear && matchesSearch;
     });
 
+    // Pagination Slicing
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentVagas = filteredVagas.slice(indexOfFirstItem, indexOfLastItem);
+
     // Cursos que ainda não têm vagas configuradas para o ano selecionado
     const availableCourses = courses.filter(c => 
         !vagas.find(v => v.id_curso === c.id_curso && v.ano_lectivo == selectedYear)
@@ -116,7 +125,7 @@ const VagasCursos = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Vagas</h1>
-                        <p>Configure o número de vagas disponíveis para cada curso por ano lectivo.</p>
+                        <p>Total de {vagas.length} configurações de vagas encontradas.</p>
                     </div>
                     <div className="page-header-actions">
                         <div className="year-selector-wrapper">
@@ -146,12 +155,12 @@ const VagasCursos = () => {
                             type="text"
                             placeholder="Pesquisar por curso..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-input"
                         />
                     </div>
                     
-                    {selectedYear && availableCourses.length > 0 && (
+                    {selectedYear && availableCourses.length > 0 && hasPermission(PERMISSIONS.MANAGE_VAGAS) && (
                         <div className="add-vaga-wrapper">
                             <Plus size={18} />
                             <select onChange={handleCreateVaga} className="add-select" value="">
@@ -170,66 +179,74 @@ const VagasCursos = () => {
                         <span>Carregando vagas...</span>
                     </div>
                 ) : (
-                    <div className="table-wrapper">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Curso / Área</th>
-                                    <th>Ano Lectivo</th>
-                                    <th style={{ textAlign: 'center' }}>Vagas Totais</th>
-                                    <th style={{ textAlign: 'center' }}>Ocupadas</th>
-                                    <th style={{ textAlign: 'center' }}>Disponíveis</th>
-                                    <th style={{ textAlign: 'center' }}>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredVagas.length === 0 ? (
+                    <>
+                        <div className="table-wrapper">
+                            <table className="data-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="4" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                                            Nenhuma configuração de vaga encontrada para os filtros aplicados.
-                                        </td>
+                                        <th>Curso / Área</th>
+                                        <th>Ano Lectivo</th>
+                                        <th style={{ textAlign: 'center' }}>Vagas Totais</th>
+                                        <th style={{ textAlign: 'center' }}>Ocupadas</th>
+                                        <th style={{ textAlign: 'center' }}>Disponíveis</th>
+                                        <th style={{ textAlign: 'center' }}>Ações</th>
                                     </tr>
-                                ) : (
-                                    filteredVagas.map((v) => (
-                                        <tr key={v.id} className="animate-fade-in">
-                                            <td>
-                                                <div className="vaga-info">
-                                                    <div className="vaga-icon">
-                                                        <BookOpen size={16} />
-                                                    </div>
-                                                    <div>
-                                                        <span className="vaga-curso-name">{v.curso_nome}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="year-badge">{v.ano_lectivo_nome}</span>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <span className="vagas-count-badge">{v.vagas}</span>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <span className="filled-count">{v.vagas_preenchidas}</span>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <span className={`available-status-badge ${v.vagas_disponiveis <= 5 ? 'low' : 'ok'}`}>
-                                                    {v.vagas_disponiveis}
-                                                </span>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                {hasPermission(PERMISSIONS.MANAGE_CONFIGURACOES) && (
-                                                    <button onClick={() => handleEdit(v)} className="btn-edit-vaga">
-                                                        <Edit3 size={16} />
-                                                        Configurar
-                                                    </button>
-                                                )}
+                                </thead>
+                                <tbody>
+                                    {filteredVagas.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                                Nenhuma configuração de vaga encontrada para os filtros aplicados.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    ) : (
+                                        currentVagas.map((v) => (
+                                            <tr key={v.id} className="animate-fade-in">
+                                                <td>
+                                                    <div className="vaga-info">
+                                                        <div className="vaga-icon">
+                                                            <BookOpen size={16} />
+                                                        </div>
+                                                        <div>
+                                                            <span className="vaga-curso-name">{v.curso_nome}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className="year-badge">{v.ano_lectivo_nome}</span>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <span className="vagas-count-badge">{v.vagas}</span>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <span className="filled-count">{v.vagas_preenchidas}</span>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <span className={`available-status-badge ${v.vagas_disponiveis <= 5 ? 'low' : 'ok'}`}>
+                                                        {v.vagas_disponiveis}
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                     {hasPermission(PERMISSIONS.MANAGE_VAGAS) && (
+                                                        <button onClick={() => handleEdit(v)} className="btn-edit-vaga">
+                                                            <Edit3 size={16} />
+                                                            Configurar
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            totalItems={filteredVagas.length}
+                            itemsPerPage={itemsPerPage}
+                            currentPage={currentPage}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
                 )}
             </div>
 

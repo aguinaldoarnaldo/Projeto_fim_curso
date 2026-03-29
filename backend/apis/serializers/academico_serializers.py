@@ -241,6 +241,31 @@ class TurmaSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'capacidade': f"Lotação Excessiva: A Sala {id_sala.numero_sala} só suporta {id_sala.capacidade_alunos} alunos, mas está a tentar definir uma capacidade de {capacidade}. Por favor, reduza a lotação da turma ou selecione uma sala maior."
                 })
+
+        # Verificar colisão de sala + turno + ano:
+        # Precisamos de recolher as outras variáveis para o check (se vierem no envio ou da instância)
+        id_periodo = data.get('id_periodo') or (self.instance.id_periodo if self.instance else None)
+        ano_lectivo = data.get('ano_lectivo') or (self.instance.ano_lectivo if self.instance else None)
+
+        if not ano_lectivo:
+            from apis.models.academico import AnoLectivo
+            ano_lectivo = AnoLectivo.get_active_year()
+
+        if id_sala and id_periodo and ano_lectivo:
+            from apis.models.academico import Turma
+            qs = Turma.objects.filter(
+                id_sala=id_sala,
+                id_periodo=id_periodo,
+                ano_lectivo=ano_lectivo
+            )
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+                
+            conflito = qs.first()
+            if conflito:
+                raise serializers.ValidationError({
+                    'id_sala': f"A Sala {id_sala.numero_sala} já está ocupada pela turma '{conflito.codigo_turma}' no turno '{id_periodo.periodo}' para este ano."
+                })
         
         return data
 

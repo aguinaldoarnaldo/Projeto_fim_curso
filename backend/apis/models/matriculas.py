@@ -162,11 +162,12 @@ class Matricula(models.Model):
             if current_count >= capacity:
                 # Create notification
                 Notificacao.objects.create(
-                    titulo=f"Capacidade Excedida: {self.id_turma.codigo_turma}",
-                    mensagem=f"A turma {self.id_turma.codigo_turma} atingiu ou excedeu a capacidade de {capacity} alunos ao matricular {self.id_aluno.nome_completo}.",
+                    titulo=f"Tentativa de Excesso na Turma: {self.id_turma.codigo_turma}",
+                    mensagem=f"Foi impedida a matrícula de {self.id_aluno.nome_completo} porque a turma atingiu a capacidade ({capacity}).",
                     tipo='warning',
                     link=f"/turmas"
                 )
+                raise ValidationError(f"Lotação Excedida: A turma {self.id_turma.codigo_turma} já atingiu a sua capacidade máxima de {capacity} alunos.")
         
         super().save(*args, **kwargs)
         

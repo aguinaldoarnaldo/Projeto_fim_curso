@@ -115,41 +115,28 @@ class AnoLectivo(BaseModel):
         if self.activo and self.status != 'Activo':
             self.status = 'Activo'
 
-        # 3. Detectar a transição de status (para anos já existentes)
         status_anterior = None
         if self.pk:
-            status_anterior = AnoLectivo.objects.values_list('status', flat=True).get(pk=self.pk)
+            try:
+                status_anterior = AnoLectivo.objects.values_list('status', flat=True).get(pk=self.pk)
+            except AnoLectivo.DoesNotExist:
+                pass
 
-        # Inicializar stats de impacto (para retornar no ViewSet)
-        self._update_stats = {
-            'reopened': None,
-            'closed': None
-        }
+        # Inicializar stats de impacto
+        self._update_stats = {'reopened': None, 'closed': None}
 
+        # 1. Transição para ACTIVO
         if self.status == 'Activo':
             self.activo = True
+            
+            # Garantir que todas as turmas, matrículas e alunos DESTE ano estejam ativos
+            count_turmas = Turma.objects.filter(ano_lectivo=self, status='Concluida').update(status='Ativa')
+            count_matriculas = Matricula.objects.filter(ano_lectivo=self, status='Concluida').update(status='Ativa')
+            
+            ids_alunos = Matricula.objects.filter(ano_lectivo=self).values_list('id_aluno_id', flat=True).distinct()
+            count_alunos = Aluno.objects.filter(id_aluno__in=ids_alunos, status_aluno='Concluido').update(status_aluno='Activo')
 
-            # === CASO A: REABERTURA (Encerrado → Activo) ===
-            # Reverter os efeitos do encerramento para este ano
-            if status_anterior == 'Encerrado':
-                # Reverter Turmas deste ano que foram concluídas pelo encerramento
-                count_turmas = Turma.objects.filter(ano_lectivo=self, status='Concluida').update(status='Ativa')
-
-                # Reverter Matrículas deste ano: 'Concluida' → 'Ativa'
-                count_matriculas = Matricula.objects.filter(
-                    ano_lectivo=self, status='Concluida'
-                ).update(status='Ativa')
-
-                # Reverter Alunos deste ano: 'Concluido' → 'Activo'
-                ids_alunos = Matricula.objects.filter(
-                    ano_lectivo=self
-                ).values_list('id_aluno_id', flat=True).distinct()
-
-                count_alunos = Aluno.objects.filter(
-                    id_aluno__in=ids_alunos,
-                    status_aluno='Concluido'
-                ).update(status_aluno='Activo')
-
+            if status_anterior and status_anterior != 'Activo':
                 self._update_stats['reopened'] = {
                     'nome': self.nome,
                     'turmas': count_turmas,
@@ -157,85 +144,53 @@ class AnoLectivo(BaseModel):
                     'alunos': count_alunos
                 }
 
-            # === CASO B: ACTIVAÇÃO NORMAL (outro ano estava activo) ===
             # Fechar o ano que estava activo antes
             old_active = AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).first()
             if old_active:
-                # Marcar Turmas do ano anterior como Concluídas
-                count_turmas = Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
-
-                # Marcar Matrículas do ano anterior como Concluídas
-                count_matriculas = Matricula.objects.filter(
-                    ano_lectivo=old_active, status__in=['Ativa']
-                ).update(status='Concluida')
-
-                # Actualizar Alunos do ano anterior: 'Activo' → 'Concluido'
-                # Incluir alunos via Matrícula e via Turma (segurança)
-                ids_matriculas = Matricula.objects.filter(
-                    ano_lectivo=old_active
-                ).values_list('id_aluno_id', flat=True)
+                # Marcar registros do ano anterior como Concluídos
+                c_turmas = Turma.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
+                c_matriculas = Matricula.objects.filter(ano_lectivo=old_active, status='Ativa').update(status='Concluida')
                 
-                ids_turmas = Aluno.objects.filter(
-                    id_turma__ano_lectivo=old_active
-                ).values_list('id_aluno', flat=True)
-
-                ids_alunos_geral = set(list(ids_matriculas) + list(ids_turmas))
-
-                count_alunos = Aluno.objects.filter(
-                    id_aluno__in=ids_alunos_geral,
-                    status_aluno='Activo'
-                ).update(status_aluno='Concluido')
-
-                # Fechar o ano anterior
+                ids_m = Matricula.objects.filter(ano_lectivo=old_active).values_list('id_aluno_id', flat=True)
+                ids_t = Aluno.objects.filter(id_turma__ano_lectivo=old_active).values_list('id_aluno', flat=True)
+                ids_geral = set(list(ids_m) + list(ids_t))
+                
+                c_alunos = Aluno.objects.filter(id_aluno__in=ids_geral, status_aluno='Activo').update(status_aluno='Concluido')
+                
+                # Fechar o ano anterior no DB
                 AnoLectivo.objects.filter(pk=old_active.pk).update(status='Encerrado', activo=False)
 
                 self._update_stats['closed'] = {
                     'nome': old_active.nome,
+                    'turmas': c_turmas,
+                    'matriculas': c_matriculas,
+                    'alunos': c_alunos
+                }
+        
+        # 2. Transição para NÃO ACTIVO (Encerrado, Suspenso)
+        elif self.status in ['Encerrado', 'Suspenso']:
+            self.activo = False
+            if status_anterior == 'Activo':
+                # Concluir tudo deste ano
+                count_turmas = Turma.objects.filter(ano_lectivo=self, status='Ativa').update(status='Concluida')
+                count_matriculas = Matricula.objects.filter(ano_lectivo=self, status='Ativa').update(status='Concluida')
+                
+                ids_m = Matricula.objects.filter(ano_lectivo=self).values_list('id_aluno_id', flat=True)
+                ids_t = Aluno.objects.filter(id_turma__ano_lectivo=self).values_list('id_aluno', flat=True)
+                ids_geral = set(list(ids_m) + list(ids_t))
+                
+                count_alunos = Aluno.objects.filter(id_aluno__in=ids_geral, status_aluno='Activo').update(status_aluno='Concluido')
+                
+                self._update_stats['closed'] = {
+                    'nome': self.nome,
                     'turmas': count_turmas,
                     'matriculas': count_matriculas,
                     'alunos': count_alunos
                 }
-
-            # Segurança extra: garantir que não há outro ano Activo além deste
-            AnoLectivo.objects.filter(status='Activo').exclude(pk=self.pk).update(status='Encerrado', activo=False)
         else:
             self.activo = False
-            
-            # === CASO C: ENCERRAMENTO EXPLÍCITO (Activo → Encerrado/Suspenso) ===
-            if status_anterior == 'Activo' and self.status in ['Encerrado', 'Suspenso']:
-                 # Concluir Turmas
-                 count_turmas = Turma.objects.filter(ano_lectivo=self, status='Ativa').update(status='Concluida')
-                 
-                 # Concluir Matrículas
-                 count_matriculas = Matricula.objects.filter(
-                     ano_lectivo=self, status__in=['Ativa']
-                 ).update(status='Concluida')
-                 
-                 # Concluir Alunos
-                 # Incluir alunos via Matrícula e via Turma (segurança)
-                 ids_matriculas = Matricula.objects.filter(
-                     ano_lectivo=self
-                 ).values_list('id_aluno_id', flat=True)
-                 
-                 ids_turmas = Aluno.objects.filter(
-                     id_turma__ano_lectivo=self
-                 ).values_list('id_aluno', flat=True)
 
-                 ids_alunos_geral = set(list(ids_matriculas) + list(ids_turmas))
-                 
-                 count_alunos = Aluno.objects.filter(
-                     id_aluno__in=ids_alunos_geral,
-                     status_aluno='Activo'
-                 ).update(status_aluno='Concluido')
-                 
-                 self._update_stats['closed'] = {
-                     'nome': self.nome,
-                     'turmas': count_turmas,
-                     'matriculas': count_matriculas,
-                     'alunos': count_alunos
-                 }
-
-        super().save(*args, **kwargs)
+        super(AnoLectivo, self).save(*args, **kwargs)
         # Limpar cache ao salvar
         cache.delete('active_academic_year')
         
@@ -467,6 +422,17 @@ class Turma(BaseModel):
             raise ValidationError({
                 'capacidade': f"Erro de Lotação: A capacidade definida para esta turma ({self.capacidade} alunos) ultrapassa o limite máximo da Sala {self.id_sala.numero_sala}, que suporta apenas {self.id_sala.capacidade_alunos} alunos. Por favor, ajuste a lotação ou troque de sala."
             })
+
+        # Validação contra ocupação dupla: Não pode haver duas turmas na mesma sala, no mesmo turno e no mesmo ano.
+        if self.id_sala and self.id_periodo and self.ano_lectivo:
+            conflito = __class__.objects.filter(
+                id_sala=self.id_sala,
+                id_periodo=self.id_periodo,
+                ano_lectivo=self.ano_lectivo
+            ).exclude(pk=self.pk).first()
+            
+            if conflito:
+                raise ValidationError(f"Conflito de Lotação: A {self.id_sala} já está ocupada pela turma '{conflito.codigo_turma}' no turno '{self.id_periodo.periodo}' durante o ano lectivo de {self.ano_lectivo.nome}.")
 
         if self.id_sala and self.id_curso and self.id_classe and self.id_periodo:
             sala = str(self.id_sala.numero_sala)

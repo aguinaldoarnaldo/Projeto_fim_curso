@@ -191,16 +191,28 @@ const FilterModal = ({
                                     {!safeActiveFilters[selectedType.key] && <Check size={14} className="check-mini" />}
                                 </button>
 
-                                {(selectedType.options || []).map((opt) => (
-                                    <button
-                                        key={opt.value}
-                                        className={`option-row ${safeActiveFilters[selectedType.key] === opt.value ? 'selected' : ''}`}
-                                        onClick={() => handleOptionSelect(opt.value)}
-                                    >
-                                        <span>{opt.label}</span>
-                                        {safeActiveFilters[selectedType.key] === opt.value && <Check size={14} className="check-mini" />}
-                                    </button>
-                                ))}
+                                {(selectedType.options || []).map((opt, idx) => {
+                                    if (opt.isHeader) {
+                                        return (
+                                            <div key={`header-${idx}`} className="option-header">
+                                                {opt.label}
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            className={`option-row ${safeActiveFilters[selectedType.key] === opt.value ? 'selected' : ''} ${opt.isHighlighted ? 'highlighted' : ''}`}
+                                            onClick={() => handleOptionSelect(opt.value)}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                                                <span>{opt.label}</span>
+                                                {opt.isHighlighted && <span className="highlight-dot" title="Ano Activo"></span>}
+                                            </div>
+                                            {safeActiveFilters[selectedType.key] === opt.value && <Check size={14} className="check-mini" />}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

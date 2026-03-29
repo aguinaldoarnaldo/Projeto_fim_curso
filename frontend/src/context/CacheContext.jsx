@@ -3,7 +3,7 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 const CacheContext = createContext();
 
 // Incrementar esta versão sempre que mudar a estrutura dos dados em cache
-const CACHE_VERSION = '3';
+const CACHE_VERSION = '5';
 
 export const CacheProvider = ({ children }) => {
     // Initialize state from localStorage if available

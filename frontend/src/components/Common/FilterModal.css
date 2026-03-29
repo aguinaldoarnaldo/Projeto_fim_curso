@@ -234,6 +234,44 @@
 .slide-in-left { animation: slideInLeft 0.2s forwards; }
 .slide-in { animation: fadeIn 0.15s forwards; }
 
+
+/* Group Headers in Options */
+.option-header {
+    padding: 10px 12px 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #f8fafc;
+    margin-top: 4px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.option-header:first-child {
+    margin-top: 0;
+    border-top: none;
+}
+
+/* Highlighted Options (Active Year) */
+.option-row.highlighted {
+    border-left: 3px solid var(--primary-color, #2563eb);
+    padding-left: 9px;
+    background: #f0f9ff66;
+}
+
+.highlight-dot {
+    width: 6px;
+    height: 6px;
+    background: #10b981; /* Success Green */
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #d1fae5;
+}
+
+.option-row.highlighted:hover {
+    background: #f0f9ff;
+}
+
 @keyframes popIn {
     from { opacity: 0; transform: translateY(-8px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }

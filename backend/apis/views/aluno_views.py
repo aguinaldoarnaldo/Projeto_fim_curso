@@ -14,17 +14,31 @@ from apis.serializers import (
 from apis.mixins import AuditMixin
 
 
+from rest_framework.pagination import PageNumberPagination
+
+class LargeResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 5000
+
 class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Aluno"""
+    pagination_class = LargeResultsSetPagination
     queryset = Aluno.objects.select_related(
         'id_turma',
         'id_turma__id_curso',
         'id_turma__id_classe',
         'id_turma__id_periodo',
-        'id_turma__id_sala'
+        'id_turma__id_sala',
+        'id_turma__ano_lectivo'
     ).prefetch_related(
-        'alunoencarregado_set',
-        'alunoencarregado_set__id_encarregado'
+        'alunoencarregado_set__id_encarregado',
+        'matricula_set__ano_lectivo',
+        'matricula_set__id_turma__id_curso',
+        'matricula_set__id_turma__id_classe',
+        'matricula_set__id_turma__id_periodo',
+        'matricula_set__id_turma__id_sala',
+        'historico_escolar'
     ).all()
     
     permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]

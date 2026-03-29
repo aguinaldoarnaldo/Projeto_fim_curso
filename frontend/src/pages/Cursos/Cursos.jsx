@@ -11,6 +11,7 @@ import {
     Filter
 } from 'lucide-react';
 import FilterModal from '../../components/Common/FilterModal';
+import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 import { useCache } from '../../context/CacheContext';
@@ -25,6 +26,10 @@ const Cursos = () => {
         area: '',
         duracao: ''
     });
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(23);
 
     // State for courses
     const [courses, setCourses] = useState([]);
@@ -196,6 +201,7 @@ const Cursos = () => {
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
+        setCurrentPage(1);
     };
 
     const filterConfigs = React.useMemo(() => [
@@ -240,13 +246,18 @@ const Cursos = () => {
         return sortableItems;
     }, [courses, searchTerm, filters]);
 
+    // Pagination Slicing
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentCourses = filteredCourses.slice(indexOfFirstItem, indexOfLastItem);
+
     return (
         <div className="page-container">
             <header className="page-header">
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Cursos</h1>
-                        <p>Administração dos cursos e grades curriculares da instituição.</p>
+                        <p>Administração dos {courses.length} cursos e grades curriculares da instituição.</p>
                     </div>
                     <div className="page-header-actions">
                         {hasPermission(PERMISSIONS.MANAGE_CURSOS) && ( 
@@ -267,7 +278,7 @@ const Cursos = () => {
                             type="text"
                             placeholder="Pesquisar curso..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             className="search-input"
                             aria-label="Pesquisar cursos"
                         />
@@ -312,76 +323,84 @@ const Cursos = () => {
                         <span style={{fontWeight: 500}}>A carregar cursos...</span>
                     </div>
                 ) : (
-                    <div className="table-wrapper">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Nome do Curso</th>
-                                    <th>Área de Formação</th>
-                                    <th>Coordenador</th>
-                                    <th>Duração</th>
-                                    <th>Turmas</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {error ? (
+                    <>
+                        <div className="table-wrapper">
+                            <table className="data-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="6" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
-                                            {error}
-                                        </td>
+                                        <th>Nome do Curso</th>
+                                        <th>Área de Formação</th>
+                                        <th>Coordenador</th>
+                                        <th>Duração</th>
+                                        <th>Turmas</th>
+                                        <th>Ações</th>
                                     </tr>
-                                ) : filteredCourses.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="6" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
-                                            Nenhum curso encontrado.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredCourses.map((course) => (
-                                        <tr key={course.id} className="animate-fade-in">
-                                            <td data-label="Curso">
-                                                <div className="course-info">
-                                                    <div className="course-icon-bg">
-                                                        <BookOpen size={16} />
-                                                    </div>
-                                                    <span className="course-name">{course.nome}</span>
-                                                </div>
-                                            </td>
-                                            <td data-label="Área">{course.area}</td>
-                                            <td data-label="Coordenador">
-                                                <div className="coordinator-info">
-                                                    <div className="coordinator-avatar">
-                                                        <User size={14} />
-                                                    </div>
-                                                    <span>{course.coordenador}</span>
-                                                </div>
-                                            </td>
-                                            <td data-label="Duração">
-                                                <div className="duration-info">
-                                                    <Clock size={14} />
-                                                    <span>{course.duracao}</span>
-                                                </div>
-                                            </td>
-                                            <td data-label="Turmas" style={{textAlign: 'center'}}>{course.totalTurmas}</td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                {hasPermission(PERMISSIONS.MANAGE_CURSOS) && (
-                                                    <button
-                                                        onClick={() => handleEdit(course)}
-                                                        className="btn-edit-course"
-                                                        title="Editar Curso"
-                                                    >
-                                                        <Edit3 size={16} />
-                                                        Editar
-                                                    </button>
-                                                )}
+                                </thead>
+                                <tbody>
+                                    {error ? (
+                                        <tr>
+                                            <td colSpan="6" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                                {error}
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    ) : filteredCourses.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                                Nenhum curso encontrado.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        currentCourses.map((course) => (
+                                            <tr key={course.id} className="animate-fade-in">
+                                                <td data-label="Curso">
+                                                    <div className="course-info">
+                                                        <div className="course-icon-bg">
+                                                            <BookOpen size={16} />
+                                                        </div>
+                                                        <span className="course-name">{course.nome}</span>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Área">{course.area}</td>
+                                                <td data-label="Coordenador">
+                                                    <div className="coordinator-info">
+                                                        <div className="coordinator-avatar">
+                                                            <User size={14} />
+                                                        </div>
+                                                        <span>{course.coordenador}</span>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Duração">
+                                                    <div className="duration-info">
+                                                        <Clock size={14} />
+                                                        <span>{course.duracao}</span>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Turmas" style={{textAlign: 'center'}}>{course.totalTurmas}</td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    {hasPermission(PERMISSIONS.MANAGE_CURSOS) && (
+                                                        <button
+                                                            onClick={() => handleEdit(course)}
+                                                            className="btn-edit-course"
+                                                            title="Editar Curso"
+                                                        >
+                                                            <Edit3 size={16} />
+                                                            Editar
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            totalItems={filteredCourses.length}
+                            itemsPerPage={itemsPerPage}
+                            currentPage={currentPage}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
                 )}
             </div>
 
