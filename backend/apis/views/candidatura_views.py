@@ -13,10 +13,12 @@ from apis.permissions.custom_permissions import HasAdditionalPermission
 from apis.mixins import AuditMixin
 from apis.permissions.authentication import SchoolJWTAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from apis.utils.pagination import LargeResultsSetPagination
 from apis.services.pdf_service import PDFService
 
 class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para gerenciar candidaturas"""
+    pagination_class = LargeResultsSetPagination
     queryset = Candidato.objects.all()
     serializer_class = CandidatoSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]

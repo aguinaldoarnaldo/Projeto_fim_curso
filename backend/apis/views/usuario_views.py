@@ -13,11 +13,13 @@ from apis.serializers import (
     EncarregadoSerializer, EncarregadoListSerializer,
     CargoSerializer, CargoFuncionarioSerializer, UsuarioSerializer
 )
+from apis.utils.pagination import LargeResultsSetPagination
 from apis.mixins import AuditMixin
 
 
 class UsuarioViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para gestão de Usuários do Django (Login)"""
+    pagination_class = LargeResultsSetPagination
     queryset = User.objects.all().order_by('username')
     serializer_class = UsuarioSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -44,6 +46,7 @@ class UsuarioViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class CargoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Cargo"""
+    pagination_class = LargeResultsSetPagination
     queryset = Cargo.objects.all()
     serializer_class = CargoSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -61,6 +64,7 @@ class CargoViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class FuncionarioViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Funcionario"""
+    pagination_class = LargeResultsSetPagination
     queryset = Funcionario.objects.select_related('id_cargo').all()
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
     permission_map = {
@@ -127,6 +131,7 @@ class FuncionarioViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class EncarregadoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Encarregado"""
+    pagination_class = LargeResultsSetPagination
     queryset = Encarregado.objects.all()
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
     permission_map = {

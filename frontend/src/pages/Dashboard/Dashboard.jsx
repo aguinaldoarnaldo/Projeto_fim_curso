@@ -230,10 +230,10 @@ const Dashboard = () => {
                 ))}
               </select>
             </div>
-            <div className="chart-body" style={{ minHeight: '340px' }}>
-              {loadingFlow ? <div className="no-data">Carregando dados...</div> : 
-               flowData.length === 0 ? <div className="no-data">Sem dados para {selectedYear}</div> : (
-                <div style={{ width: '100%', height: 300 }}>
+            <div className="chart-body" style={{ minHeight: '340px', position: 'relative' }}>
+              {(loadingFlow && flowData.length === 0) ? <div className="no-data">Carregando dados...</div> : 
+               (!loadingFlow && flowData.length === 0) ? <div className="no-data">Sem dados para {selectedYear}</div> : (
+                <div style={{ width: '100%', height: 300, opacity: loadingFlow ? 0.4 : 1, transition: 'opacity 0.3s ease' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={flowData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                       <defs>
@@ -259,30 +259,45 @@ const Dashboard = () => {
           <div className="dashboard-charts-row">
             <div className="chart-card-new">
               <div className="chart-header"><div><h2>Distribuição por Género</h2><p>Masculino e Feminino</p></div></div>
-              <div className="chart-body" style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={genderData} cx="50%" cy="65%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" startAngle={180} endAngle={0}>
-                      {genderData.map((entry, index) => <Cell key={index} fill={COLORS_GENDER[index % 2]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                    <Legend verticalAlign="bottom" iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="chart-body" style={{ height: 300, position: 'relative' }}>
+                {(loadingStats && genderData.length === 0) ? <div className="no-data">Carregando dados...</div> :
+                 (!loadingStats && genderData.length === 0) ? <div className="no-data">Sem dados para {selectedYear}</div> : (
+                  <div style={{ width: '100%', height: '100%', opacity: loadingStats ? 0.4 : 1, transition: 'opacity 0.3s ease' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={genderData} cx="50%" cy="65%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" startAngle={180} endAngle={0}>
+                          {genderData.map((entry, index) => <Cell key={index} fill={COLORS_GENDER[index % 2]} />)}
+                        </Pie>
+                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                        <Legend verticalAlign="bottom" iconType="circle" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                 )}
               </div>
             </div>
 
             <div className="chart-card-new">
               <div className="chart-header"><div><h2>Popularidade dos Cursos</h2><p>Inscritos por curso</p></div></div>
-              <div className="chart-body" style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart layout="vertical" data={courseData} margin={{ left: 10, right: 30, top: 20, bottom: 20 }}>
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} width={120} />
-                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                    <Bar dataKey="qnty" name="Alunos" fill="#6366f1" radius={[0, 6, 6, 0]} barSize={24} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="chart-body" style={{ height: 300, position: 'relative', overflowY: 'auto', overflowX: 'hidden' }}>
+                {(loadingStats && courseData.length === 0) ? <div className="no-data">Carregando dados...</div> :
+                 (!loadingStats && courseData.length === 0) ? <div className="no-data">Sem dados para {selectedYear}</div> : (
+                  <div style={{ 
+                      width: '100%', 
+                      height: Math.max(280, courseData.length * 45), 
+                      opacity: loadingStats ? 0.4 : 1, 
+                      transition: 'opacity 0.3s ease' 
+                  }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart layout="vertical" data={courseData} margin={{ left: 10, right: 30, top: 10, bottom: 10 }}>
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} width={120} />
+                        <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                        <Bar dataKey="qnty" name="Alunos" fill="#6366f1" radius={[0, 6, 6, 0]} barSize={24} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                 )}
               </div>
             </div>
           </div>

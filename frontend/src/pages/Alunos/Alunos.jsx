@@ -147,11 +147,11 @@ const Alunos = () => {
         const fetchFilterOptions = async () => {
             try {
                 const [anosRes, classesRes, cursosRes, salasRes, turmasRes] = await Promise.all([
-                    api.get('anos-lectivos/'),
+                    api.get('anos-lectivos/?all=true'),
                     api.get('classes/'),
                     api.get('cursos/'),
                     api.get('salas/'),
-                    api.get('turmas/')
+                    api.get('turmas/?page_size=5000')
                 ]);
 
                 if (anosRes.data?.results || Array.isArray(anosRes.data)) 
@@ -168,7 +168,8 @@ const Alunos = () => {
 
                 if (turmasRes.data?.results || Array.isArray(turmasRes.data)) {
                     const allTurmas = turmasRes.data?.results || turmasRes.data;
-                    setTurmasDisponiveis(allTurmas.filter(t => t.status === 'Ativa'));
+                    // Mostrar TODAS as turmas nos filtros (incluindo anos anteriores)
+                    setTurmasDisponiveis(allTurmas);
                 }
 
             } catch (err) {
@@ -178,64 +179,52 @@ const Alunos = () => {
         fetchFilterOptions();
     }, []);
 
-    // Data Fetcher (Encapsulated Pagination Logic)
+    // Data Fetcher
     const fetchStudentsData = async () => {
-        let allStudents = [];
-        let nextUrl = 'alunos/';
-        
         try {
-            // Loop while there is a next page
-            while (nextUrl) {
-                const response = await api.get(nextUrl);
-                const data = response?.data;
-                
-                if (!data) break;
-
-                const results = data.results || (Array.isArray(data) ? data : []);
-                
-                // If results isn't an array, something is wrong, stop loop
-                if (!Array.isArray(results)) break;
-
-                allStudents = [...allStudents, ...results];
-                nextUrl = data.next; // DRF returns full URL or null
-                
-                if (allStudents.length > 5000) break; // Safety break
-            }
-        } catch (err) {
-            console.error("Erro durante o carregamento de alunos (paginação):", err);
-            // If we managed to get some students, return them instead of breaking everything
-            if (allStudents.length === 0) throw err;
+            const response = await api.get('alunos/?page_size=5000');
+            const data = response?.data;
+            const results = data.results || (Array.isArray(data) ? data : []);
+            
+            return results.map(student => ({
+                id: student.id_aluno,
+                matricula: student.numero_matricula,
+                nome: student.nome_completo,
+                foto: student.img_path,
+                anoLectivo: student.ano_lectivo || 'N/A',
+                anoLectivoAtivo: student.ano_lectivo_ativo,
+                classe: student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A',
+                curso: student.curso_nome || 'N/A',
+                sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
+                turno: student.periodo_nome || 'N/A',
+                turma: student.turma_codigo,
+                status: (() => {
+                    // Se temos o ano exibido, vamos buscar o estado DESTE aluno NESTE ano específico
+                    const yearShown = student.ano_lectivo;
+                    const matRecord = (student.matriculas_detalhes || []).find(m => m.ano_lectivo_nome === yearShown);
+                    // Retorna o estado da matrícula se existir, senão o estado global do aluno
+                    return matRecord ? matRecord.status : student.status_aluno;
+                })(),
+                sugeridoTipo: null,
+                dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
+                genero: student.genero || 'N/A',
+                detalhes: {
+                    nascimento: student.data_nascimento || 'N/A',
+                    encarregado: student.encarregado_principal || 'N/A',
+                    telefone: student.telefone || 'N/A',
+                    email: student.email,
+                    endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
+                    bi: student.numero_bi,
+                    nacionalidade: student.nacionalidade || 'Angolana',
+                    obs: '',
+                    historico: student.historico_escolar || [],
+                    historicoMatriculas: student.matriculas_detalhes || []
+                }
+            }));
+        } catch (error) {
+            console.error("Erro ao carregar alunos:", error);
+            throw error;
         }
-        
-        return allStudents.map(student => ({
-            id: student.id_aluno,
-            matricula: student.numero_matricula,
-            nome: student.nome_completo,
-            foto: student.img_path,
-            anoLectivo: student.ano_lectivo || '2024/2025',
-            anoLectivoAtivo: student.ano_lectivo_ativo, // Mapped from backend
-            classe: student.classe_nivel ? `${student.classe_nivel}ª Classe` : 'N/A',
-            curso: student.curso_nome || 'N/A',
-            sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
-            turno: student.periodo_nome || 'N/A',
-            turma: student.turma_codigo,
-            status: student.status_aluno,
-            sugeridoTipo: student.sugerido_tipo_matricula,
-            dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
-            genero: student.genero || 'N/A',
-            detalhes: {
-                nascimento: student.data_nascimento || 'N/A',
-                encarregado: student.encarregado_principal || 'N/A',
-                telefone: student.telefone || 'N/A',
-                email: student.email,
-                endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
-                bi: student.numero_bi,
-                nacionalidade: student.nacionalidade || 'Angolana',
-                obs: '',
-                historico: student.historico_escolar || [],
-                historicoMatriculas: student.matriculas_detalhes || []
-            }
-        }));
     };
 
     // USE DATA CACHE HOOK
@@ -245,7 +234,7 @@ const Alunos = () => {
         error,
         refresh,
         update: updateStudent
-    } = useDataCache('alunos', fetchStudentsData);
+    } = useDataCache('alunos_v2', fetchStudentsData);
 
     // Polling Inteligente para atualizações em tempo real (Silent Refresh)
     useEffect(() => {
@@ -446,15 +435,26 @@ const Alunos = () => {
     const currentStudents = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
 
     const getStatusStyle = (status) => {
-        switch (status) {
-            case 'Ativo': 
-            case 'Activo': return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
-            case 'Inativo': return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
-            case 'Concluido': 
-            case 'Concluida': return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
-            case 'Transferido': return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
-            default: return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
-        }
+        if (!status) return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
+        
+        const s = status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+        
+        if (s.includes('ativ') || s.includes('activa')) 
+            return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
+        
+        if (s.includes('conclui')) 
+            return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
+            
+        if (s.includes('inativo') || s.includes('inativa')) 
+            return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
+            
+        if (s.includes('transferido') || s.includes('transferida')) 
+            return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
+            
+        if (s.includes('desistente')) 
+            return { bg: '#f3f4f6', color: '#64748b', border: '#e2e8f0' };
+
+        return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
     };
 
     const getTipoMatriculaLabel = (tipo) => {
@@ -498,7 +498,46 @@ const Alunos = () => {
             key: 'turma', 
             label: 'Turma', 
             icon: Users,
-            options: turmasDisponiveis.map(t => ({ value: t.codigo_turma, label: t.codigo_turma }))
+            options: (() => {
+                // Agrupar turmas por ano lectivo
+                const turmasPorAno = {};
+                turmasDisponiveis.forEach(t => {
+                    const ano = t.ano_lectivo_nome || 'Sem Ano';
+                    if (!turmasPorAno[ano]) turmasPorAno[ano] = [];
+                    turmasPorAno[ano].push(t);
+                });
+
+                const sortedAnos = Object.keys(turmasPorAno).sort((a, b) => b.localeCompare(a));
+                const finalOptions = [];
+                const activeYearName = anosDisponiveis.find(a => a.activo)?.nome;
+
+                // Primeiro o ano activo se houver
+                if (activeYearName && turmasPorAno[activeYearName]) {
+                    finalOptions.push({ label: `Ano Activo: ${activeYearName}`, isHeader: true });
+                    turmasPorAno[activeYearName]
+                        .sort((a, b) => a.codigo_turma.localeCompare(b.codigo_turma))
+                        .forEach(t => {
+                            finalOptions.push({ 
+                                value: t.codigo_turma, 
+                                label: t.codigo_turma,
+                                isHighlighted: true 
+                            });
+                        });
+                }
+
+                // Depois os outros anos
+                sortedAnos.forEach(ano => {
+                    if (ano === activeYearName) return;
+                    finalOptions.push({ label: `Ano: ${ano}`, isHeader: true });
+                    turmasPorAno[ano]
+                        .sort((a, b) => a.codigo_turma.localeCompare(b.codigo_turma))
+                        .forEach(t => {
+                            finalOptions.push({ value: t.codigo_turma, label: t.codigo_turma });
+                        });
+                });
+
+                return finalOptions;
+            })()
         }
     ], [anosDisponiveis, classesDisponiveis, cursosDisponiveis, salasDisponiveis, turmasDisponiveis]);
 
@@ -508,7 +547,7 @@ const Alunos = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Estudantes</h1>
-                        <p>Visualização e administração de todos os alunos registrados.</p>
+                        <p>Visualização e administração de {students.length} alunos registrados.</p>
                     </div>
                     <div className="page-header-actions">
                         {hasPermission(PERMISSIONS.CREATE_ALUNO) && (
@@ -729,13 +768,13 @@ const Alunos = () => {
                                              }}>
                                                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                                                      <button 
-                                                         className="btn-more-actions" 
-                                                         onClick={() => setSelectedStudent(s)}
-                                                         title="Ver Detalhes"
-                                                         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}
-                                                     >
-                                                         <Eye size={20} />
-                                                     </button>
+                                                          className="btn-more-actions" 
+                                                          onClick={() => { setSelectedStudent(s); setSelectedHistoryIndex(0); }}
+                                                          title="Ver Detalhes"
+                                                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}
+                                                      >
+                                                          <Eye size={20} />
+                                                      </button>
 
                                                      <div className="actions-dropdown-container">
                                                          <button 
@@ -1124,30 +1163,6 @@ const Alunos = () => {
                             </div>
                         )}
                         <div className="dropdown-divider" />
-
-                        {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
-                            <button 
-                                onClick={() => { 
-                                    if (menuStudent.status !== 'Concluido') {
-                                        alert("Apenas alunos com estado 'Concluído' podem renovar a matrícula para o novo ano.");
-                                        return;
-                                    }
-                                    navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=Confirmacao`); 
-                                    setActiveMenuId(null); 
-                                }}
-                                className="dropdown-item-btn"
-                                style={{ 
-                                    color: menuStudent.status === 'Concluido' ? 'var(--primary-color)' : '#94a3b8', 
-                                    fontWeight: 600,
-                                    opacity: menuStudent.status === 'Concluido' ? 1 : 0.6,
-                                    cursor: menuStudent.status === 'Concluido' ? 'pointer' : 'not-allowed'
-                                }}
-                                title={menuStudent.status !== 'Concluido' ? "Apenas alunos concluídos podem renovar matrícula" : "Confirmar Matrícula"}
-                            >
-                                <div style={{ color: menuStudent.status === 'Concluido' ? 'var(--primary-color)' : '#cbd5e1' }}><RefreshCw size={16} /></div>
-                                Confirmar Matrícula
-                            </button>
-                        )}
                     </div>
                 </>
             )}

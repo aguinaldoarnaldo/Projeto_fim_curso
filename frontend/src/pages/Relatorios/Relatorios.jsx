@@ -23,6 +23,7 @@ import {
 
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
+import Pagination from '../../components/Common/Pagination';
 
 const Relatorios = () => {
     const { hasPermission } = usePermission();
@@ -36,7 +37,11 @@ const Relatorios = () => {
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(null); // ID do relatório sendo gerado
-    
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(23);
+
     // Modais e seleções
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [selectedReportTemplate, setSelectedReportTemplate] = useState(null);
@@ -66,15 +71,7 @@ const Relatorios = () => {
             formato: 'PDF',
             requiresConfig: true
         },
-        {
-            id: 'financeiro_resumo',
-            titulo: 'Relatório Financeiro de Pagamentos',
-            descricao: 'Resumo de todas as entradas financeiras recentes e balanço acumulado.',
-            categoria: 'Financeiro',
-            formato: 'PDF',
-            requiresConfig: false,
-            permission: PERMISSIONS.VIEW_FINANCEIRO
-        },
+
         {
             id: 'inscritos_por_ano',
             titulo: 'Relatório Geral de Inscritos',
@@ -132,7 +129,7 @@ const Relatorios = () => {
         try {
             const [turmasRes, anosRes] = await Promise.all([
                 api.get('turmas/?page_size=100'),
-                api.get('anos-lectivos/?page_size=100')
+                api.get('anos-lectivos/?all=true')
             ]);
             setAuxData({
                 turmas: turmasRes.data.results || turmasRes.data,
@@ -184,6 +181,11 @@ const Relatorios = () => {
          report.categoria.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    // Pagination Slicing
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredReports.slice(indexOfFirstItem, indexOfLastItem);
+
     return (
         <div className="page-container relatorios-page">
             <header className="page-header">
@@ -227,20 +229,7 @@ const Relatorios = () => {
                     </div>
                 </div>
 
-                <div className="stat-card premium animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ background: '#ecfdf5', padding: '10px', borderRadius: '12px', color: '#059669' }}>
-                            <BarChart size={24} />
-                        </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Financeiro</span>
-                    </div>
-                    <div>
-                        <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', margin: '4px 0' }}>
-                            {stats.total_financeiro.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' })}
-                        </h3>
-                        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Receita acumulada</p>
-                    </div>
-                </div>
+
 
                 <div className="stat-card premium animate-fade-in" style={{ animationDelay: '0.4s' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -266,15 +255,15 @@ const Relatorios = () => {
                             className="search-box-input" 
                             placeholder="Pesquisar relatório..." 
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                         />
                     </div>
                     
                     <div className="filter-group" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
-                       {['Todos', 'Académico', 'Financeiro', 'Administrativo', 'Infraestrutura'].map(cat => (
+                       {['Todos', 'Académico', 'Administrativo', 'Infraestrutura'].map(cat => (
                             <button 
                                 key={cat}
-                                onClick={() => setActiveCategory(cat)}
+                                onClick={() => { setActiveCategory(cat); setCurrentPage(1); }}
                                 className={`btn-filter-pill ${activeCategory === cat ? 'active' : ''}`}
                                 style={{
                                     padding: '8px 16px',
@@ -308,7 +297,7 @@ const Relatorios = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredReports.map((report) => (
+                            {currentItems.map((report) => (
                                 <tr key={report.id} className="clickable-row" onClick={() => openConfig(report)}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -363,7 +352,7 @@ const Relatorios = () => {
                             ))}
                             {filteredReports.length === 0 && (
                                 <tr>
-                                    <td colspan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                                         Nenhum relatório encontrado para esta categoria.
                                     </td>
                                 </tr>
@@ -371,6 +360,12 @@ const Relatorios = () => {
                         </tbody>
                     </table>
                 </div>
+                <Pagination
+                    totalItems={filteredReports.length}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                />
             </div>
 
             {/* CONFIG MODAL */}

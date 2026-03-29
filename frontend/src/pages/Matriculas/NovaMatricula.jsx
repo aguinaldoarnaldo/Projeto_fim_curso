@@ -119,7 +119,7 @@ const NovaMatricula = () => {
                 // Fetch classes and years concurrently
                 const [classesRes, yearsRes, cursosRes] = await Promise.all([
                     getClasses(),
-                    api.get('anos-lectivos/'),
+                    api.get('anos-lectivos/?all=true'),
                     api.get('cursos/')
                 ]);
                 
@@ -907,7 +907,13 @@ const NovaMatricula = () => {
                             {/* Coluna 1: Curso */}
                             <div style={{ gridColumn: (formData.curso_primario && formData.curso_secundario) ? 'span 2' : 'span 1' }}>
                                 <label className="field-label">Curso</label>
-                                {formData.curso_primario && formData.curso_secundario ? (
+                                {isConfirming ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '9px 14px' }}>
+                                        <CheckCircle size={16} color="#16a34a" />
+                                        <span style={{ fontWeight: 700, color: '#15803d', fontSize: '14px' }}>{formData.curso}</span>
+                                        <span style={{ fontSize: '11px', color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: '20px', marginLeft: 'auto' }}>Curso Fixo</span>
+                                    </div>
+                                ) : formData.curso_primario && formData.curso_secundario ? (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
                                             type="button"

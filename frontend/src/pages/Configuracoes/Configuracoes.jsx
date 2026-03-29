@@ -41,6 +41,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext'; // Assuming AuthContext exists
 import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
+import Pagination from '../../components/Common/Pagination';
 
 
 const Configuracoes = () => {
@@ -92,6 +93,7 @@ const Configuracoes = () => {
     const [editingYearId, setEditingYearId] = useState(null);
     const [yearCurrentPage, setYearCurrentPage] = useState(1);
     const [yearTotalPages, setYearTotalPages] = useState(1);
+    const [yearTotalItems, setYearTotalItems] = useState(0);
     const [backupsList, setBackupsList] = useState([]);
     const [agendamentos, setAgendamentos] = useState([]);
     const [showAgendamentoModal, setShowAgendamentoModal] = useState(false);
@@ -191,7 +193,7 @@ const Configuracoes = () => {
         setLogsLoading(true);
         try {
             const endpoint = tipo === 'logins' ? 'auditoria/logins/' : 'auditoria/actividades/';
-            const params = new URLSearchParams({ page, page_size: 20 });
+            const params = new URLSearchParams({ page, page_size: 23 });
             if (filtros.busca) params.append('busca', filtros.busca);
             if (filtros.data_inicio) params.append('data_inicio', filtros.data_inicio);
             if (filtros.data_fim) params.append('data_fim', filtros.data_fim);
@@ -616,14 +618,15 @@ const Configuracoes = () => {
     const fetchAcademicYears = async (page = 1) => {
         setYearLoading(true);
         try {
-            const response = await api.get(`anos-lectivos/?page=${page}`);
+            const response = await api.get(`anos-lectivos/?page=${page}&page_size=23`);
             setAcademicYears(response.data.results || response.data || []);
             
             // Update pagination info
             if (response.data.count) {
-                const total = Math.ceil(response.data.count / 6); 
+                const total = Math.ceil(response.data.count / 23); 
                 setYearTotalPages(total);
                 setYearCurrentPage(page);
+                setYearTotalItems(response.data.count);
             }
         } catch (error) {
             console.error("Erro ao buscar anos lectivos:", error);
@@ -2173,58 +2176,12 @@ const Configuracoes = () => {
                         </div>
 
                         {/* Paginação para Anos Lectivos */}
-                        {yearTotalPages > 1 && (
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'center', 
-                                alignItems: 'center', 
-                                gap: '15px', 
-                                marginTop: '20px',
-                                background: 'white',
-                                padding: '12px',
-                                borderRadius: '12px',
-                                border: '1px solid #e2e8f0',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                            }}>
-                                <button 
-                                    onClick={() => fetchAcademicYears(yearCurrentPage - 1)}
-                                    disabled={yearCurrentPage === 1}
-                                    style={{
-                                        background: yearCurrentPage === 1 ? '#f8fafc' : 'white',
-                                        border: '1px solid #e2e8f0',
-                                        padding: '8px 16px',
-                                        borderRadius: '8px',
-                                        cursor: yearCurrentPage === 1 ? 'not-allowed' : 'pointer',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        color: yearCurrentPage === 1 ? '#94a3b8' : '#1e293b'
-                                    }}
-                                >
-                                    Anterior
-                                </button>
-                                
-                                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--primary-color)' }}>
-                                    Página {yearCurrentPage} de {yearTotalPages}
-                                </span>
-
-                                <button 
-                                    onClick={() => fetchAcademicYears(yearCurrentPage + 1)}
-                                    disabled={yearCurrentPage === yearTotalPages}
-                                    style={{
-                                        background: yearCurrentPage === yearTotalPages ? '#f8fafc' : 'white',
-                                        border: '1px solid #e2e8f0',
-                                        padding: '8px 16px',
-                                        borderRadius: '8px',
-                                        cursor: yearCurrentPage === yearTotalPages ? 'not-allowed' : 'pointer',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        color: yearCurrentPage === yearTotalPages ? '#94a3b8' : '#1e293b'
-                                    }}
-                                >
-                                    Próximo
-                                </button>
-                            </div>
-                        )}
+                        <Pagination
+                            totalItems={yearTotalItems}
+                            itemsPerPage={23}
+                            currentPage={yearCurrentPage}
+                            onPageChange={(page) => fetchAcademicYears(page)}
+                        />
 
                         <div className="section-title-v2" style={{ marginTop: '48px', marginBottom: '24px' }}>
                             <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
@@ -2642,22 +2599,12 @@ const Configuracoes = () => {
                         </div>
 
                         {/* Paginação */}
-                        {logsTotalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '0 4px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Total: {logsTotal} registos</span>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <button disabled={logsPage <= 1} onClick={() => { setLogsPage(p => p-1); fetchLogs(logsPage-1, logsTab); }}
-                                        style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: logsPage <= 1 ? '#f8fafc' : 'white', cursor: logsPage <= 1 ? 'not-allowed' : 'pointer', color: '#64748b' }}>
-                                        <ChevronLeft size={16}/>
-                                    </button>
-                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>Pág. {logsPage} de {logsTotalPages}</span>
-                                    <button disabled={logsPage >= logsTotalPages} onClick={() => { setLogsPage(p => p+1); fetchLogs(logsPage+1, logsTab); }}
-                                        style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: logsPage >= logsTotalPages ? '#f8fafc' : 'white', cursor: logsPage >= logsTotalPages ? 'not-allowed' : 'pointer', color: '#64748b' }}>
-                                        <ChevronRightIcon size={16}/>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        <Pagination
+                            totalItems={logsTotal}
+                            itemsPerPage={23}
+                            currentPage={logsPage}
+                            onPageChange={(page) => { setLogsPage(page); fetchLogs(page, logsTab); }}
+                        />
                     </div>
                 );
             default:

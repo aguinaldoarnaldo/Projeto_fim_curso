@@ -54,6 +54,7 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
     const refresh = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
+            setError(null);
             const response = await fetcherRef.current();
             const freshData = (response && response.data) ? (response.data.results || response.data) : response;
             
@@ -63,6 +64,7 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
             }
         } catch (err) {
             console.error(err);
+            setError(err);
         } finally {
             if (!silent) setLoading(false);
         }

@@ -13,9 +13,16 @@ from apis.serializers.matricula_serializers import MatriculaSerializer
 
 from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 from apis.mixins import AuditMixin
+from rest_framework.pagination import PageNumberPagination
+
+class LargeResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 5000
 
 class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Matricula"""
+    pagination_class = LargeResultsSetPagination
     queryset = Matricula.objects.select_related(
         'id_aluno', 
         'id_turma', 
@@ -42,6 +49,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         'matricular_novo_aluno': 'create_matricula',
         'permutar': 'change_matricula',
     }
+
 
     @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, HasAdditionalPermission])
     def update_status(self, request, pk=None):
@@ -193,6 +201,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                         )
 
                 # 2. Aluno
+                is_confirmacao = data.get('tipo') == 'Confirmacao'
                 candidato_id = data.get('candidato_id')
                 candidato = None
                 if candidato_id:
@@ -207,8 +216,14 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                     # Verificar se já existe por BI 
                     aluno_exists = Aluno.objects.filter(numero_bi=data.get('numero_bi')).first()
                     if aluno_exists:
-                         # Se já existe, usar este aluno (mas avisar user seria ideal)
                          aluno = aluno_exists
+                    elif is_confirmacao:
+                        # REGRA DE NEGÓCIO: Confirmação exige aluno já existente.
+                        # Se chegou aqui, o aluno não foi encontrado – bloquear para evitar duplicados.
+                        return Response(
+                            {'erro': 'Confirmação de matrícula requer um aluno já registado. Aluno não encontrado pelo ID ou BI fornecido.'},
+                            status=400
+                        )
                     else:
                         foto = request.FILES.get('novo_aluno_foto')
                         
@@ -242,13 +257,36 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                                 aluno.img_path.save(filename, ContentFile(content), save=True)
                             except Exception as e:
                                 print(f"Erro ao copiar foto do candidato: {e}")
-                else:
-                    # Atualizar dados do aluno existente
-                    # IMPORTANTE: Para 'Confirmacao', apenas atualizamos a turma e o status.
-                    # Os dados pessoais do aluno (nome, BI, morada, etc.) NÃO são alterados
-                    # para preservar a integridade do histórico das matrículas anteriores.
-                    is_confirmacao = data.get('tipo') == 'Confirmacao'
-                    
+
+                # VALIDAÇÃO: Se for confirmação, o curso NÃO pode mudar
+                if is_confirmacao and aluno:
+                    matricula_anterior = Matricula.objects.filter(
+                        id_aluno=aluno
+                    ).select_related('id_turma__id_curso').order_by('-data_matricula').first()
+
+                    if matricula_anterior and matricula_anterior.id_turma and matricula_anterior.id_turma.id_curso:
+                        curso_anterior = matricula_anterior.id_turma.id_curso
+                        curso_novo = turma.id_curso
+                        if curso_anterior and curso_novo and curso_anterior.pk != curso_novo.pk:
+                            return Response(
+                                {'erro': f'Numa confirmação de matrícula, o curso não pode ser alterado. O aluno está inscrito em "{curso_anterior.nome_curso}". Selecione uma turma do mesmo curso.'},
+                                status=400
+                            )
+
+                    # VALIDAÇÃO: Não pode ter duas matrículas ativas no mesmo ano
+                    duplicada = Matricula.objects.filter(
+                        id_aluno=aluno,
+                        ano_lectivo=ano_lectivo,
+                        status='Ativa'
+                    ).exists()
+                    if duplicada:
+                        return Response(
+                            {'erro': f'O aluno já possui uma matrícula ativa para o ano lectivo {ano_lectivo.nome}. Não é possível criar uma segunda.'},
+                            status=400
+                        )
+
+                if aluno and (id_aluno or Aluno.objects.filter(numero_bi=data.get('numero_bi')).exists()):
+                    # Aluno existente — atualizar campos necessários
                     aluno.id_turma = turma
                     aluno.status_aluno = 'Activo'
                     

@@ -9,6 +9,7 @@ from apis.serializers import (
     FaturaSerializer, FaturaListSerializer,
     PagamentoSerializer, PagamentoListSerializer
 )
+from apis.utils.pagination import LargeResultsSetPagination
 from apis.mixins import AuditMixin
 
 
@@ -40,6 +41,7 @@ class FaturaViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class PagamentoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Pagamento"""
+    pagination_class = LargeResultsSetPagination
     queryset = Pagamento.objects.select_related(
         'id_fatura', 'id_recebedor'
     ).all()

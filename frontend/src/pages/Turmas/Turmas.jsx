@@ -74,7 +74,7 @@ const Turmas = () => {
 
     // Fetcher for useDataCache
     const fetchTurmasData = async () => {
-        const response = await api.get('turmas/');
+        const response = await api.get('turmas/?page_size=5000');
         const data = response.data.results || response.data;
         return data.map(t => ({
             id: t.id_turma,
@@ -115,7 +115,7 @@ const Turmas = () => {
                     api.get('salas/'),
                     api.get('cursos/'),
                     api.get('periodos/'),
-                    api.get('anos-lectivos/'),
+                    api.get('anos-lectivos/?all=true'),
                     api.get('classes/')
                 ]);
                 
@@ -357,7 +357,7 @@ const Turmas = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Turmas</h1>
-                        <p>Configuração e monitoramento das turmas do ano lectivo corrente.</p>
+                        <p>Configuração e monitoramento das {turmas.length} turmas do ano lectivo corrente.</p>
                     </div>
                     {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
                         <button
@@ -430,104 +430,105 @@ const Turmas = () => {
 
                 {/* Turmas Table */}
                 {loading ? (
-                     <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', color: '#64748b'}}>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', color: '#64748b'}}>
                         <div className="loading-spinner" style={{width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spinner 0.8s linear infinite'}}></div>
                         <span style={{fontWeight: 500}}>A carregar turmas...</span>
                     </div>
                 ) : (
-                    <div className="table-wrapper">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Nome Turma</th>
-                                    <th>Curso</th>
-                                    <th>Classe</th>
-                                    <th>Sala</th>
-                                    <th>Coordenador</th>
-                                    <th>Ano Lectivo</th>
-                                    <th>Turno</th>
-                                    <th>Alunos (Capacidade)</th>
-                                    <th>Estado</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {error ? (
+                    <>
+                        <div className="table-wrapper">
+                            <table className="data-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
-                                            {error}
-                                        </td>
+                                        <th>Nome Turma</th>
+                                        <th>Curso</th>
+                                        <th>Classe</th>
+                                        <th>Sala</th>
+                                        <th>Coordenador</th>
+                                        <th>Ano Lectivo</th>
+                                        <th>Turno</th>
+                                        <th>Alunos (Capacidade)</th>
+                                        <th>Estado</th>
+                                        <th>Ações</th>
                                     </tr>
-                                ) : currentTurmas.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
-                                            Nenhuma turma encontrada.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    currentTurmas.map((t) => (
-                                        <tr key={t.id} className="animate-fade-in">
-                                            <td className="turma-name-cell" data-label="Turma">{t.turma}</td>
-                                            <td data-label="Curso">{t.curso}</td>
-                                            <td data-label="Classe">{t.classe}</td>
-                                            <td data-label="Sala" style={{ fontWeight: 500 }}>{t.sala}</td>
-                                            <td data-label="Coordenador">
-                                                <div className="coordinator-cell">
-                                                    <div className="coordinator-avatar-small">
-                                                        {t.coordenador.split(' ').pop().charAt(0)}
-                                                    </div>
-                                                    <span>{t.coordenador}</span>
-                                                </div>
-                                            </td>
-                                            <td data-label="Ano Lectivo">{t.ano}</td>
-                                            <td data-label="Turno">{t.turno}</td>
-                                            <td data-label="Alunos" style={{ textAlign: 'center' }}>
-                                                <div className="capacity-cell">
-                                                    <span style={{ fontWeight: 700, fontSize: '12px', color: t.qtdAlunos >= t.capacidade ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / {t.capacidade}</span>
-                                                    <div className="capacity-progress-container">
-                                                        <div className="capacity-progress-bar" style={{ width: `${Math.min((t.qtdAlunos / t.capacidade) * 100, 100)}%`, background: t.qtdAlunos >= t.capacidade ? '#ef4444' : 'var(--primary-color)' }} />
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td data-label="Estado">
-                                                <span style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '12px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 600,
-                                                    backgroundColor: t.status === 'Ativa' ? '#dcfce7' : '#f1f5f9',
-                                                    color: t.status === 'Ativa' ? '#166534' : '#64748b'
-                                                }}>
-                                                    {t.status === 'Concluida' ? 'Concluída' : t.status}
-                                                </span>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
-                                                    <button
-                                                        onClick={() => handleEdit(t)}
-                                                        className="btn-edit-turma"
-                                                        title={t.ano_lectivo_ativo === false ? "Ano Lectivo Encerrado (Somente Leitura)" : "Editar Turma"}
-                                                        disabled={t.ano_lectivo_ativo === false}
-                                                        style={t.ano_lectivo_ativo === false ? { opacity: 0.5, cursor: 'not-allowed', background: '#ccc' } : {}}
-                                                    >
-                                                        <Edit3 size={18} />
-                                                    </button>
-                                                )}
+                                </thead>
+                                <tbody>
+                                    {error ? (
+                                        <tr>
+                                            <td colSpan="11" style={{textAlign: 'center', padding: '40px', color: '#ef4444'}}>
+                                                {typeof error === 'string' ? error : error?.message || "Erro ao carregar lista de turmas."}
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    ) : currentTurmas.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="11" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                                Nenhuma turma encontrada.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        currentTurmas.map((t) => (
+                                            <tr key={t.id} className="animate-fade-in">
+                                                <td className="turma-name-cell" data-label="Turma">{t.turma}</td>
+                                                <td data-label="Curso">{t.curso}</td>
+                                                <td data-label="Classe">{t.classe}</td>
+                                                <td data-label="Sala" style={{ fontWeight: 500 }}>{t.sala}</td>
+                                                <td data-label="Coordenador">
+                                                    <div className="coordinator-cell">
+                                                        <div className="coordinator-avatar-small">
+                                                            {(t.coordenador || 'U').split(' ').pop().charAt(0)}
+                                                        </div>
+                                                        <span>{t.coordenador || 'N/A'}</span>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Ano Lectivo">{t.ano}</td>
+                                                <td data-label="Turno">{t.turno}</td>
+                                                <td data-label="Alunos" style={{ textAlign: 'center' }}>
+                                                    <div className="capacity-cell">
+                                                        <span style={{ fontWeight: 700, fontSize: '12px', color: t.qtdAlunos >= t.capacidade ? '#ef4444' : '#10b981' }}>{t.qtdAlunos} / {t.capacidade}</span>
+                                                        <div className="capacity-progress-container">
+                                                            <div className="capacity-progress-bar" style={{ width: `${Math.min((t.qtdAlunos / t.capacidade) * 100, 100)}%`, background: t.qtdAlunos >= t.capacidade ? '#ef4444' : 'var(--primary-color)' }} />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Estado">
+                                                    <span style={{
+                                                        padding: '4px 8px',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        backgroundColor: t.status === 'Ativa' ? '#dcfce7' : '#f1f5f9',
+                                                        color: t.status === 'Ativa' ? '#166534' : '#64748b'
+                                                    }}>
+                                                        {t.status === 'Concluida' ? 'Concluída' : t.status}
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
+                                                        <button
+                                                            onClick={() => handleEdit(t)}
+                                                            className="btn-edit-turma"
+                                                            title={t.ano_lectivo_ativo === false ? "Ano Lectivo Encerrado (Somente Leitura)" : "Editar Turma"}
+                                                            disabled={t.ano_lectivo_ativo === false}
+                                                            style={t.ano_lectivo_ativo === false ? { opacity: 0.5, cursor: 'not-allowed', background: '#ccc' } : {}}
+                                                        >
+                                                            <Edit3 size={18} />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination 
+                            totalItems={filteredData.length} 
+                            itemsPerPage={itemsPerPage} 
+                            currentPage={currentPage}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
                 )}
-
-                <Pagination 
-                    totalItems={filteredData.length} 
-                    itemsPerPage={itemsPerPage} 
-                    currentPage={currentPage}
-                    onPageChange={setCurrentPage}
-                />
             </div>
 
             {/* Add/Edit Modal */}

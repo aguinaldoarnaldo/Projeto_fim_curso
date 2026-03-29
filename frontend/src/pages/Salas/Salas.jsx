@@ -90,7 +90,7 @@ const Salas = () => {
 
         try {
             // Do not set loading=true on polling to avoid flash
-            const response = await api.get('salas/');
+            const response = await api.get('salas/?page_size=5000');
             const data = response.data.results || response.data;
             setSalas(Array.isArray(data) ? data : []);
             setCache('salas', Array.isArray(data) ? data : []);
@@ -241,7 +241,7 @@ const Salas = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Salas</h1>
-                        <p>Controlo e distribuição das salas de aula e laboratórios.</p>
+                        <p>Controlo e distribuição das {salas.length} salas de aula e laboratórios.</p>
                     </div>
                     <div className="page-header-actions">
                         {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
@@ -294,148 +294,99 @@ const Salas = () => {
                         <span style={{fontWeight: 500}}>A carregar dados...</span>
                     </div>
                 ) : (
-                    <div className="table-wrapper">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Sala</th>
-                                    <th>Tipo</th>
-                                    <th>Bloco</th>
-                                    <th>Capacidade</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {error ? (
+                    <>
+                        <div className="table-wrapper">
+                            <table className="data-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="5" style={{textAlign: 'center', padding: '20px', color: '#ef4444'}}>
-                                            {error}
-                                        </td>
+                                        <th>Sala</th>
+                                        <th>Tipo</th>
+                                        <th>Bloco</th>
+                                        <th>Capacidade</th>
+                                        <th>Ações</th>
                                     </tr>
-                                ) : currentSalas.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
-                                            Nenhuma sala encontrada.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    currentSalas.map((s) => {
-                                        const type = getRoomType(s);
-                                        return (
-                                            <tr key={s.id_sala} className="animate-fade-in">
-                                                <td className="sala-name-cell" data-label="Sala">
-                                                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                                                        <div style={{
-                                                            width: '36px', height: '36px', 
-                                                            background: '#f1f5f9', borderRadius: '10px',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            color: '#475569'
+                                </thead>
+                                <tbody>
+                                    {error ? (
+                                        <tr>
+                                            <td colSpan="5" style={{textAlign: 'center', padding: '20px', color: '#ef4444'}}>
+                                                {error}
+                                            </td>
+                                        </tr>
+                                    ) : currentSalas.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                                                Nenhuma sala encontrada.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        currentSalas.map((s) => {
+                                            const type = getRoomType(s);
+                                            return (
+                                                <tr key={s.id_sala} className="animate-fade-in">
+                                                    <td className="sala-name-cell" data-label="Sala">
+                                                        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                                            <div style={{
+                                                                width: '36px', height: '36px', 
+                                                                background: '#f1f5f9', borderRadius: '10px',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                color: '#475569'
+                                                            }}>
+                                                                <LayoutGrid size={18} />
+                                                            </div>
+                                                             <div>
+                                                                <span>Sala {s.numero_sala}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td data-label="Tipo">
+                                                        <span style={{
+                                                            padding: '4px 10px', 
+                                                            borderRadius: '6px', 
+                                                            fontSize: '12px', 
+                                                            fontWeight: 600,
+                                                            background: type.bg,
+                                                            color: type.color
                                                         }}>
-                                                            <LayoutGrid size={18} />
+                                                            {type.label}
+                                                        </span>
+                                                    </td>
+                                                    <td data-label="Bloco">
+                                                        <div className="bloco-badge">
+                                                            <MapPin size={14} />
+                                                            {s.bloco || 'Principal'}
                                                         </div>
-                                                         <div>
-                                                            <span>Sala {s.numero_sala}</span>
-                                                            <span style={{display: 'block', fontSize: '11px', color: '#94a3b8', fontWeight: 500}}>{s.total_alunos || 0} alunos ativos</span>
+                                                    </td>
+                                                    <td data-label="Capacidade">
+                                                        <div style={{ fontWeight: 600, color: '#475569' }}>
+                                                            {s.capacidade_alunos} Alunos
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td data-label="Tipo">
-                                                    <span style={{
-                                                        padding: '4px 10px', 
-                                                        borderRadius: '6px', 
-                                                        fontSize: '12px', 
-                                                        fontWeight: 600,
-                                                        background: type.bg,
-                                                        color: type.color
-                                                    }}>
-                                                        {type.label}
-                                                    </span>
-                                                </td>
-                                                <td data-label="Bloco">
-                                                    <div className="bloco-badge">
-                                                        <MapPin size={14} />
-                                                        {s.bloco || 'Principal'}
-                                                    </div>
-                                                </td>
-                                                <td data-label="Capacidade">
-                                                    <div className="capacity-wrapper">
-                                                        <div className="capacity-text">
-                                                            {(() => {
-                                                                const detalhada = s.ocupacao_detalhada || {};
-                                                                const values = Object.values(detalhada);
-                                                                const maxOcupacao = values.length > 0 ? Math.max(...values) : 0;
-                                                                const percent = Math.round((maxOcupacao / s.capacidade_alunos) * 100);
-                                                                
-                                                                return (
-                                                                    <>
-                                                                        <span title="Ocupação Máxima (Pior Turno)">{maxOcupacao} / {s.capacidade_alunos} (Máx)</span>
-                                                                        <span style={{fontSize: '11px', color: '#94a3b8'}}>
-                                                                            {percent}% Ocupada
-                                                                        </span>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                        
-                                                        {/* Progress Bar (Based on MAX occupancy) */}
-                                                        {(() => {
-                                                             const values = Object.values(s.ocupacao_detalhada || {});
-                                                             const maxOcupacao = values.length > 0 ? Math.max(...values) : 0;
-                                                             const percent = Math.min((maxOcupacao / s.capacidade_alunos) * 100, 100);
-                                                             
-                                                             return (
-                                                                <div className="capacity-bar-bg">
-                                                                    <div 
-                                                                        className="capacity-bar-fill" 
-                                                                        style={{
-                                                                            width: `${percent}%`,
-                                                                            background: percent >= 100 ? '#ef4444' : (percent >= 80 ? '#f59e0b' : '#3b82f6')
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                             );
-                                                        })()}
-
-                                                        {/* Shift Breakdown */}
-                                                        <div style={{display: 'flex', gap: '8px', marginTop: '6px', fontSize: '10px', color: '#64748b', flexWrap: 'wrap'}}>
-                                                            {Object.entries(s.ocupacao_detalhada || {}).map(([turno, qtd]) => (
-                                                                <span key={turno} style={{background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0'}}>
-                                                                    {turno}: <b>{qtd}</b>
-                                                                </span>
-                                                            ))}
-                                                            {Object.keys(s.ocupacao_detalhada || {}).length === 0 && (
-                                                                <span>Sem alunos</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td data-label="Ações">
-                                                    {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
-                                                        <button
-                                                            onClick={() => handleEdit(s)}
-                                                            className="btn-edit-sala"
-                                                            title="Editar Sala"
-                                                        >
-                                                            <Edit3 size={18} />
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {filteredData.length > itemsPerPage && (
-                    <Pagination 
-                        totalItems={filteredData.length} 
-                        itemsPerPage={itemsPerPage} 
-                        currentPage={currentPage}
-                        onPageChange={setCurrentPage}
-                    />
+                                                    </td>
+                                                    <td data-label="Ações">
+                                                        {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
+                                                            <button
+                                                                onClick={() => handleEdit(s)}
+                                                                className="btn-edit-sala"
+                                                                title="Editar Sala"
+                                                            >
+                                                                <Edit3 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination 
+                            totalItems={filteredData.length} 
+                            itemsPerPage={itemsPerPage} 
+                            currentPage={currentPage}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
                 )}
             </div>
 

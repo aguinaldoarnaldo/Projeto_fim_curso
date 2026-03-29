@@ -143,10 +143,33 @@ const Matriculas = () => {
 
     // 1. Define Fetch Function for Matriculas ONLY
     const fetchMatriculasData = async () => {
-        const response = await api.get('matriculas/');
+        // Buscamos todos os registros para contornar a limitação de paginação 
+        // e garantir a deduplicação completa no frontend
+        const response = await api.get('matriculas/?page_size=5000');
         const data = response.data.results || response.data;
         
         if (!Array.isArray(data)) return [];
+        
+        // Reconstruir o histórico completo no frontend para não sobrecarregar o backend com N+1 queries
+        const historyMap = {};
+        data.forEach(item => {
+            const aId = item.id_aluno;
+            if (aId) {
+                if (!historyMap[aId]) historyMap[aId] = [];
+                historyMap[aId].push({
+                    id_matricula: item.id_matricula,
+                    ano_lectivo_nome: item.ano_lectivo_nome || item.ano_lectivo || 'N/A',
+                    turma_codigo: item.turma_codigo || 'Sem Turma',
+                    classe_nome: item.classe_name || item.classe_nome || 'N/A',
+                    curso_nome: item.curso_nome || 'N/A',
+                    periodo_nome: item.periodo_nome || 'N/A',
+                    sala_numero: item.sala_numero || item.sala_nome || 'N/A',
+                    tipo: item.tipo || 'Novo',
+                    status: item.status || 'Ativa',
+                    data_matricula: item.data_matricula
+                });
+            }
+        });
 
         return data.map(item => {
             // Nº Aluno: ID do aluno formatado com 4 dígitos → 0001, 0002, 0151
@@ -162,54 +185,57 @@ const Matriculas = () => {
                 ? String(item.id_matricula).padStart(3, '0')
                 : '000';
             const numMatricula = `${anoBase}${idMatFormatado}`;
+            
+            // Organizar os anuais de histórico de forma descendente 
+            let sortedHistory = (historyMap[item.id_aluno] || []).sort((a, b) => b.id_matricula - a.id_matricula);
 
             return ({
-            id: numMatricula,
-            real_id: item.id_matricula,
-            numAluno: alunoIdFormatado,
-            numMatricula: numMatricula,
-            aluno: item.aluno_nome || 'Desconhecido',
-            alunoNumero: alunoIdFormatado,
-            foto: item.aluno_foto || null,
-            anoLectivo: item.ano_lectivo_nome || item.ano_lectivo || 'N/A',
-            classe: item.classe_nome || 'N/A',
-            curso: item.curso_nome || 'N/A',
-            sala: item.sala_numero || item.sala_nome || 'N/A',
-            turno: item.periodo_nome || 'N/A',
-            turma: item.turma_codigo || 'Sem Turma',
-            status: item.status || 'Ativa',
-            tipo: item.tipo || 'Novo',
-            dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
-            alunoId: item.id_aluno,
-            id_turma: item.id_turma || '',
-            id_classe: item.id_classe || '',
-            detalhes: {
-                bi: item.aluno_bi || item.bi || item.numero_bi || 'N/A', 
-                genero: item.aluno_genero || item.genero || 'N/A',
-                nif: item.nif || 'N/A',
-                dataNascimento: item.aluno_data_nascimento || item.data_nascimento || 'N/A',
-                encarregado: item.encarregado_nome || 'N/A', 
-                parentesco: item.encarregado_parentesco || 'N/A',
-                telefoneEncarregado: item.encarregado_telefone || 'N/A',
-                telefoneAluno: item.telefone || 'N/A',
-                email: item.email || 'N/A', 
-                endereco: item.endereco || 'N/A',
-                nacionalidade: item.nacionalidade || 'Angolana',
-                naturalidade: item.naturalidade || '',
-                deficiencia: item.deficiencia || 'Não',
-                provincia: item.provincia_residencia || '',
-                municipio: item.municipio_residencia || '',
-                bairro: item.bairro_residencia || '',
-                numero_casa: item.numero_casa || '',
-                bi_encarregado: item.encarregado_bi || '',
-                profissao_encarregado: item.encarregado_profissao || '',
-                pagamentoStatus: item.ativo ? 'Confirmado' : 'Pendente',
-                documentos: item.documentos_entregues ? item.documentos_entregues.split(',') : [],
-                doc_bi: item.doc_bi,
-                doc_cert: item.doc_certificado,
-                historico: item.historico_escolar || [],
-                historicoMatriculas: item.matriculas_detalhes || []
-            }
+                id: numMatricula,
+                real_id: item.id_matricula,
+                numAluno: alunoIdFormatado,
+                numMatricula: numMatricula,
+                aluno: item.aluno_nome || 'Desconhecido',
+                alunoNumero: alunoIdFormatado,
+                foto: item.aluno_foto || null,
+                anoLectivo: item.ano_lectivo_nome || item.ano_lectivo || 'N/A',
+                classe: item.classe_formatada || item.classe_nome || 'N/A',
+                curso: item.curso_nome || 'N/A',
+                sala: item.sala_numero || item.sala_nome || 'N/A',
+                turno: item.periodo_nome || 'N/A',
+                turma: item.turma_codigo || 'Sem Turma',
+                status: item.status || 'Ativa',
+                tipo: item.tipo || 'Novo',
+                dataMatricula: item.data_matricula ? new Date(item.data_matricula).toLocaleDateString() : 'N/A',
+                alunoId: item.id_aluno,
+                id_turma: item.id_turma || '',
+                id_classe: item.id_classe || '',
+                detalhes: {
+                    bi: item.aluno_bi || item.bi || item.numero_bi || 'N/A', 
+                    genero: item.aluno_genero || item.genero || 'N/A',
+                    nif: item.nif || 'N/A',
+                    dataNascimento: item.aluno_data_nascimento || item.data_nascimento || 'N/A',
+                    encarregado: item.encarregado_nome || 'N/A', 
+                    parentesco: item.encarregado_parentesco || item.parentesco_encarregado || 'N/A',
+                    telefoneEncarregado: item.encarregado_telefone || item.telefone_encarregado || 'N/A',
+                    telefoneAluno: item.telefone || item.aluno_telefone || 'N/A',
+                    email: item.email || item.aluno_email || 'N/A', 
+                    endereco: item.endereco || item.aluno_endereco || 'N/A',
+                    nacionalidade: item.nacionalidade || 'Angolana',
+                    naturalidade: item.naturalidade || '',
+                    deficiencia: item.deficiencia || 'Não',
+                    provincia: item.provincia_residencia || '',
+                    municipio: item.municipio_residencia || '',
+                    bairro: item.bairro_residencia || '',
+                    numero_casa: item.numero_casa || '',
+                    bi_encarregado: item.encarregado_bi || item.bi_encarregado || '',
+                    profissao_encarregado: item.encarregado_profissao || item.profissao_encarregado || '',
+                    pagamentoStatus: item.ativo || item.pagamento_confirmado ? 'Confirmado' : 'Pendente',
+                    documentos: item.documentos_entregues ? (typeof item.documentos_entregues === 'string' ? item.documentos_entregues.split(',') : []) : [],
+                    doc_bi: item.comprovativo_bi || item.doc_bi,
+                    doc_cert: item.certificado || item.doc_certificado || item.doc_cert,
+                    historico: item.historico_escolar || [],
+                    historicoMatriculas: item.matriculas_detalhes || sortedHistory
+                }
             });
         });
     };
@@ -230,10 +256,10 @@ const Matriculas = () => {
             try {
                 const [cursosRes, anosRes, classesRes, salasRes, turmasRes] = await Promise.all([
                     api.get('cursos/'),
-                    api.get('anos-lectivos/'),
+                    api.get('anos-lectivos/?all=true'),
                     api.get('classes/'),
                     api.get('salas/'),
-                    api.get('turmas/')
+                    api.get('turmas/?page_size=5000')
                 ]);
 
                 if (cursosRes.data.results || Array.isArray(cursosRes.data))
@@ -250,8 +276,8 @@ const Matriculas = () => {
 
                 if (turmasRes.data.results || Array.isArray(turmasRes.data)) {
                      const allTurmas = turmasRes.data.results || turmasRes.data;
-                     // Only show active turmas in the filter dropdown to avoid confusion with past years
-                     setTurmasDisponiveis(allTurmas.filter(t => t.status === 'Ativa'));
+                     // Mostrar TODAS as turmas nos filtros (incluindo anos anteriores)
+                     setTurmasDisponiveis(allTurmas);
                 }
 
             } catch (e) {
@@ -260,15 +286,16 @@ const Matriculas = () => {
         };
 
         fetchFilters();
-        // Force refresh when component mounts to ensure we don't show stale data after edit
-        refresh(true);
-    }, [refresh]);
+    }, []);
 
     // 4. Polling Automático e Inteligente (Otimizado)
     useEffect(() => {
-        const syncIfVisible = () => {
-            if (!document.hidden) {
-                refresh(true); // silent = true
+        let isFetching = false;
+        const syncIfVisible = async () => {
+            if (!document.hidden && !isFetching) {
+                isFetching = true;
+                await refresh(true); // silent = true
+                setTimeout(() => { isFetching = false; }, 5000); // 5s cooldown
             }
         };
 
@@ -383,7 +410,8 @@ const Matriculas = () => {
             return matchesSearch && matchesFilters;
         });
 
-        // Dedup logic: If NO year filter is active, only show the most recent matricula for each student
+        // Dedup logic: Se não houver filtro de ano ativo, mostramos apenas a matrícula mais recente de cada aluno
+        // Assim evitamos "sujar" a tabela principal com histórico, deixando-o apenas para o modal de detalhes
         if (filters.ano === '') {
             const studentMap = {};
             sortableItems.forEach(m => {
@@ -391,9 +419,6 @@ const Matriculas = () => {
                 if (!studentMap[studentId]) {
                     studentMap[studentId] = m;
                 } else {
-                    // Simple logic: Compare by real_id or dataMatricula
-                    // We assume the list is already sorted by date desc if backend default applies, 
-                    // but let's be safe.
                     if (m.real_id > studentMap[studentId].real_id) {
                         studentMap[studentId] = m;
                     }
@@ -401,6 +426,8 @@ const Matriculas = () => {
             });
             sortableItems = Object.values(studentMap);
         }
+
+        // Use o sortConfig para ordenar os itens filtrados
 
         if (sortConfig.key) {
             sortableItems.sort((a, b) => {
@@ -489,7 +516,43 @@ const Matriculas = () => {
             key: 'turma', 
             label: 'Turma', 
             icon: Users,
-            options: turmasDisponiveis.map(t => ({ value: t.codigo_turma || t.nome, label: t.codigo_turma || t.nome }))
+            options: (() => {
+                const turmasPorAno = {};
+                turmasDisponiveis.forEach(t => {
+                    const ano = t.ano_lectivo_nome || 'Sem Ano';
+                    if (!turmasPorAno[ano]) turmasPorAno[ano] = [];
+                    turmasPorAno[ano].push(t);
+                });
+
+                const sortedAnos = Object.keys(turmasPorAno).sort((a, b) => b.localeCompare(a));
+                const finalOptions = [];
+                const activeYearName = anosDisponiveis.find(a => a.activo)?.nome;
+
+                if (activeYearName && turmasPorAno[activeYearName]) {
+                    finalOptions.push({ label: `Ano Activo: ${activeYearName}`, isHeader: true });
+                    turmasPorAno[activeYearName]
+                        .sort((a, b) => (a.codigo_turma || a.nome).localeCompare(b.codigo_turma || b.nome))
+                        .forEach(t => {
+                            finalOptions.push({ 
+                                value: t.codigo_turma || t.nome, 
+                                label: t.codigo_turma || t.nome,
+                                isHighlighted: true 
+                            });
+                        });
+                }
+
+                sortedAnos.forEach(ano => {
+                    if (ano === activeYearName) return;
+                    finalOptions.push({ label: `Ano: ${ano}`, isHeader: true });
+                    turmasPorAno[ano]
+                        .sort((a, b) => (a.codigo_turma || a.nome).localeCompare(b.codigo_turma || b.nome))
+                        .forEach(t => {
+                            finalOptions.push({ value: t.codigo_turma || t.nome, label: t.codigo_turma || t.nome });
+                        });
+                });
+
+                return finalOptions;
+            })()
         },
         {
             key: 'tipo',

@@ -14,7 +14,7 @@ export const getServerIP = () => {
 
 const api = axios.create({
     baseURL: getServerIP(),
-    timeout: 10000,
+    timeout: 60000,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

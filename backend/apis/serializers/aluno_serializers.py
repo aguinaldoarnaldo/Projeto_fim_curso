@@ -22,43 +22,47 @@ class AlunoSerializer(serializers.ModelSerializer):
 
 
 class AlunoListSerializer(serializers.ModelSerializer):
-    """Serializer simplificado para listagem de Alunos"""
+    """
+    Serializer para listagem de Alunos.
+    Inclui todos os campos necessários para a tabela E para o modal de detalhes.
+    O único campo excluído é sugerido_tipo_matricula (muito lento na lista grande).
+    """
     turma_codigo = serializers.CharField(source='id_turma.codigo_turma', read_only=True)
     sala_numero = serializers.IntegerField(source='id_turma.id_sala.numero_sala', read_only=True)
     curso_nome = serializers.CharField(source='id_turma.id_curso.nome_curso', read_only=True)
     classe_nivel = serializers.IntegerField(source='id_turma.id_classe.nivel', read_only=True)
     periodo_nome = serializers.CharField(source='id_turma.id_periodo.periodo', read_only=True)
-    img_path = serializers.SerializerMethodField()
-    encarregado_principal = serializers.SerializerMethodField()
-    sugerido_tipo_matricula = serializers.SerializerMethodField()
-    from .historico_serializers import HistoricoEscolarSerializer
-    historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
     ano_lectivo = serializers.SerializerMethodField()
     ano_lectivo_ativo = serializers.SerializerMethodField()
+    img_path = serializers.SerializerMethodField()
+    encarregado_principal = serializers.SerializerMethodField()
     matriculas_detalhes = serializers.SerializerMethodField()
-    
+    from .historico_serializers import HistoricoEscolarSerializer
+    historico_escolar = HistoricoEscolarSerializer(many=True, read_only=True)
+
     class Meta:
         model = Aluno
         fields = [
             'id_aluno', 'nome_completo', 'numero_matricula',
             'email', 'turma_codigo', 'status_aluno', 'genero',
             'sala_numero', 'curso_nome', 'classe_nivel', 'periodo_nome',
-            'numero_bi', 'telefone', 'img_path', 
+            'numero_bi', 'telefone', 'img_path',
             'municipio_residencia', 'provincia_residencia',
-            'data_nascimento', 'criado_em', 'encarregado_principal',
-            'sugerido_tipo_matricula', 'historico_escolar', 
-            'matriculas_detalhes', 'ano_lectivo', 'ano_lectivo_ativo'
+            'data_nascimento', 'criado_em',
+            'encarregado_principal', 'matriculas_detalhes', 'historico_escolar',
+            'ano_lectivo', 'ano_lectivo_ativo',
+            # Excluded: 'sugerido_tipo_matricula' (calls AcademicService per student - too slow for list)
         ]
 
-    def get_matriculas_detalhes(self, obj):
-        matriculas = Matricula.objects.filter(id_aluno=obj).order_by('-ano_lectivo__nome', '-data_matricula')
-        return MatriculaHistorySerializer(matriculas, many=True).data
-
     def get_ano_lectivo(self, obj):
-        return obj.id_turma.ano_lectivo.nome if obj.id_turma and obj.id_turma.ano_lectivo else (obj.id_turma.ano if obj.id_turma else "N/A")
+        if obj.id_turma and obj.id_turma.ano_lectivo:
+            return obj.id_turma.ano_lectivo.nome
+        return 'N/A'
 
     def get_ano_lectivo_ativo(self, obj):
-        return obj.id_turma.ano_lectivo.activo if obj.id_turma and obj.id_turma.ano_lectivo else False
+        if obj.id_turma and obj.id_turma.ano_lectivo:
+            return obj.id_turma.ano_lectivo.activo
+        return False
 
     def get_img_path(self, obj):
         if obj.img_path:
@@ -66,27 +70,25 @@ class AlunoListSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.img_path.url)
             return obj.img_path.url
-        
-        # Fallback para foto do candidato
-        from apis.models import Candidato
-        candidato = Candidato.objects.filter(numero_bi=obj.numero_bi).first()
-        if candidato and candidato.foto_passe:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(candidato.foto_passe.url)
-            return candidato.foto_passe.url
         return None
 
     def get_encarregado_principal(self, obj):
-        # Return first guardian name found
         first = obj.alunoencarregado_set.first()
-        if first:            
+        if first:
             return first.id_encarregado.nome_completo
         return 'N/A'
 
-    def get_sugerido_tipo_matricula(self, obj):
-        from apis.services.academic_service import AcademicService
-        return AcademicService.determinar_tipo_matricula(obj.id_aluno)
+    def get_matriculas_detalhes(self, obj):
+        matriculas = list(obj.matricula_set.all())
+        from datetime import date
+        default_date = date(1970, 1, 1)
+        matriculas.sort(
+            key=lambda x: (x.ano_lectivo.nome if x.ano_lectivo else '', x.data_matricula or default_date),
+            reverse=True
+        )
+        return MatriculaHistorySerializer(matriculas, many=True).data
+
+
 
 
 class MatriculaHistorySerializer(serializers.ModelSerializer):

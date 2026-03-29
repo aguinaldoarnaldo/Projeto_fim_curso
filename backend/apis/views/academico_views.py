@@ -19,9 +19,12 @@ from apis.serializers.academico_serializers import (
 from apis.mixins import AuditMixin
 
 from rest_framework.pagination import PageNumberPagination
+from apis.utils.pagination import LargeResultsSetPagination
 
 class AnoLectivoPagination(PageNumberPagination):
     page_size = 6
+    page_size_query_param = 'page_size'
+    max_page_size = 5000
 
 class AnoLectivoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para AnoLectivo"""
@@ -148,6 +151,7 @@ class AnoLectivoViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class SalaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Sala"""
+    pagination_class = LargeResultsSetPagination
     queryset = Sala.objects.all()
     serializer_class = SalaSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -165,6 +169,7 @@ class SalaViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class ClasseViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Classe"""
+    pagination_class = LargeResultsSetPagination
     queryset = Classe.objects.all()
     serializer_class = ClasseSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -212,6 +217,7 @@ class AreaFormacaoViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class CursoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Curso"""
+    pagination_class = LargeResultsSetPagination
     queryset = Curso.objects.select_related('id_area_formacao', 'id_responsavel').all()
     serializer_class = CursoSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -266,6 +272,7 @@ class PeriodoViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class TurmaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Turma"""
+    pagination_class = LargeResultsSetPagination
     queryset = Turma.objects.select_related('id_sala', 'id_curso', 'id_classe', 'id_periodo', 'id_responsavel').all()
     serializer_class = TurmaSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
@@ -325,6 +332,7 @@ class TurmaViewSet(AuditMixin, viewsets.ModelViewSet):
 
 class VagaCursoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Gestão de Vagas por Curso"""
+    pagination_class = LargeResultsSetPagination
     queryset = VagaCurso.objects.all()
     serializer_class = VagaCursoSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission]
@@ -333,10 +341,10 @@ class VagaCursoViewSet(AuditMixin, viewsets.ModelViewSet):
     search_fields = ['id_curso__nome_curso', 'ano_lectivo__nome']
 
     permission_map = {
-        'list': 'view_configuracoes',
-        'retrieve': 'view_configuracoes',
-        'create': 'manage_configuracoes',
-        'update': 'manage_configuracoes',
-        'partial_update': 'manage_configuracoes',
-        'destroy': 'manage_configuracoes',
+        'list': 'view_vagas',
+        'retrieve': 'view_vagas',
+        'create': 'manage_vagas',
+        'update': 'manage_vagas',
+        'partial_update': 'manage_vagas',
+        'destroy': 'manage_vagas',
     }

@@ -72,7 +72,11 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'id_aluno': {'required': False}
         }
     
-    # ... create method ...
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        view = self.context.get('view')
+        if view and getattr(view, 'action', None) == 'list':
+            self.fields.pop('matriculas_detalhes', None)
 
     def get_aluno_foto(self, obj):
         if obj.id_aluno and obj.id_aluno.img_path:

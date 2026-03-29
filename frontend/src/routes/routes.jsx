@@ -124,7 +124,7 @@ export default function Routers() {
                     } />
                     
                     <Route path="/vagas-cursos" element={
-                        <PermissionRoute permission={PERMISSIONS.MANAGE_CONFIGURACOES}><VagasCursos /></PermissionRoute>
+                        <PermissionRoute permission={PERMISSIONS.VIEW_VAGAS}><VagasCursos /></PermissionRoute>
                     } />
                     
                     <Route path="/configuracoes" element={

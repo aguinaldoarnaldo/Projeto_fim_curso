@@ -80,8 +80,9 @@ class HasAdditionalPermission(permissions.BasePermission):
         
         required_permission = permission_map[action]
         
-        # 1. Obter as permissões (vêm do perfil Usuario ou Funcionario)
+        # 1. Inicializar vars
         user_perms = []
+        profile = None
         
         # Se o user já for uma instância de Usuario (do apis.models)
         if hasattr(request.user, 'permissoes'):
@@ -103,8 +104,32 @@ class HasAdditionalPermission(permissions.BasePermission):
                 user_perms = json.loads(user_perms)
             except:
                 user_perms = []
+
+        # 2. Obter o papel (Role)
+        auth_data = getattr(request, 'auth_payload', {})
+        role = auth_data.get('cargo', '')
+        
+        # Se não encontrou no payload, busca diretamente do objeto do user
+        if not role:
+            # 1. Se for uma instância de Usuario
+            if hasattr(request.user, 'papel') and request.user.papel:
+                role = request.user.papel
+            # 2. Se for uma instância de Funcionario
+            elif hasattr(request.user, 'id_cargo') and request.user.id_cargo:
+                role = request.user.id_cargo.nome_cargo
+            # 3. Se for um Django User com Profile
+            elif profile:
+                role = getattr(profile, 'papel', '')
+                if not role and getattr(profile, 'cargo', None):
+                    role = getattr(profile.cargo, 'nome_cargo', '')
+
+        role_lower = role.lower() if role else ''
+
+        # 3. Mapeamento de Papéis - ADMINISTRADOR (Override Total)
+        if role_lower and any(r in role_lower for r in ['administrador', 'admin', 'diretor', 'coord']):
+            return True 
                 
-        # 2. Prioridade: Verificar permissões explícitas (Granular)
+        # 4. Prioridade: Verificar permissões explícitas (Granular)
         # Se o campo existir E TIVER ITENS, ele é o controle exclusivo de acessos.
         if isinstance(user_perms, list) and len(user_perms) > 0:
             # Se 'NO_ACCESS' estiver na lista, bloqueio total manual
@@ -118,27 +143,11 @@ class HasAdditionalPermission(permissions.BasePermission):
             # Isso impede o fallback automático para permissões genéricas de cargo.
             return False
             
-        # 3. Fallback: Verificar permissões do CARGO/ROLE (Se a lista for vazia [] ou None)
-            
-        # 2. Fallback: Verificar permissões do CARGO/ROLE
-        # Tentar obter do perfil Usuario ou Payload
-        auth_data = getattr(request, 'auth_payload', {})
-        role = auth_data.get('cargo', '')
-        
-        if not role and profile:
-             role = profile.papel or ''
-             if not role and profile.cargo:
-                 role = profile.cargo.nome_cargo
-
-        if not role:
+        # 5. Fallback: Verificar permissões do CARGO/ROLE (Se a lista for vazia [] ou None)
+        if not role_lower:
              return False
-
-        role = role.lower()
         
-        # Mapeamento de Papéis (Backend Mirror)
-        # ADMIN
-        if any(r in role for r in ['administrador', 'admin', 'diretor', 'coord']):
-            return True 
+        role = role_lower
             
         # SECRETARIA
         if any(r in role for r in ['secretário', 'secretaria', 'secretario']):
