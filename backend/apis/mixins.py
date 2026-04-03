@@ -127,14 +127,32 @@ class AuditMixin:
         )
 
     def perform_create(self, serializer):
-        instance = serializer.save()
-        self._log_audit_action('create', instance, serializer)
-        return instance
+        from django.db.utils import IntegrityError
+        from rest_framework.exceptions import ValidationError
+        
+        try:
+            instance = serializer.save()
+            self._log_audit_action('create', instance, serializer)
+            return instance
+        except IntegrityError as e:
+            # Captura violações de integridade que passam pela validação inicial 
+            # (geralmente causadas por cliques duplos rápidos no frontend concorrendo na base de dados)
+            if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                raise ValidationError({"erro_duplicidade": "Este registo já existe ou foi enviado em duplicado."})
+            raise e
 
     def perform_update(self, serializer):
-        instance = serializer.save()
-        self._log_audit_action(self.action, instance, serializer)
-        return instance
+        from django.db.utils import IntegrityError
+        from rest_framework.exceptions import ValidationError
+        
+        try:
+            instance = serializer.save()
+            self._log_audit_action(self.action, instance, serializer)
+            return instance
+        except IntegrityError as e:
+            if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                raise ValidationError({"erro_duplicidade": "Este registo causaria uma duplicação indevida na base de dados."})
+            raise e
 
     def perform_destroy(self, instance):
         self._log_audit_action('destroy', instance)

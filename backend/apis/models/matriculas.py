@@ -65,6 +65,7 @@ class Matricula(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_MATRICULA, default='Novo', verbose_name='Tipo de Matrícula')
     status = models.CharField(max_length=20, choices=STATUS_MATRICULA, default='Ativa', verbose_name='Estado')
     ativo = models.BooleanField(default=True, verbose_name='Ativo') # Mantendo para retrocompatibilidade
+
     
     doc_certificado = models.FileField(
         upload_to='matriculas/documentos/', 
@@ -139,7 +140,7 @@ class Matricula(models.Model):
              # Se for uma edição de uma matrícula já existente em ano fechado
              raise ValidationError(f"A matrícula pertence ao ano lectivo '{self.ano_lectivo.nome}' que está encerrado. Nenhuma alteração é permitida.")
              
-        # Garantir que matrículas de Confirmação entrem como 'Ativa'
+        # Garantir que matrículas de Confirmação entrem como 'Ativo'
         # Confirmação no sistema é o ato de renovar a matrícula para o novo ano
         if self.tipo == 'Confirmacao':
             self.status = 'Ativa'
@@ -194,10 +195,22 @@ class Matricula(models.Model):
                         doc_bi=self.doc_bi
                     )
         
-        # Sync Aluno's Turma
-        if self.id_aluno and self.id_turma:
-            self.id_aluno.id_turma = self.id_turma
-            self.id_aluno.save()
+        # Sync Aluno's Turma and Status
+        if self.id_aluno:
+            updated_aluno = False
+            
+            # Sincronizar Turma
+            if self.id_turma:
+                self.id_aluno.id_turma = self.id_turma
+                updated_aluno = True
+            
+            if self.status == 'Transferido' and self.id_aluno.status_aluno != 'Transferido':
+                self.id_aluno.status_aluno = 'Transferido'
+                updated_aluno = True
+                
+            if updated_aluno:
+                self.id_aluno.save()
+
             
         # Sync Candidato status if applicable (so it shows as 'Matriculado' in Inscritos list)
         if self.id_aluno and self.id_aluno.numero_bi:

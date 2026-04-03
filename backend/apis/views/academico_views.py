@@ -76,7 +76,7 @@ class AnoLectivoViewSet(AuditMixin, viewsets.ModelViewSet):
         
         # Validar reabertura (apenas Admin)
         is_reopening = (
-            ('status' in request.data and request.data['status'] == 'Activo' and instance.status == 'Encerrado') or
+            ('status' in request.data and request.data['status'] == 'Ativo' and instance.status == 'Encerrado') or
             ('activo' in request.data and request.data['activo'] is True and not instance.activo)
         )
         
@@ -323,10 +323,10 @@ class TurmaViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def summary(self, request):
         total = Turma.objects.count()
-        ativas = Turma.objects.filter(status='Ativa').count()
+        ativos = Turma.objects.filter(status='Ativa').count()
         concluidas = Turma.objects.filter(status='Concluida').count()
         return Response({
-            'total': total, 'ativas': ativas, 'concluidas': concluidas
+            'total': total, 'ativos': ativos, 'concluidas': concluidas
         })
 
 

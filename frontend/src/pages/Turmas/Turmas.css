@@ -76,6 +76,10 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
     to {transform: rotate(360deg);}
 }
 
+@keyframes spin {
+    to {transform: rotate(360deg);}
+}
+
 .loading-spinner {
     width: 24px;
     height: 24px;

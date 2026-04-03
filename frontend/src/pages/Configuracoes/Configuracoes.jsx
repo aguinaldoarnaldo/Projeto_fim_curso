@@ -39,7 +39,7 @@ import {
 import { PERMISSIONS, PERMISSIONS_PT, PERMISSION_GROUPS, ROLES, ROLE_PERMISSIONS } from '../../utils/permissions';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext'; // Assuming AuthContext exists
-import api from '../../services/api';
+import api, { getServerIP } from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 import Pagination from '../../components/Common/Pagination';
 
@@ -70,7 +70,8 @@ const Configuracoes = () => {
     });
     const [selectedUser, setSelectedUser] = useState(null);
     const [backupStatus, setBackupStatus] = useState('idle');
-    const [saving, setSaving] = useState(false); // Added for restore operation
+    const [saving, setSaving] = useState(false);
+    const [isSavingYear, setIsSavingYear] = useState(false);
 
     // Real Data States
     const [usuarios, setUsuarios] = useState([]);
@@ -108,6 +109,9 @@ const Configuracoes = () => {
     const [logsTotalPages, setLogsTotalPages] = useState(1);
     const [logsTotal, setLogsTotal] = useState(0);
     const [logsFilter, setLogsFilter] = useState({ busca: '', data_inicio: '', data_fim: '', tipo: 'all' });
+
+    const [excludeMedia, setExcludeMedia] = useState(false);
+    const [cleaningOrphans, setCleaningOrphans] = useState(false);
 
     // Redirect if permission is lost dynamically
     useEffect(() => {
@@ -216,7 +220,7 @@ const Configuracoes = () => {
         if (activeTab === 'seguranca') {
             interval = setInterval(() => {
                 fetchSecurityData(true); // Silent force fetch
-            }, 2000);
+            }, 10000); // Polling cada 10 segundos em vez de 2s para evitar sobrecarga
         }
         return () => clearInterval(interval);
     }, [activeTab]);
@@ -307,7 +311,9 @@ const Configuracoes = () => {
     const handleBackup = async () => {
         setBackupStatus('processing');
         try {
-            await api.post('backups/create_backup/', {}, { timeout: 300000 }); // Extender para 5 minutos
+            await api.post('backups/create_backup/', { 
+                exclude_media: excludeMedia 
+            }, { timeout: 300000 }); // Extender para 5 minutos
             setBackupStatus('completed');
             fetchBackups();
             setTimeout(() => setBackupStatus('idle'), 5000);
@@ -318,22 +324,44 @@ const Configuracoes = () => {
         }
     };
 
+    const handleCleanOrphans = async () => {
+        if (!window.confirm("Deseja procurar e eliminar ficheiros media que não estão registados na base de Dados? Esta acção é irreversível.")) return;
+        
+        setCleaningOrphans(true);
+        try {
+            const res = await api.post('backups/clean_orphans/');
+            alert(res.data.message || "Limpeza concluída!");
+            fetchBackups(); // Refresh sizes if relevant
+        } catch (error) {
+            console.error("Erro ao limpar órfãos:", error);
+            alert("Erro ao executar limpeza de órfãos.");
+        } finally {
+            setCleaningOrphans(false);
+        }
+    };
+
     const handleDownloadBackup = async (filename) => {
         try {
-            const response = await api.get(`backups/download_backup/?filename=${filename}`, {
-                responseType: 'blob',
-                timeout: 300000 // Extender para 5 minutos para ficheiros grandes
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            setBackupStatus('processing');
+            console.log(`Solicitando token de download para: ${filename}`);
+            
+            // 1. Obter o token de uso único (requer autenticação JWT)
+            const tokenRes = await api.get(`backups/get_download_token/?filename=${filename}`);
+            const token = tokenRes.data.token;
+
+            // 2. Usar o redireccionamento directo para o browser lidar com o download de forma nativa
+            // Isso envia o ficheiro via stream directo, aparecendo na barra de transferências do browser.
+            const downloadUrl = `${getServerIP()}backups/download_public/?token=${token}`;
+            
+            // Força o browser a baixar sem sair da página
+            window.location.assign(downloadUrl);
+            
+            setBackupStatus('idle');
         } catch (error) {
-            console.error("Erro ao baixar backup:", error);
-            alert("Erro ao baixar ficheiro.");
+            console.error("Erro ao preparar download:", error);
+            const msg = parseApiError(error, "Erro ao preparar download do backup.");
+            alert(msg);
+            setBackupStatus('idle');
         }
     };
 
@@ -490,7 +518,7 @@ const Configuracoes = () => {
             // Update selected user view
             setSelectedUser(prev => ({ ...prev, is_active: isActive }));
             
-            alert(`Status atualizado para ${isActive ? 'Activo' : 'Inactivo'}`);
+            alert(`Status atualizado para ${isActive ? 'Ativo' : 'Inativo'}`);
         } catch (error) {
             console.error("Erro ao atualizar status:", error);
             const msg = parseApiError(error, "Erro ao atualizar status.");
@@ -606,7 +634,7 @@ const Configuracoes = () => {
             message += `O ano letivo ${stats.reopened.nome} foi REABERTO.\n`;
             message += `• ${stats.reopened.turmas} turmas reactivadas\n`;
             message += `• ${stats.reopened.matriculas} matrículas reactivadas\n`;
-            message += `• ${stats.reopened.alunos} alunos movidos de volta para 'Activo'`;
+            message += `• ${stats.reopened.alunos} alunos movidos de volta para 'Ativo'`;
         }
         
         if (message) {
@@ -711,11 +739,13 @@ const Configuracoes = () => {
     };
 
     const handleCreateYear = async () => {
+        if (isSavingYear) return;
         if (!newYear.nome || !newYear.data_inicio || !newYear.data_fim) {
             alert("Preencha todos os campos obrigatórios.");
             return;
         }
         try {
+            setIsSavingYear(true);
             if (isEditingYear) {
                 // Update
                 const response = await api.patch(`anos-lectivos/${editingYearId}/`, newYear);
@@ -743,6 +773,8 @@ const Configuracoes = () => {
             console.error("Erro ao salvar ano lectivo:", error);
             const msg = parseApiError(error, "Erro ao salvar ano lectivo.");
             alert(msg);
+        } finally {
+            setIsSavingYear(false);
         }
     };
 
@@ -751,7 +783,7 @@ const Configuracoes = () => {
             nome: year.nome,
             data_inicio: year.data_inicio,
             data_fim: year.data_fim,
-            status: year.status || (year.activo ? 'Activo' : 'Encerrado'),
+            status: year.status || (year.activo ? 'Ativo' : 'Encerrado'),
             activo: year.activo,
             inicio_inscricoes: year.inicio_inscricoes || '',
             fim_inscricoes: year.fim_inscricoes || '',
@@ -783,7 +815,7 @@ const Configuracoes = () => {
     const handleToggleActiveYear = async (id, currentStatus) => {
         if (currentStatus) return; // Already active
         
-        if (!window.confirm("Atenção: Activar este ano lectivo irá desactivar o ano corrente. Deseja continuar?")) {
+        if (!window.confirm("Atenção: Ativar este ano lectivo irá desactivar o ano corrente. Deseja continuar?")) {
             return;
         }
 
@@ -797,7 +829,7 @@ const Configuracoes = () => {
                 alert("Ano lectivo reaberto com sucesso!");
             }
         } catch (error) {
-            console.error("Erro ao activar ano:", error);
+            console.error("Erro ao ativar ano:", error);
             const msg = parseApiError(error, "Erro ao mudar status do ano.");
             alert(msg);
         }
@@ -1038,12 +1070,75 @@ const Configuracoes = () => {
         );
     };
 
+    const renderBackupOverlay = () => {
+        if (backupStatus !== 'processing' && !saving) return null;
+        
+        return (
+            <div style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+                color: 'white',
+                textAlign: 'center',
+                padding: '24px',
+                animation: 'fadeIn 0.3s ease'
+            }}>
+                <div style={{
+                    width: '80px',
+                    height: '80px',
+                    border: '4px solid rgba(255, 255, 255, 0.1)',
+                    borderTop: '4px solid #10b981',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginBottom: '24px'
+                }}></div>
+                
+                <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>
+                    {saving ? 'Restaurando Sistema...' : 'Preparando Backup...'}
+                </h2>
+                
+                <p style={{ fontSize: '18px', color: '#94a3b8', maxWidth: '500px', lineHeight: '1.6' }}>
+                    {saving 
+                        ? 'Estamos a reverter o sistema para o estado do backup. Por favor, NÃO feche esta janela ou desligue o servidor.' 
+                        : 'O servidor está a processar os arquivos e a base de dados. Este processo pode levar alguns minutos dependendo do tamanho das fotos e documentos.'
+                    }
+                </p>
+                
+                <div style={{
+                    marginTop: '32px',
+                    padding: '12px 24px',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    color: '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                }}>
+                    <Shield size={16} /> A aguardar resposta segura do servidor...
+                </div>
+
+                <style dangerouslySetInnerHTML={{ __html: `
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                `}} />
+            </div>
+        );
+    };
+
     const renderContent = () => {
         switch (activeTab) {
             case 'manutencao':
                 if (!canViewConfig) return <div style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>Acesso Restrito</div>;
                 return (
                     <div style={{ animation: 'fadeIn 0.5s' }}>
+                        {renderBackupOverlay()}
                         <div className="section-title-v2">
                             <div className="icon-circle" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-color)' }}>
                                 <Database size={24} />
@@ -1071,29 +1166,54 @@ const Configuracoes = () => {
                             </p>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '16px', marginBottom: '40px' }}>
-                            <button
-                                onClick={handleBackup}
-                                disabled={backupStatus === 'processing'}
-                                className="btn-premium btn-primary-premium"
-                            >
-                                {backupStatus === 'processing' ? 'Gerando...' : (
-                                    <>
-                                        <Download size={18} /> Gerar Backup Completo
-                                    </>
-                                )}
-                            </button>
-                            <label className="btn-premium btn-secondary-premium" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Upload size={18} />
-                                <span>Restaurar do ficheiro</span>
-                                <input 
-                                    type="file" 
-                                    accept=".zip" 
-                                    style={{ display: 'none' }}
-                                    onChange={handleUploadRestoreBackup}
-                                    disabled={saving}
-                                />
-                            </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', width: 'fit-content' }}>
+                                <label className="switch-premium">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={excludeMedia}
+                                        onChange={(e) => setExcludeMedia(e.target.checked)}
+                                    />
+                                    <span className="slider-premium round"></span>
+                                </label>
+                                <span style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>
+                                    Apenas Base de Dados (Backup mais leve e rápido)
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <button
+                                    onClick={handleBackup}
+                                    disabled={backupStatus === 'processing'}
+                                    className="btn-premium btn-primary-premium"
+                                >
+                                    {backupStatus === 'processing' ? 'Gerando...' : (
+                                        <>
+                                            <Download size={18} /> {excludeMedia ? 'Gerar Backup Lite' : 'Gerar Backup Completo'}
+                                        </>
+                                    )}
+                                </button>
+                                <label className="btn-premium btn-secondary-premium" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Upload size={18} />
+                                    <span>Restaurar do ficheiro</span>
+                                    <input 
+                                        type="file" 
+                                        accept=".zip" 
+                                        style={{ display: 'none' }}
+                                        onChange={handleUploadRestoreBackup}
+                                        disabled={saving}
+                                    />
+                                </label>
+                                <button
+                                    onClick={handleCleanOrphans}
+                                    disabled={cleaningOrphans}
+                                    className="btn-premium"
+                                    style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2' }}
+                                    title="Eliminar ficheiros media sem registo na BD"
+                                >
+                                    <Trash2 size={18} /> {cleaningOrphans ? 'Limpando...' : 'Limpar Órfãos'}
+                                </button>
+                            </div>
                         </div>
 
                         {backupStatus === 'completed' && (
@@ -2073,14 +2193,25 @@ const Configuracoes = () => {
                                     <button 
                                         onClick={handleCreateYear} 
                                         className="btn-premium"
+                                        disabled={isSavingYear}
                                         style={{
-                                            background: 'linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%)',
+                                            background: isSavingYear ? '#94a3b8' : 'linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%)',
                                             color: 'white',
                                             border: 'none',
-                                            boxShadow: '0 4px 12px var(--primary-shadow)'
+                                            boxShadow: isSavingYear ? 'none' : '0 4px 12px var(--primary-shadow)',
+                                            cursor: isSavingYear ? 'not-allowed' : 'pointer',
+                                            opacity: isSavingYear ? 0.8 : 1,
+                                            display: 'flex', alignItems: 'center', gap: '8px'
                                         }}
                                     >
-                                        <Save size={18} /> {isEditingYear ? 'Atualizar Dados' : 'Criar Ano Lectivo'}
+                                        {isSavingYear ? (
+                                            <>
+                                                <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                                                A Processar...
+                                            </>
+                                        ) : (
+                                            <><Save size={18} /> {isEditingYear ? 'Atualizar Dados' : 'Criar Ano Lectivo'}</>
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -2110,21 +2241,21 @@ const Configuracoes = () => {
                                             <td>
                                                 <span className="info-badge" style={{ 
                                                     background: 
-                                                        year.status === 'Activo' ? '#dcfce7' : 
+                                                        year.status === 'Ativo' ? '#dcfce7' : 
                                                         year.status === 'Planeado' ? '#eff6ff' : 
                                                         year.status === 'Suspenso' ? '#fff7ed' : '#fee2e2',
                                                     color: 
-                                                        year.status === 'Activo' ? '#15803d' : 
+                                                        year.status === 'Ativo' ? '#15803d' : 
                                                         year.status === 'Planeado' ? '#2563eb' : 
                                                         year.status === 'Suspenso' ? '#c2410c' : '#ef4444',
                                                     fontWeight: '700'
                                                 }}>
-                                                    {year.status?.toUpperCase() || (year.activo ? 'ACTIVO' : 'ENCERRADO')}
+                                                    {year.status?.toUpperCase() || (year.activo ? 'ATIVO' : 'ENCERRADO')}
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    {year.status !== 'Activo' ? (
+                                                    {year.status !== 'Ativo' ? (
                                                         <button 
                                                             onClick={() => handleToggleActiveYear(year.id_ano, year.activo)}
                                                             className="btn-premium btn-secondary-premium"
@@ -2140,7 +2271,7 @@ const Configuracoes = () => {
                                                             disabled={!isAdmin}
                                                         >
                                                             {year.status === 'Planeado' ? 'Abrir' : 
-                                                             year.status === 'Suspenso' ? 'Activar' : 'Reabrir'}
+                                                             year.status === 'Suspenso' ? 'Ativar' : 'Reabrir'}
                                                         </button>
                                                     ) : (
                                                         <button 

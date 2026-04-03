@@ -240,6 +240,36 @@ const NovaMatricula = () => {
 
             // Fetch turmas relevant to this course/turn
             fetchTurmas(m.curso, m.turno, m.detalhes?.id_classe || m.id_classe);
+        } else if (location.state && location.state.alunoEdicao) {
+            // Edição de dados académicos do aluno vinda da tabela de Alunos
+            const a = location.state.alunoEdicao;
+            
+            setFormData(prev => ({
+                ...prev,
+                aluno_id: a.id,
+                id_aluno: a.id,
+                nome_completo: a.nome,
+                numero_bi: a.detalhes?.bi || '',
+                email: a.detalhes?.email || '',
+                telefone: a.detalhes?.telefone || '',
+                novo_aluno_foto: a.foto || null,
+                curso: a.curso !== 'N/A' ? a.curso : '',
+                turno: a.turno !== 'N/A' ? a.turno : '',
+                tipo: 'Edicao',
+                // Campos académicos pré-preenchidos
+                nome_encarregado: a.detalhes?.encarregado !== 'N/A' ? (a.detalhes?.encarregado || '') : '',
+                telefone_encarregado: a.detalhes?.telefone !== 'N/A' ? (a.detalhes?.telefone || '') : '',
+            }));
+
+            // Ir direto para a secção académica — sem menu de escolha
+            setEditStepChoice('academicos');
+            setStep(2);
+
+            // Carregar turmas filtradas pelo curso actual do aluno
+            fetchTurmas(
+                a.curso !== 'N/A' ? a.curso : null,
+                a.turno !== 'N/A' ? a.turno : null
+            );
         } else {
              fetchTurmas();
         }
@@ -475,8 +505,10 @@ const NovaMatricula = () => {
             
             // Invalida o cache para forçar atualização na lista
             clearCache('matriculas');
+            clearCache('alunos');
                   
-            navigate('/matriculas');
+            // Volta para a origem: alunos ou matrículas
+            navigate(location.state?.alunoEdicao ? '/alunos' : '/matriculas');
         } catch (error) {
             console.error("Erro na matrícula:", error);
             const msg = parseApiError(error, "Erro ao realizar matrícula. Tente novamente.");
@@ -504,23 +536,7 @@ const NovaMatricula = () => {
                     <h2 style={{ color: '#1e293b', marginBottom: '10px' }}>O que deseja editar?</h2>
                     <p style={{ color: '#64748b', marginBottom: '30px' }}>Selecione a secção que pretende atualizar para {formData.nome_completo}</p>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '800px', margin: '0 auto' }}>
-                        <div 
-                            onClick={() => { setEditStepChoice('pessoais'); setStep(1); }}
-                            className="edit-choice-card"
-                            style={{ 
-                                padding: '30px', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', 
-                                cursor: 'pointer', transition: 'all 0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' 
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                        >
-                            <div style={{ padding: '15px', background: '#eff6ff', borderRadius: '12px', color: 'var(--primary-color)' }}>
-                                <User size={32} />
-                            </div>
-                            <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Dados Pessoais & Encarregado</span>
-                        </div>
-
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', maxWidth: '600px', margin: '0 auto' }}>
                         <div 
                             onClick={() => { setEditStepChoice('academicos'); setStep(2); }}
                             className="edit-choice-card"
@@ -536,7 +552,7 @@ const NovaMatricula = () => {
                             </div>
                             <span style={{ fontWeight: 'bold', color: '#1e293b' }}>Dados Académicos & Turma</span>
                         </div>
-
+                        
                         <div 
                             onClick={() => { setEditStepChoice('documentos'); setStep(3); }}
                             className="edit-choice-card"
@@ -1338,7 +1354,7 @@ const NovaMatricula = () => {
             <header className="page-header matriculas-header-content">
                 <div>
                     <button
-                        onClick={() => navigate('/matriculas')}
+                        onClick={() => navigate(location.state?.alunoEdicao ? '/alunos' : '/matriculas')}
                         className="btn-back-link"
                     >
                         <ArrowLeft size={16} /> Voltar à lista
@@ -1365,10 +1381,16 @@ const NovaMatricula = () => {
                     {editStepChoice ? (
                         <button
                             type="button"
-                            onClick={() => { setEditStepChoice(null); setStep(1); }}
+                            onClick={() => {
+                                if (location.state?.alunoEdicao) {
+                                    navigate('/alunos');
+                                } else {
+                                    setEditStepChoice(null); setStep(1);
+                                }
+                            }}
                             className="btn-step-prev"
                         >
-                            <ArrowLeft size={16} /> Voltar para Opções
+                            <ArrowLeft size={16} /> {location.state?.alunoEdicao ? 'Voltar a Alunos' : 'Voltar para Opções'}
                         </button>
                     ) : (
                         <button

@@ -120,7 +120,7 @@ class FuncionarioAdmin(ModelAdmin):
     @display(description='Status', ordering='status_funcionario')
     def status_badge(self, obj):
         colors = {
-            'Activo': 'success',
+            'Ativo': 'success',
             'Inactivo': 'warning',
             'Demitido': 'danger',
             'Banido': 'dark'
@@ -253,7 +253,7 @@ class AlunoAdmin(ModelAdmin):
     @display(description='Status', ordering='status_aluno')
     def status_badge(self, obj):
         colors = {
-            'Activo': 'success',
+            'Ativo': 'success',
             'Expulso': 'danger',
             'Transferido': 'warning',
             'Suspenso': 'dark'
@@ -605,7 +605,7 @@ class MatriculaAdmin(ModelAdmin):
                 bairro_residencia=form.cleaned_data.get('novo_aluno_bairro'),
                 numero_casa=form.cleaned_data.get('novo_aluno_numero_casa'),
                 numero_matricula=new_num,
-                status_aluno='Activo'
+                status_aluno='Ativo'
             )
             
             if novo_foto:
@@ -691,7 +691,7 @@ class MatriculaAdmin(ModelAdmin):
     @display(description='Estado', ordering='status')
     def status_badge(self, obj):
         colors = {
-            'Ativo': 'success',
+            'Ativa': 'success',
             'Pendente': 'warning',
             'Cancelado': 'danger',
             'Concluido': 'info'

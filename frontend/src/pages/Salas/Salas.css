@@ -54,6 +54,10 @@
     }
 }
 
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .animate-fade-in {
     opacity: 0;
     animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;

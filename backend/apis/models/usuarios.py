@@ -31,7 +31,7 @@ class Usuario(BaseModel):
     senha_hash = models.CharField(max_length=255, verbose_name='Senha')
     
     # Controle de Acesso
-    is_active = models.BooleanField(default=True, verbose_name='Activo')
+    is_active = models.BooleanField(default=True, verbose_name='Ativo')
     is_superuser = models.BooleanField(default=False, verbose_name='Superusuário')
     permissoes = models.JSONField(default=list, blank=True, verbose_name='Permissões')
     papel = models.CharField(max_length=50, default='Comum', verbose_name='Papel/Role') # Admin, Comum
@@ -76,7 +76,7 @@ class Funcionario(BaseModel):
     ]
     
     STATUS_CHOICES = [
-        ('Activo', 'Activo'),
+        ('Ativo', 'Ativo'),
         ('Inactivo', 'Inactivo'),
         ('Demitido', 'Demitido'),
         ('Banido', 'Banido'),
@@ -94,7 +94,7 @@ class Funcionario(BaseModel):
     municipio_residencia = models.CharField(max_length=100, null=True, blank=True, verbose_name='Município')
     bairro_residencia = models.CharField(max_length=100, null=True, blank=True, verbose_name='Bairro')
     senha_hash = models.CharField(max_length=255, verbose_name='Senha')
-    status_funcionario = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Activo', verbose_name='Status')
+    status_funcionario = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativo', verbose_name='Status')
     descricao = models.TextField(null=True, blank=True)
     data_admissao = models.DateField(null=True, blank=True, verbose_name='Data de Admissão')
     is_online = models.BooleanField(default=False, verbose_name='Online')
@@ -133,7 +133,7 @@ class Funcionario(BaseModel):
     
     @property
     def is_active(self):
-        return self.status_funcionario == 'Activo'
+        return self.status_funcionario == 'Ativo'
 
     def save(self, *args, **kwargs):
         # Se a senha não estiver criptografada (não começa com o prefixo padrão do Django)

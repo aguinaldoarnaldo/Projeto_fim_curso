@@ -39,6 +39,7 @@ const Turmas = () => {
     const tableRef = useRef(null);
     const filterButtonRef = useRef(null);
     const [successMessage, setSuccessMessage] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -146,7 +147,9 @@ const Turmas = () => {
     }, [refresh]);
 
     const handleSave = async () => {
+        if (isSaving) return;
         try {
+            setIsSaving(true);
             // Basic validation
             if(!formData.id_curso || !formData.id_sala || !formData.id_classe || !formData.id_periodo) {
                 alert("Preencha os campos obrigatórios (Curso, Classe, Turno e Sala).");
@@ -203,6 +206,8 @@ const Turmas = () => {
             console.error("Erro ao salvar turma:", err);
             const msg = parseApiError(err, "Erro ao salvar turma.");
             alert(msg);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -603,7 +608,7 @@ const Turmas = () => {
                                     >
                                         <option value="">Seleccionar Ano</option>
                                         {anosDisponiveis.map(ano => (
-                                            <option key={ano.id || ano.id_ano} value={ano.id || ano.id_ano}>{ano.nome} {ano.activo ? '(Activo)' : ''}</option>
+                                            <option key={ano.id || ano.id_ano} value={ano.id || ano.id_ano}>{ano.nome} {ano.activo ? '(Ativo)' : ''}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -711,8 +716,17 @@ const Turmas = () => {
                                 <button
                                     onClick={handleSave}
                                     className="btn-modal-submit-turma"
+                                    disabled={isSaving}
+                                    style={isSaving ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
                                 >
-                                    {modalMode === 'add' ? 'Criar Turma' : 'Salvar Alterações'} <ChevronRight size={18} />
+                                    {isSaving ? (
+                                        <>
+                                            <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: '8px' }}></span>
+                                            A Processar...
+                                        </>
+                                    ) : (
+                                        <>{modalMode === 'add' ? 'Criar Turma' : 'Salvar Alterações'} <ChevronRight size={18} /></>
+                                    )}
                                 </button>
                             </div>
                         </form>

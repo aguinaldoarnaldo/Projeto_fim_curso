@@ -67,7 +67,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         que bloqueiam edições em estados finais ou anos lectivos encerrados.
         Esta operação é sempre administrativa e deve ser permitida.
         """
-        VALID_STATUSES = {'Activo', 'Inativo', 'Transferido', 'Concluido'}
+        VALID_STATUSES = {'Ativo', 'Inativo', 'Transferido', 'Concluido'}
         new_status = request.data.get('status_aluno')
 
         if not new_status:
@@ -95,6 +95,93 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         serializer = AlunoListSerializer(aluno, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, HasAdditionalPermission])
+    def update_dados_pessoais(self, request, pk=None):
+        """
+        Actualiza apenas os dados pessoais do aluno, contornando a validação do modelo
+        que bloqueia edições quando o aluno está em estado final (Concluido, Transferido, Inativo).
+        Permite editar: nome, género, data nascimento, BI, email, telefone, endereço, etc.
+        """
+        CAMPOS_PERMITIDOS = {
+            'nome_completo', 'genero', 'data_nascimento', 'numero_bi',
+            'nacionalidade', 'naturalidade', 'deficiencia',
+            'email', 'telefone',
+            'provincia_residencia', 'municipio_residencia',
+            'bairro_residencia', 'numero_casa',
+        }
+
+        dados = {k: v for k, v in request.data.items() if k in CAMPOS_PERMITIDOS}
+
+        if not dados:
+            return Response(
+                {'error': 'Nenhum campo válido para actualizar.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar se aluno existe
+        if not Aluno.objects.filter(pk=pk).exists():
+            return Response({'error': 'Aluno não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Tratar data_nascimento vazia
+        if 'data_nascimento' in dados and not dados['data_nascimento']:
+            dados['data_nascimento'] = None
+
+        # update() directo na BD — contorna completamente o save() do modelo
+        Aluno.objects.filter(pk=pk).update(**dados)
+
+        # Actualizar dados do Encarregado se fornecidos
+        enc_data = request.data.get('encarregado_data')
+        if enc_data:
+            from apis.models import Encarregado, AlunoEncarregado
+            e_id = enc_data.get('id')
+            
+            # Preparar campos do Encarregado
+            e_update = {}
+            if enc_data.get('nome'): e_update['nome_completo'] = enc_data['nome']
+            if 'email' in enc_data: e_update['email'] = enc_data['email']
+            if 'numero_bi' in enc_data: e_update['numero_bi'] = enc_data['numero_bi']
+            if 'profissao' in enc_data: e_update['profissao'] = enc_data['profissao']
+            if 'telefone' in enc_data: 
+                tel = enc_data['telefone']
+                e_update['telefone'] = [tel] if tel else []
+
+            if e_id:
+                # 1. Actualizar perfil do Encarregado existente
+                if e_update:
+                    Encarregado.objects.filter(pk=e_id).update(**e_update)
+            else:
+                # 1. Tentar vincular ou criar novo se tiver nome
+                if enc_data.get('nome'):
+                    bi = enc_data.get('numero_bi')
+                    enc = None
+                    if bi:
+                        enc = Encarregado.objects.filter(numero_bi=bi).first()
+                    
+                    if not enc:
+                        # Criar novo (senha padrão é o BI ou 123456)
+                        if e_update:
+                            e_update['senha_hash'] = bi if bi else '123456'
+                            enc = Encarregado.objects.create(**e_update)
+                    
+                    if enc:
+                        # Garantir vínculo
+                        AlunoEncarregado.objects.get_or_create(
+                            id_aluno_id=pk, 
+                            id_encarregado=enc,
+                            defaults={'grau_parentesco': enc_data.get('parentesco', 'Tutor')}
+                        )
+                        e_id = enc.pk
+
+            # 2. Actualizar o grau de parentesco no relacionamento
+            if e_id and 'parentesco' in enc_data:
+                AlunoEncarregado.objects.filter(id_aluno_id=pk, id_encarregado_id=e_id).update(
+                    grau_parentesco=enc_data['parentesco']
+                )
+
+        aluno = Aluno.objects.get(pk=pk)
+        serializer = AlunoListSerializer(aluno, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['status_aluno', 'id_turma', 'genero']
@@ -112,7 +199,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def ativos(self, request):
         """Retorna apenas alunos ativos"""
-        alunos = self.queryset.filter(status_aluno='Activo')
+        alunos = self.queryset.filter(status_aluno='Ativo')
         serializer = AlunoListSerializer(alunos, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -140,7 +227,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         
         # 1. Total e outros status (Globais)
         total = Aluno.objects.count()
-        ativos = Aluno.objects.filter(status_aluno='Activo').count()
+        ativos = Aluno.objects.filter(status_aluno='Ativo').count()
         inativos = Aluno.objects.filter(status_aluno='Inativo').count()
         transferidos = Aluno.objects.filter(status_aluno='Transferido').count()
         concluidos = Aluno.objects.filter(status_aluno='Concluido').count()

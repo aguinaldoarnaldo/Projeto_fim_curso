@@ -48,10 +48,10 @@ class AlunoListSerializer(serializers.ModelSerializer):
             'sala_numero', 'curso_nome', 'classe_nivel', 'periodo_nome',
             'numero_bi', 'telefone', 'img_path',
             'municipio_residencia', 'provincia_residencia',
-            'data_nascimento', 'criado_em',
-            'encarregado_principal', 'matriculas_detalhes', 'historico_escolar',
+            'bairro_residencia', 'numero_casa',
+            'data_nascimento', 'nacionalidade', 'naturalidade', 'deficiencia',
+            'criado_em', 'encarregado_principal', 'matriculas_detalhes', 'historico_escolar',
             'ano_lectivo', 'ano_lectivo_ativo',
-            # Excluded: 'sugerido_tipo_matricula' (calls AcademicService per student - too slow for list)
         ]
 
     def get_ano_lectivo(self, obj):
@@ -73,10 +73,25 @@ class AlunoListSerializer(serializers.ModelSerializer):
         return None
 
     def get_encarregado_principal(self, obj):
-        first = obj.alunoencarregado_set.first()
-        if first:
-            return first.id_encarregado.nome_completo
-        return 'N/A'
+        first = obj.alunoencarregado_set.select_related('id_encarregado').first()
+        if first and first.id_encarregado:
+            e = first.id_encarregado
+            telefone = e.telefone
+            tel_str = ''
+            if isinstance(telefone, list):
+                tel_str = telefone[0] if telefone else ''
+            elif isinstance(telefone, str):
+                tel_str = telefone
+            return {
+                'id': e.id_encarregado,
+                'nome': e.nome_completo,
+                'telefone': tel_str,
+                'email': e.email or '',
+                'numero_bi': e.numero_bi or '',
+                'profissao': e.profissao or '',
+                'parentesco': first.grau_parentesco or '',
+            }
+        return None
 
     def get_matriculas_detalhes(self, obj):
         matriculas = list(obj.matricula_set.all())

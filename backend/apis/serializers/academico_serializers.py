@@ -223,8 +223,10 @@ class TurmaSerializer(serializers.ModelSerializer):
         return obj.ano_lectivo.activo if obj.ano_lectivo else False
         
     def get_total_alunos(self, obj):
-        from apis.models import Aluno
-        return Aluno.objects.filter(id_turma=obj, status_aluno__in=['Ativo', 'Activo']).count()
+        from apis.models.matriculas import Matricula
+        # Usar lista abrangente para tratar inconsistências de estados na DB
+        status_validos = ['Ativa', 'Ativo', 'Activa', 'Activo', 'Concluida', 'Concluída']
+        return Matricula.objects.filter(id_turma=obj, status__in=status_validos).count()
 
     def validate(self, data):
         """Validação personalizada para Turmas"""
@@ -296,8 +298,10 @@ class TurmaListSerializer(serializers.ModelSerializer):
         return obj.ano_lectivo.activo if obj.ano_lectivo else False
         
     def get_total_alunos(self, obj):
-        from apis.models import Aluno
-        return Aluno.objects.filter(id_turma=obj, status_aluno__in=['Ativo', 'Activo']).count()
+        from apis.models.matriculas import Matricula
+        # Usar lista abrangente para tratar inconsistências de estados na DB
+        status_validos = ['Ativa', 'Ativo', 'Activa', 'Activo', 'Concluida', 'Concluída']
+        return Matricula.objects.filter(id_turma=obj, status__in=status_validos).count()
 
 
 class VagaCursoSerializer(serializers.ModelSerializer):

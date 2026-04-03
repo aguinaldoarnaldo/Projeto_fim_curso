@@ -10,8 +10,8 @@ def dashboard_callback(request, context):
     """
     try:
         # Estatísticas gerais
-        total_alunos = Aluno.objects.filter(status_aluno='Activo').count()
-        total_funcionarios = Funcionario.objects.filter(status_funcionario='Activo').count()
+        total_alunos = Aluno.objects.filter(status_aluno='Ativo').count()
+        total_funcionarios = Funcionario.objects.filter(status_funcionario='Ativo').count()
         total_turmas = Turma.objects.count()
         total_cursos = Curso.objects.count()
         

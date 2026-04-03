@@ -72,12 +72,10 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         if updated:
             # Sincronizar status do aluno se for final
             matricula = Matricula.objects.get(pk=pk)
-            if new_status in ['Concluida', 'Desistente', 'Transferido']:
+            if new_status in ['Transferido']:
                 from apis.models import Aluno
-                # Mapeamento para status do aluno
+                # Mapeamento estrito para status do aluno
                 aluno_status_map = {
-                    'Concluida': 'Concluido',
-                    'Desistente': 'Inativo',
                     'Transferido': 'Transferido'
                 }
                 status_aluno = aluno_status_map.get(new_status)

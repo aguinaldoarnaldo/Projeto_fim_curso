@@ -13,7 +13,7 @@ class Aluno(BaseModel):
     ]
      
     STATUS_CHOICES = [
-        ('Activo', 'Activo'),
+        ('Ativo', 'Ativo'),
         ('Inativo', 'Inativo'),
         ('Transferido', 'Transferido'),
         ('Concluido', 'Concluído'),
@@ -35,7 +35,7 @@ class Aluno(BaseModel):
     numero_casa = models.CharField(max_length=100, null=True, blank=True)
     senha_hash = models.CharField(max_length=255, verbose_name='Senha', null=True, blank=True)
     genero = models.CharField(max_length=1, choices=GENERO_CHOICES, null=True, blank=True)
-    status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Activo', verbose_name='Estado')
+    status_aluno = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Ativo', verbose_name='Estado')
     modo_user = models.CharField(max_length=20, default='Inativo', verbose_name='Modo Usuário')
     id_turma = models.ForeignKey(Turma, on_delete=models.PROTECT, null=True, blank=True, verbose_name='Turma')
     img_path = models.ImageField(upload_to="image/alunos/", verbose_name="Foto do Aluno", null=True, blank=True)
@@ -54,7 +54,7 @@ class Aluno(BaseModel):
     
     def __str__(self):
         return f"{self.nome_completo} - {self.numero_matricula}"
-
+    
     def save(self, *args, **kwargs):
         # --- Bloqueio de estados finais (alunos congelados) ---
         # Se o aluno já existir (pk definida) e o status anterior for um estado final,
@@ -64,7 +64,7 @@ class Aluno(BaseModel):
             from django.core.exceptions import ValidationError
             try:
                 estado_anterior = Aluno.objects.values_list('status_aluno', flat=True).get(pk=self.pk)
-                # Permitimos salvar se o estado estiver a ser alterado (ex: desbloqueio de Inativo -> Activo)
+                # Permitimos salvar se o estado estiver a ser alterado (ex: desbloqueio de Inativo -> Ativo)
                 # Caso contrário, se o estado atual for final e não estiver a mudar, bloqueia outras edições.
                 if estado_anterior in ESTADOS_FINAIS and self.status_aluno == estado_anterior:
                     raise ValidationError(

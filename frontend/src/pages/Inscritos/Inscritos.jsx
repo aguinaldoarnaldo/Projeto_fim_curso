@@ -769,7 +769,7 @@ const Inscritos = () => {
 
   const handleDistributeExams = async () => {
     if (!examConfig.data_inicio) { alert("Selecione a data de início."); return; }
-    if (window.confirm("Distribui candidatos do ano lectivo activo por salas. Continuar?")) {
+    if (window.confirm("Distribui candidatos do ano lectivo ativo por salas. Continuar?")) {
       try {
         setIsProcessingExams(true);
         const res = await api.post('candidaturas/distribuir_exames/', examConfig);

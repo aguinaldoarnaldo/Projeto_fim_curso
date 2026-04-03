@@ -34,6 +34,7 @@ const Salas = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedSala, setSelectedSala] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
     const tableRef = useRef(null);
 
     // Pagination State
@@ -106,7 +107,9 @@ const Salas = () => {
     };
 
     const handleSave = async () => {
+        if (isSaving) return;
         try {
+            setIsSaving(true);
             // Validacao simples
             if (!formData.numero_sala || !formData.capacidade_alunos) {
                 alert("Preencha o número da sala e a capacidade.");
@@ -133,6 +136,8 @@ const Salas = () => {
             console.error("Erro ao salvar sala:", err);
             const msg = parseApiError(err, "Erro ao salvar sala.");
             alert(msg);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -447,9 +452,17 @@ const Salas = () => {
                                 <button
                                     onClick={handleSave}
                                     className="btn-modal-submit-sala"
+                                    disabled={isSaving}
+                                    style={isSaving ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
                                 >
-                                    {modalMode === 'add' ? 'Adicionar Sala' : 'Salvar Alterações'} 
-                                    <ChevronRight size={18} />
+                                    {isSaving ? (
+                                        <>
+                                            <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: '8px' }}></span>
+                                            A Processar...
+                                        </>
+                                    ) : (
+                                        <>{modalMode === 'add' ? 'Adicionar Sala' : 'Salvar Alterações'} <ChevronRight size={18} /></>
+                                    )}
                                 </button>
                             </div>
                         </form>

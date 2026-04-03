@@ -39,6 +39,7 @@ const Cursos = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
     const [selectedCourseId, setSelectedCourseId] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
     
     // Form Data
     const [formData, setFormData] = useState({ 
@@ -106,12 +107,14 @@ const Cursos = () => {
     };
 
     const handleSaveCourse = async () => {
+        if (isSaving) return;
         if (!formData.nome_curso) {
             alert("Nome do curso é obrigatório!");
             return;
         }
 
         try {
+            setIsSaving(true);
             const payload = {
                 nome_curso: formData.nome_curso,
                 duracao: formData.duracao,
@@ -129,11 +132,13 @@ const Cursos = () => {
 
             setShowCreateModal(false);
             resetForm();
-            fetchCourses(true); // Auto-refresh!
+            fetchCourses(true);
         } catch (error) {
             console.error("Erro ao salvar curso:", error);
             const msg = parseApiError(error, "Erro ao salvar curso.");
             alert(msg);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -484,9 +489,23 @@ const Cursos = () => {
                             </button>
                             <button 
                                 onClick={handleSaveCourse}
-                                style={{padding: '10px 16px', borderRadius: '8px', border: 'none', background: '#0f172a', color: 'white', cursor: 'pointer', fontWeight: 500}}
+                                disabled={isSaving}
+                                style={{
+                                    padding: '10px 20px', borderRadius: '8px', border: 'none',
+                                    background: isSaving ? '#475569' : '#0f172a',
+                                    color: 'white', cursor: isSaving ? 'not-allowed' : 'pointer',
+                                    fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px',
+                                    opacity: isSaving ? 0.8 : 1
+                                }}
                             >
-                                {modalMode === 'create' ? 'Criar Curso' : 'Salvar Alterações'}
+                                {isSaving ? (
+                                    <>
+                                        <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                                        A Processar...
+                                    </>
+                                ) : (
+                                    modalMode === 'create' ? 'Criar Curso' : 'Salvar Alterações'
+                                )}
                             </button>
                         </div>
                     </div>

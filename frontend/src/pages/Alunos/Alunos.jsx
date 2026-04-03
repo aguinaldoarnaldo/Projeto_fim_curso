@@ -62,6 +62,10 @@ const Alunos = () => {
     const [menuStudent, setMenuStudent] = useState(null);
     const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(0);
     const filterButtonRef = useRef(null);
+    // Estado do modal de edição de dados pessoais
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editPersonalData, setEditPersonalData] = useState(null);
+    const [isSavingPersonal, setIsSavingPersonal] = useState(false);
     const [formData, setFormData] = useState({
         nome: '',
         bi: '',
@@ -70,7 +74,7 @@ const Alunos = () => {
         id_sala: '',
         id_periodo: '',
         id_turma: '',
-        status: 'Activo'
+        status: 'Ativo'
     });
     const tableRef = useRef(null);
     const dropdownRef = useRef(null); // Ref for the dropdown menu
@@ -179,6 +183,43 @@ const Alunos = () => {
         fetchFilterOptions();
     }, []);
 
+    // Centralized mapping for API -> Frontend format
+    const mapStudentFromApi = (student) => ({
+        id: student.id_aluno,
+        matricula: student.numero_matricula,
+        nome: student.nome_completo,
+        foto: student.img_path,
+        anoLectivo: student.ano_lectivo || 'N/A',
+        anoLectivoAtivo: student.ano_lectivo_ativo,
+        classe: student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A',
+        curso: student.curso_nome || 'N/A',
+        sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
+        turno: student.periodo_nome || 'N/A',
+        turma: student.turma_codigo,
+        status: student.status_aluno,
+        sugeridoTipo: null,
+        dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
+        genero: student.genero || 'N/A',
+        detalhes: {
+            nascimento: student.data_nascimento || 'N/A',
+            encarregado: student.encarregado_principal,
+            telefone: student.telefone || 'N/A',
+            email: student.email,
+            endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
+            bi: student.numero_bi,
+            nacionalidade: student.nacionalidade || 'Angolana',
+            naturalidade: student.naturalidade || 'N/A',
+            deficiencia: student.deficiencia || 'Não',
+            bairro: student.bairro_residencia || 'N/A',
+            numeroCasa: student.numero_casa || 'N/A',
+            provincia: student.provincia_residencia || 'N/A',
+            municipio: student.municipio_residencia || 'N/A',
+            obs: '',
+            historico: student.historico_escolar || [],
+            historicoMatriculas: student.matriculas_detalhes || []
+        }
+    });
+
     // Data Fetcher
     const fetchStudentsData = async () => {
         try {
@@ -186,41 +227,7 @@ const Alunos = () => {
             const data = response?.data;
             const results = data.results || (Array.isArray(data) ? data : []);
             
-            return results.map(student => ({
-                id: student.id_aluno,
-                matricula: student.numero_matricula,
-                nome: student.nome_completo,
-                foto: student.img_path,
-                anoLectivo: student.ano_lectivo || 'N/A',
-                anoLectivoAtivo: student.ano_lectivo_ativo,
-                classe: student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A',
-                curso: student.curso_nome || 'N/A',
-                sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
-                turno: student.periodo_nome || 'N/A',
-                turma: student.turma_codigo,
-                status: (() => {
-                    // Se temos o ano exibido, vamos buscar o estado DESTE aluno NESTE ano específico
-                    const yearShown = student.ano_lectivo;
-                    const matRecord = (student.matriculas_detalhes || []).find(m => m.ano_lectivo_nome === yearShown);
-                    // Retorna o estado da matrícula se existir, senão o estado global do aluno
-                    return matRecord ? matRecord.status : student.status_aluno;
-                })(),
-                sugeridoTipo: null,
-                dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
-                genero: student.genero || 'N/A',
-                detalhes: {
-                    nascimento: student.data_nascimento || 'N/A',
-                    encarregado: student.encarregado_principal || 'N/A',
-                    telefone: student.telefone || 'N/A',
-                    email: student.email,
-                    endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
-                    bi: student.numero_bi,
-                    nacionalidade: student.nacionalidade || 'Angolana',
-                    obs: '',
-                    historico: student.historico_escolar || [],
-                    historicoMatriculas: student.matriculas_detalhes || []
-                }
-            }));
+            return results.map(mapStudentFromApi);
         } catch (error) {
             console.error("Erro ao carregar alunos:", error);
             throw error;
@@ -281,53 +288,127 @@ const Alunos = () => {
 
         try {
             // Call API
-            const response = await api.patch(`alunos/${studentId}/`, { status_aluno: newStatus });
-            
-            if (response.status === 200 || response.status === 204) {
+            const response = await api.patch(`alunos/${studentId}/update_status/`, { status_aluno: newStatus });
+                     if (response.status === 200 || response.status === 204) {
                  console.log("Status atualizado com sucesso no backend:", response.data);
+                 
+                 const updatedStatus = response.data?.status_aluno || newStatus;
                  
                  // Sync with open modal if it's the same student
                  if (selectedStudent && selectedStudent.id === studentId) {
                      setSelectedStudent(prev => ({
                          ...prev,
-                         status: newStatus
+                         status: updatedStatus
                      }));
                  }
 
-                 // Force refresh to ensure frontend matches backend, compensating for any optimistic update issues
-                 await refresh(true); 
-                 // alert("Status atualizado com sucesso!"); // Optional confirmation
+                 // Mantém a tabela rápida! Atualiza apenas o registo no cache frontend sem ir buscar tudo à BD.
+                 updateStudent(studentId, { status: updatedStatus });
+                 
+                 // Notificação de sucesso simplificada
+                 alert(`Estado do aluno alterado para '${updatedStatus}' com sucesso!`);
+                 
             } else {
                  throw new Error(`Resposta inesperada: ${response.status}`);
             }
         } catch (err) {
             console.error("Erro ao atualizar estado do aluno:", err);
-            // Revert optimistic update
-            refresh(); 
-            
-            const msg = parseApiError(err, "Erro ao atualizar estado do aluno.");
-            alert(msg);
+            // Revert optimistic update gracefully without freezing the table
+            const cacheBackup = JSON.parse(localStorage.getItem('alunos_v2') || '[]');
+            const oldStatus = cacheBackup.find(a => a.id === studentId)?.status;
+            if(oldStatus) updateStudent(studentId, { status: oldStatus }); 
+            // Mostra o erro do backend se houver (para vermos se algo de facto falhou)
+            alert("Não foi possível atualizar o estado. Motivo: " + (err.response?.data?.error || "Desconhecido."));
         }
     };
 
     const handleEdit = (student) => {
-        setModalMode('edit');
-        setSelectedStudentId(student.id);
-        
-        // Find IDs from names/labels or use what's in the student object
-        // Since the student object is formatted for display, we might need more data
-        // But let's use what we have or just edit basic info first
-        setFormData({
-            nome: student.nome,
-            bi: student.detalhes.bi,
-            id_curso: '', // We should ideally have the IDs in the student object
-            id_classe: '',
-            id_sala: '',
-            id_periodo: '',
-            id_turma: '',
-            status: student.status
+        // Abre modal de edição de dados pessoais directamente
+        setEditPersonalData({
+            id: student.id,
+            nome_completo: student.nome,
+            genero: student.genero,
+            data_nascimento: student.detalhes.nascimento !== 'N/A' ? student.detalhes.nascimento : '',
+            numero_bi: student.detalhes.bi || '',
+            nacionalidade: student.detalhes.nacionalidade || 'Angolana',
+            naturalidade: student.detalhes.naturalidade !== 'N/A' ? student.detalhes.naturalidade : '',
+            deficiencia: student.detalhes.deficiencia || 'Não',
+            email: student.detalhes.email || '',
+            telefone: student.detalhes.telefone !== 'N/A' ? student.detalhes.telefone : '',
+            provincia: student.detalhes.provincia !== 'N/A' ? student.detalhes.provincia : '',
+            municipio: student.detalhes.municipio !== 'N/A' ? student.detalhes.municipio : '',
+            bairro: student.detalhes.bairro !== 'N/A' ? student.detalhes.bairro : '',
+            numero_casa: student.detalhes.numeroCasa !== 'N/A' ? student.detalhes.numeroCasa : '',
+            foto: student.foto,
+            // Dados do Encarregado
+            encarregado_id: student.detalhes.encarregado?.id || null,
+            encarregado_nome: student.detalhes.encarregado?.nome || '',
+            encarregado_telefone: student.detalhes.encarregado?.telefone || '',
+            encarregado_email: student.detalhes.encarregado?.email || '',
+            encarregado_bi: student.detalhes.encarregado?.numero_bi || '',
+            encarregado_profissao: student.detalhes.encarregado?.profissao || '',
+            encarregado_parentesco: student.detalhes.encarregado?.parentesco || ''
         });
-        setShowModal(true);
+        setShowEditModal(true);
+    };
+
+    const handleSavePersonalData = async () => {
+        if (!editPersonalData) return;
+        setIsSavingPersonal(true);
+        try {
+            const payload = {
+                nome_completo: editPersonalData.nome_completo,
+                genero: editPersonalData.genero,
+                data_nascimento: editPersonalData.data_nascimento || null,
+                numero_bi: editPersonalData.numero_bi,
+                nacionalidade: editPersonalData.nacionalidade,
+                naturalidade: editPersonalData.naturalidade,
+                deficiencia: editPersonalData.deficiencia,
+                email: editPersonalData.email,
+                telefone: editPersonalData.telefone,
+                provincia_residencia: editPersonalData.provincia,
+                municipio_residencia: editPersonalData.municipio,
+                bairro_residencia: editPersonalData.bairro,
+                numero_casa: editPersonalData.numero_casa,
+                // Encarregado
+                encarregado_data: {
+                    id: editPersonalData.encarregado_id,
+                    nome: editPersonalData.encarregado_nome,
+                    telefone: editPersonalData.encarregado_telefone,
+                    email: editPersonalData.encarregado_email,
+                    numero_bi: editPersonalData.encarregado_bi,
+                    profissao: editPersonalData.encarregado_profissao,
+                    parentesco: editPersonalData.encarregado_parentesco
+                }
+            };
+            
+            const res = await api.patch(`alunos/${editPersonalData.id}/update_dados_pessoais/`, payload);
+            
+            if (res.status === 200) {
+                // Mapear os dados atualizados vindos do backend
+                const updatedStudent = mapStudentFromApi(res.data);
+                
+                // Actualizar o cache local imediatamente com o objecto completo
+                updateStudent(updatedStudent.id, updatedStudent);
+                
+                // Actualizar selectedStudent se for o mesmo aluno
+                if (selectedStudent && selectedStudent.id === updatedStudent.id) {
+                    setSelectedStudent(updatedStudent);
+                }
+                
+                setShowEditModal(false);
+                setEditPersonalData(null);
+                alert(`Dados pessoais de ${updatedStudent.nome} actualizados com sucesso!`);
+                
+                // Silent refresh opcional para garantir consistência total
+                refresh(true);
+            }
+        } catch (err) {
+            console.error('Erro ao salvar dados pessoais:', err);
+            alert('Não foi possível salvar. Motivo: ' + (err.response?.data?.detail || err.response?.data?.numero_bi?.[0] || JSON.stringify(err.response?.data || 'Erro desconhecido')));
+        } finally {
+            setIsSavingPersonal(false);
+        }
     };
 
     const handleAdd = () => {
@@ -341,7 +422,7 @@ const Alunos = () => {
             id_sala: '',
             id_periodo: '',
             id_turma: '',
-            status: 'Activo'
+            status: 'Ativo'
         });
         setShowModal(true);
     };
@@ -437,19 +518,19 @@ const Alunos = () => {
     const getStatusStyle = (status) => {
         if (!status) return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
         
-        const s = status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+        const s = status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
         
-        if (s.includes('ativ') || s.includes('activa')) 
-            return { bg: '#d1fae5', color: '#065f46', border: '#a7f3d0' };
+        if (s === 'inativo' || s === 'inativa') 
+            return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' }; // Vermelho
+            
+        if (s === 'ativo' || s === 'ativa') 
+            return { bg: '#d1fae5', color: '#16a34a', border: '#a7f3d0' }; // Verde
         
         if (s.includes('conclui')) 
-            return { bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' };
+            return { bg: '#dbeafe', color: '#2563eb', border: '#bfdbfe' }; // Azul
             
-        if (s.includes('inativo') || s.includes('inativa')) 
-            return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' };
-            
-        if (s.includes('transferido') || s.includes('transferida')) 
-            return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
+        if (s.includes('transferid')) 
+            return { bg: '#ffedd5', color: '#ea580c', border: '#fed7aa' }; // Laranja
             
         if (s.includes('desistente')) 
             return { bg: '#f3f4f6', color: '#64748b', border: '#e2e8f0' };
@@ -513,7 +594,7 @@ const Alunos = () => {
 
                 // Primeiro o ano activo se houver
                 if (activeYearName && turmasPorAno[activeYearName]) {
-                    finalOptions.push({ label: `Ano Activo: ${activeYearName}`, isHeader: true });
+                    finalOptions.push({ label: `Ano Ativo: ${activeYearName}`, isHeader: true });
                     turmasPorAno[activeYearName]
                         .sort((a, b) => a.codigo_turma.localeCompare(b.codigo_turma))
                         .forEach(t => {
@@ -865,8 +946,7 @@ const Alunos = () => {
                                     onClick={() => setShowStatusSubmenu(!showStatusSubmenu)}
                                     style={{
                                         background: (() => {
-                                            const h = selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex];
-                                            const s = (h ? h.status : selectedStudent.status).toLowerCase();
+                                            const s = selectedStudent.status.toLowerCase();
                                             if (s === 'ativo' || s === 'activo') return 'rgba(34, 197, 94, 0.2)'; // Green
                                             if (s === 'concluido' || s === 'concluida') return 'rgba(59, 130, 246, 0.2)'; // Blue
                                             if (s === 'desistente') return 'rgba(239, 68, 68, 0.2)'; // Red
@@ -887,7 +967,7 @@ const Alunos = () => {
                                         width: '100%'
                                     }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        {(selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex]?.status || selectedStudent.status).toUpperCase()}
+                                        {selectedStudent.status.toUpperCase()}
                                         <ChevronDown size={14} />
                                     </span>
                                     {selectedStudent.detalhes?.historicoMatriculas?.[selectedHistoryIndex]?.tipo === 'Confirmacao' && (
@@ -940,12 +1020,42 @@ const Alunos = () => {
                                         <User size={20} color="#b45309" /> Dados Pessoais
                                     </h3>
                                     <div className="info-grid-2">
-                                        <div><p className="info-label">Nome Completo</p><p className="info-value">{selectedStudent.nome}</p></div>
-                                        <div><p className="info-label">Género</p><p className="info-value">{selectedStudent.genero || 'N/A'}</p></div>
+                                        <div style={{ gridColumn: 'span 2' }}><p className="info-label">Nome Completo</p><p className="info-value">{selectedStudent.nome}</p></div>
+                                        <div><p className="info-label">Género</p><p className="info-value">{selectedStudent.genero === 'M' ? 'Masculino' : selectedStudent.genero === 'F' ? 'Feminino' : (selectedStudent.genero || 'N/A')}</p></div>
                                         <div><p className="info-label">Data de Nascimento</p><p className="info-value">{selectedStudent.detalhes.nascimento}</p></div>
                                         <div><p className="info-label">Bilhete de Identidade</p><p className="info-value" style={{ fontFamily: 'monospace' }}>{selectedStudent.detalhes.bi || 'N/A'}</p></div>
-                                        <div><p className="info-label">Nacionalidade</p><p className="info-value">{selectedStudent.detalhes.nacionalidade || 'Angolana'}</p></div>
-                                        <div><p className="info-label">Morada</p><p className="info-value">{selectedStudent.detalhes.endereco}</p></div>
+                                        <div><p className="info-label">Nacionalidade</p><p className="info-value">{selectedStudent.detalhes.nacionalidade}</p></div>
+                                        <div><p className="info-label">Naturalidade</p><p className="info-value">{selectedStudent.detalhes.naturalidade}</p></div>
+                                        <div><p className="info-label">Deficiência</p>
+                                            <p className="info-value">
+                                                <span style={{
+                                                    background: selectedStudent.detalhes.deficiencia === 'Sim' ? '#fef2f2' : '#f0fdf4',
+                                                    color: selectedStudent.detalhes.deficiencia === 'Sim' ? '#dc2626' : '#16a34a',
+                                                    border: `1px solid ${selectedStudent.detalhes.deficiencia === 'Sim' ? '#fecaca' : '#bbf7d0'}`,
+                                                    padding: '2px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600
+                                                }}>{selectedStudent.detalhes.deficiencia}</span>
+                                            </p>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2', borderTop: '1px dashed #e2e8f0', paddingTop: '12px', marginTop: '4px' }}>
+                                            <p className="info-label"><MapPin size={12} style={{display:'inline', marginRight:'4px'}} /> Morada Completa</p>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                    <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Província</p>
+                                                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.provincia}</p>
+                                                </div>
+                                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                    <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Município</p>
+                                                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.municipio}</p>
+                                                </div>
+                                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                    <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>Bairro</p>
+                                                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>{selectedStudent.detalhes.bairro}</p>
+                                                </div>
+                                            </div>
+                                            <p style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                                                <span style={{ fontWeight: 600 }}>Nº Casa:</span> {selectedStudent.detalhes.numeroCasa}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -962,19 +1072,44 @@ const Alunos = () => {
                                         )}
                                     </h3>
 
-                                    {/* Seletor de Anos Interativo */}
+                                    {/* Seletor de Anos Interativo - Melhorado para mostrar estado */}
                                     {selectedStudent.detalhes.historicoMatriculas && selectedStudent.detalhes.historicoMatriculas.length > 1 && (
-                                        <div className="year-history-tabs">
-                                            {selectedStudent.detalhes.historicoMatriculas.map((m, idx) => (
-                                                <button
-                                                    key={m.id_matricula}
-                                                    onClick={() => setSelectedHistoryIndex(idx)}
-                                                    className={`history-tab-btn ${selectedHistoryIndex === idx ? 'active' : ''}`}
-                                                >
-                                                    <Calendar size={14} className="tab-year-icon" />
-                                                    {m.ano_lectivo_nome}
-                                                </button>
-                                            ))}
+                                        <div className="year-history-tabs" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px' }}>
+                                            {selectedStudent.detalhes.historicoMatriculas.map((m, idx) => {
+                                                const statusStyle = getStatusStyle(m.status);
+                                                return (
+                                                    <button
+                                                        key={m.id_matricula}
+                                                        onClick={() => setSelectedHistoryIndex(idx)}
+                                                        className={`history-tab-btn ${selectedHistoryIndex === idx ? 'active' : ''}`}
+                                                        style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'flex-start',
+                                                            padding: '8px 16px',
+                                                            minWidth: '120px',
+                                                            position: 'relative',
+                                                            borderBottom: selectedHistoryIndex === idx ? `3px solid ${statusStyle.color}` : '3px solid transparent'
+                                                        }}
+                                                    >
+                                                        <span style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Calendar size={12} /> {m.ano_lectivo_nome}
+                                                        </span>
+                                                        <span style={{ 
+                                                            fontSize: '10px', 
+                                                            marginTop: '2px', 
+                                                            padding: '1px 6px', 
+                                                            borderRadius: '4px',
+                                                            background: statusStyle.bg,
+                                                            color: statusStyle.color,
+                                                            fontWeight: 600,
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            {m.status}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     )}
 
@@ -1066,7 +1201,11 @@ const Alunos = () => {
                                         <div><p className="info-label">Email</p><p className="info-value">{selectedStudent.detalhes.email || 'N/A'}</p></div>
                                         <div style={{ gridColumn: 'span 2' }}>
                                             <p className="info-label">Encarregado Principal</p>
-                                            <p className="info-value" style={{ fontSize: '15px' }}>{selectedStudent.detalhes.encarregado}</p>
+                                            <p className="info-value" style={{ fontSize: '15px' }}>
+                                                {selectedStudent.detalhes?.encarregado && typeof selectedStudent.detalhes.encarregado === 'object'
+                                                    ? (selectedStudent.detalhes.encarregado.nome || 'N/A')
+                                                    : (selectedStudent.detalhes.encarregado || 'N/A')}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -1076,6 +1215,170 @@ const Alunos = () => {
 
                                 <div style={{ height: '50px' }}></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== MODAL EDITAR DADOS PESSOAIS ===== */}
+            {showEditModal && editPersonalData && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999,
+                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '20px'
+                }} onClick={(e) => { if (e.target === e.currentTarget) { setShowEditModal(false); setEditPersonalData(null); } }}>
+                    <div style={{
+                        background: 'white', borderRadius: '20px', width: '100%', maxWidth: '900px',
+                        maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                        boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            padding: '24px 30px', borderBottom: '1px solid #e2e8f0',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '10px', borderRadius: '12px' }}>
+                                    <User size={22} color="white" />
+                                </div>
+                                <div>
+                                    <h2 style={{ color: 'white', margin: 0, fontSize: '18px', fontWeight: 700 }}>Editar Dados Pessoais</h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.75)', margin: 0, fontSize: '13px' }}>{editPersonalData.nome_completo}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => { setShowEditModal(false); setEditPersonalData(null); }}
+                                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '10px', padding: '8px', cursor: 'pointer', color: 'white' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div style={{ padding: '28px 30px', overflowY: 'auto', flex: 1 }}>
+                            <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
+                                {/* Foto */}
+                                <div style={{ width: '160px', flexShrink: 0, textAlign: 'center', background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ width: '110px', height: '110px', borderRadius: '24px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '3px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', margin: '0 auto 12px' }}>
+                                        {editPersonalData.foto ? (
+                                            <img src={editPersonalData.foto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ textAlign: 'center' }}><User size={36} color="#cbd5e1" /><p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', fontWeight: 600 }}>SEM FOTO</p></div>
+                                        )}
+                                    </div>
+                                    <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Foto editável na ficha de matrícula</p>
+                                </div>
+
+                                {/* Campos */}
+                                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                    <div style={{ gridColumn: 'span 3' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
+                                        <input type="text" value={editPersonalData.nome_completo} onChange={e => setEditPersonalData(p => ({ ...p, nome_completo: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} placeholder="Nome completo do aluno" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Género</label>
+                                        <select value={editPersonalData.genero} onChange={e => setEditPersonalData(p => ({ ...p, genero: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="M">Masculino</option><option value="F">Feminino</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Data de Nascimento</label>
+                                        <input type="date" value={editPersonalData.data_nascimento} onChange={e => setEditPersonalData(p => ({ ...p, data_nascimento: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nº Bilhete de Identidade</label>
+                                        <input type="text" value={editPersonalData.numero_bi} onChange={e => setEditPersonalData(p => ({ ...p, numero_bi: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none' }} placeholder="000000000LA000" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nacionalidade</label>
+                                        <input type="text" value={editPersonalData.nacionalidade} onChange={e => setEditPersonalData(p => ({ ...p, nacionalidade: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Naturalidade (Província)</label>
+                                        <input type="text" value={editPersonalData.naturalidade} onChange={e => setEditPersonalData(p => ({ ...p, naturalidade: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Ex: Huíla" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Deficiência?</label>
+                                        <select value={editPersonalData.deficiencia} onChange={e => setEditPersonalData(p => ({ ...p, deficiencia: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="Não">Não</option><option value="Sim">Sim</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Email</label>
+                                        <input type="email" value={editPersonalData.email} onChange={e => setEditPersonalData(p => ({ ...p, email: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="exemplo@email.com" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Telefone</label>
+                                        <input type="text" value={editPersonalData.telefone} onChange={e => setEditPersonalData(p => ({ ...p, telefone: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="923000000" />
+                                    </div>
+                                    {/* Divisória morada */}
+                                    <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                                        <p style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                            <MapPin size={14} /> Morada
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Província</label>
+                                        <input type="text" value={editPersonalData.provincia} onChange={e => setEditPersonalData(p => ({ ...p, provincia: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Ex: Huíla" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Município</label>
+                                        <input type="text" value={editPersonalData.municipio} onChange={e => setEditPersonalData(p => ({ ...p, municipio: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Ex: Lubango" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Bairro</label>
+                                        <input type="text" value={editPersonalData.bairro} onChange={e => setEditPersonalData(p => ({ ...p, bairro: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nº de Casa</label>
+                                        <input type="text" value={editPersonalData.numero_casa} onChange={e => setEditPersonalData(p => ({ ...p, numero_casa: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                    </div>
+
+                                    {/* Divisória Encarregado */}
+                                    <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
+                                        <p style={{ fontSize: '12px', color: '#0ea5e9', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                            <ShieldCheck size={14} /> Dados do Encarregado
+                                        </p>
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nome do Encarregado</label>
+                                        <input type="text" value={editPersonalData.encarregado_nome} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_nome: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Nome completo do encarregado" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Grau de Parentesco</label>
+                                        <input type="text" value={editPersonalData.encarregado_parentesco} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_parentesco: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Ex: Pai, Mãe, Tutor" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Telefone do Encarregado</label>
+                                        <input type="text" value={editPersonalData.encarregado_telefone} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_telefone: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="9XXXXXXXX" />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Email do Encarregado</label>
+                                        <input type="email" value={editPersonalData.encarregado_email} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_email: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="email@exemplo.com" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>BI do Encarregado</label>
+                                        <input type="text" value={editPersonalData.encarregado_bi} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_bi: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="000000000LA000" />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Profissão do Encarregado</label>
+                                        <input type="text" value={editPersonalData.encarregado_profissao} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_profissao: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{ padding: '18px 30px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc' }}>
+                            <button onClick={() => { setShowEditModal(false); setEditPersonalData(null); }} disabled={isSavingPersonal}
+                                style={{ padding: '10px 24px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>
+                                Cancelar
+                            </button>
+                            <button onClick={handleSavePersonalData} disabled={isSavingPersonal}
+                                style={{ padding: '10px 28px', border: 'none', borderRadius: '10px', background: isSavingPersonal ? '#94a3b8' : 'linear-gradient(135deg, #1e3a8a, #3b82f6)', color: 'white', fontWeight: 700, cursor: isSavingPersonal ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(30,58,138,0.3)' }}>
+                                <CheckCircle size={16} />
+                                {isSavingPersonal ? 'A guardar...' : 'Guardar Alterações'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1140,7 +1443,7 @@ const Alunos = () => {
                                         onMouseLeave={handleStatusLeave}
                                     >
                                         {[
-                                            { value: 'Activo', label: 'Ativo', icon: CheckCircle, className: 'status-active' },
+                                            { value: 'Ativo', label: 'Ativo', icon: CheckCircle, className: 'status-active' },
                                             { value: 'Inativo', label: 'Inativo', icon: Clock, className: 'status-inativo' },
                                             { value: 'Transferido', label: 'Transferido', icon: ArrowRightLeft, className: 'status-transferido' },
                                             { value: 'Concluido', label: 'Concluído', icon: CheckCircle, className: 'status-concluido' }

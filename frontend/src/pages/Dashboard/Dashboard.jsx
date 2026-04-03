@@ -44,7 +44,7 @@ const Dashboard = () => {
         api.get('anos-lectivos/?all=true').catch(() => ({ data: [] })),
         api.get(`alunos/stats/${q}`).catch(() => ({ data: { total: 0, ativos: 0, genero: [], cursos: [] } })),
         api.get(`matriculas/summary/${q}`).catch(() => ({ data: { total: 0, breakdown: {} } })),
-        api.get('turmas/summary/').catch(() => ({ data: { total: 0, ativas: 0 } })),
+        api.get('turmas/summary/').catch(() => ({ data: { total: 0, ativos: 0 } })),
         api.get('cursos/').catch(() => ({ data: [] })),
         api.get('classes/').catch(() => ({ data: [] })),
         api.get('salas/').catch(() => ({ data: [] }))
@@ -83,7 +83,7 @@ const Dashboard = () => {
           },
           turmas: { 
             total: rTurmas.data?.total || 0, 
-            ativas: rTurmas.data?.ativas || 0,
+            ativos: rTurmas.data?.ativos || 0,
             concluidas: rTurmas.data?.concluidas || 0
           }
         },
@@ -114,7 +114,7 @@ const Dashboard = () => {
     return {
       alunos: base.alunos || { total: 0, ativos: 0, concluidos: 0, inativos: 0, transferidos: 0 },
       matriculas: base.matriculas || { total: 0, total_geral: 0, ativa: 0, concluida: 0, desistente: 0, transferido: 0 },
-      turmas: base.turmas || { total: 0, ativas: 0, concluidas: 0 }
+      turmas: base.turmas || { total: 0, ativos: 0, concluidas: 0 }
     };
   }, [dbData]);
   const counts = useMemo(() => dbData?.counts || { cursos: 0, classes: 0, salas: 0 }, [dbData]);
@@ -132,9 +132,9 @@ const Dashboard = () => {
     }
   }, [academicYears, hasSyncActiveYear, selectedYear]);
 
-  // Initial and reactive trigger for core stats
+  // Force fresh data on every render to avoid stale cached values (e.g. 'concluidos' count)
   useEffect(() => {
-    refreshStats(false);
+    refreshStats(true);
   }, [selectedYear, refreshStats]);
 
   // 2. FLOW CHART DATA FETCHING
@@ -201,7 +201,7 @@ const Dashboard = () => {
           <div className="kpi-icon-floating"><Layers size={24} /></div>
           <div className="kpi-content"><h3>{kpiData.turmas.total}</h3><span className="kpi-label">Total Turmas</span></div>
           <div className="kpi-mini-stats">
-            <span className="mini-stat active">Ativas: {kpiData.turmas.ativas}</span>
+            <span className="mini-stat active">Ativos: {kpiData.turmas.ativos}</span>
             <span className="mini-stat completed">Concluídas: {kpiData.turmas.concluidas}</span>
           </div>
         </div>
