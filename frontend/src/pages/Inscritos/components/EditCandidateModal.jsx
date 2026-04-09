@@ -238,7 +238,18 @@ const EditCandidateModal = ({
                             </div>
                             <div className="evaluation-input-group">
                                <label className="evaluation-label">Parentesco</label>
-                               <input type="text" value={formData.enc_parentesco} onChange={(e) => setFormData({...formData, enc_parentesco: e.target.value})} className="evaluation-input-small"/>
+                               <select value={formData.enc_parentesco} onChange={(e) => setFormData({...formData, enc_parentesco: e.target.value})} className="evaluation-input-small">
+                                  <option value="">Selecione...</option>
+                                  <option value="Pai">Pai</option>
+                                  <option value="Mãe">Mãe</option>
+                                  <option value="Tutor(a)">Tutor(a)</option>
+                                  <option value="Avô">Avô</option>
+                                  <option value="Avó">Avó</option>
+                                  <option value="Tio(a)">Tio(a)</option>
+                                  <option value="Irmão(ã)">Irmão(ã)</option>
+                                  <option value="Padrasto / Madrasta">Padrasto / Madrasta</option>
+                                  <option value="Outro">Outro</option>
+                               </select>
                             </div>
                             <div className="evaluation-input-group">
                                <label className="evaluation-label">Telefone Enc.</label>

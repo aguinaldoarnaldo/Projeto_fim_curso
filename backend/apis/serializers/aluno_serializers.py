@@ -62,7 +62,7 @@ class AlunoListSerializer(serializers.ModelSerializer):
     def get_ano_lectivo_ativo(self, obj):
         if obj.id_turma and obj.id_turma.ano_lectivo:
             return obj.id_turma.ano_lectivo.activo
-        return False
+        return None  # Retornar None se não tem turma, para não ser confundido com False (Inativo)
 
     def get_img_path(self, obj):
         if obj.img_path:

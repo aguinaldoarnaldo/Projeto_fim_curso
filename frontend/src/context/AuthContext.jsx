@@ -9,6 +9,7 @@ const INACTIVITY_TIMEOUT_MS = 3 * 60 * 60 * 1000; // 3 horas
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [error, setError] = useState(null);
 
     const inactivityTimerRef = useRef(null);
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }) => {
     // =========================================================================
     const signOut = useCallback(async () => {
         clearTimeout(inactivityTimerRef.current);
+        setIsLoggingOut(true); // Mostra o loader de logout
 
         try {
             const currentUser = JSON.parse(sessionStorage.getItem('@App:user') || 'null');
@@ -31,12 +33,16 @@ export const AuthProvider = ({ children }) => {
             console.warn('⚠️ [AuthContext] Erro ao notificar logout no backend:', err.message);
         }
 
+        // Aguarda um breve período para o loader ser visível
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         sessionStorage.removeItem('@App:token');
         sessionStorage.removeItem('@App:user');
         sessionStorage.removeItem('@App:lastActivity');
         localStorage.removeItem('@App:token');
         localStorage.removeItem('@App:user');
         setUser(null);
+        setIsLoggingOut(false);
         delete api.defaults.headers.Authorization;
     }, []);
 
@@ -218,9 +224,37 @@ export const AuthProvider = ({ children }) => {
             updateProfile,
             refreshUser: syncUser,
             loading,
+            isLoggingOut,
             error,
             hasPermission: (permission) => hasPermission(user, permission)
         }}>
+            {/* Loader de Logout - ecrã completo */}
+            {isLoggingOut && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 99999,
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #0ea5e9 100%)',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    gap: '24px', animation: 'fadeIn 0.3s ease'
+                }}>
+                    {/* Spinner */}
+                    <div style={{
+                        width: '72px', height: '72px',
+                        border: '5px solid rgba(255,255,255,0.2)',
+                        borderTopColor: 'white',
+                        borderRadius: '50%',
+                        animation: 'spin 0.9s linear infinite'
+                    }} />
+                    <div style={{ textAlign: 'center' }}>
+                        <p style={{ color: 'white', fontSize: '20px', fontWeight: 700, margin: 0 }}>A terminar sessão...</p>
+                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginTop: '8px' }}>Por favor aguarde</p>
+                    </div>
+                    <style>{`
+                        @keyframes spin { to { transform: rotate(360deg); } }
+                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    `}</style>
+                </div>
+            )}
             {children}
         </AuthContext.Provider>
     );

@@ -156,13 +156,14 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         # Verificar se a turma tem ano_lectivo ou buscar o ativo
         ano_lectivo = turma.ano_lectivo
         if not ano_lectivo:
-            # Buscar ano letivo ativo
-            ano_lectivo = AnoLectivo.objects.filter(status='Activo').first()
+            # Buscar ano letivo ativo (usando o booleano 'activo' que é mais confiável que a string 'status')
+            ano_lectivo = AnoLectivo.objects.filter(activo=True).first()
             if not ano_lectivo:
                 return Response({'erro': 'Nenhum Ano Lectivo ativo encontrado. Configure um Ano Lectivo primeiro.'}, status=400)
         
         # Validation: prevent enrollment in closed year
-        if ano_lectivo.status != 'Activo':
+        # Usando .activo em vez de .status para evitar erros de digitação (Ativo vs Activo)
+        if not ano_lectivo.activo:
              return Response({'erro': f'O Ano Lectivo {ano_lectivo.nome} está encerrado. Não é possível realizar matrículas.'}, status=403)
             
         try:
@@ -551,8 +552,8 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                 except Matricula.DoesNotExist:
                      return Response({'erro': f'Matrícula {id2} não encontrada.'}, status=404)
                 
-                # Validar se o Ano Lectivo está ativo
-                if (mat1.ano_lectivo and mat1.ano_lectivo.status != 'Activo') or (mat2.ano_lectivo and mat2.ano_lectivo.status != 'Activo'):
+                # Validar se o Ano Lectivo está ativo (usando booleano 'activo')
+                if (mat1.ano_lectivo and not mat1.ano_lectivo.activo) or (mat2.ano_lectivo and not mat2.ano_lectivo.activo):
                      return Response({'erro': 'Não é possível permutar matrículas de um Ano Lectivo encerrado.'}, status=403)
                 
                 # Armazenar turmas para a troca

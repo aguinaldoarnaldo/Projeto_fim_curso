@@ -486,7 +486,31 @@ const Candidatura = () => {
                     </div>
                     <div className="form-control">
                         <label>Profissão</label>
-                        <input name="profissao_encarregado" value={formData.profissao_encarregado || ''} onChange={handleChange} placeholder="Ex: Professor" />
+                        <select name="profissao_encarregado" value={formData.profissao_encarregado || ''} onChange={handleChange}>
+                            <option value="">Selecione...</option>
+                            <option value="Professor(a)">Professor(a)</option>
+                            <option value="Médico(a)">Médico(a)</option>
+                            <option value="Enfermeiro(a)">Enfermeiro(a)</option>
+                            <option value="Engenheiro(a)">Engenheiro(a)</option>
+                            <option value="Advogado(a)">Advogado(a)</option>
+                            <option value="Agricultor(a)">Agricultor(a)</option>
+                            <option value="Comerciante">Comerciante</option>
+                            <option value="Condutor(a)">Condutor(a)</option>
+                            <option value="Contabilista">Contabilista</option>
+                            <option value="Economista">Economista</option>
+                            <option value="Enfermeiro(a) Auxiliar">Enfermeiro(a) Auxiliar</option>
+                            <option value="Funcionário(a) Público(a)">Funcionário(a) Público(a)</option>
+                            <option value="Gestor(a)">Gestor(a)</option>
+                            <option value="Jornalista">Jornalista</option>
+                            <option value="Militar">Militar</option>
+                            <option value="Pastor(a)">Pastor(a)</option>
+                            <option value="Policia">Policia</option>
+                            <option value="Técnico(a)">Técnico(a)</option>
+                            <option value="Trabalhador(a) por Conta Própria">Trabalhador(a) por Conta Própria</option>
+                            <option value="Desempregado(a)">Desempregado(a)</option>
+                            <option value="Reformado(a)">Reformado(a)</option>
+                            <option value="Outra">Outra</option>
+                        </select>
                     </div>
                     <div className="form-control full-width">
                         <label>Residência do Encarregado</label>

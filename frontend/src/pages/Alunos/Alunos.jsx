@@ -35,7 +35,8 @@ import {
     Activity,
     ArrowRightLeft,
     ArrowUpRight,
-    Database
+    Database,
+    Upload
 } from 'lucide-react';
 
 import Pagination from '../../components/Common/Pagination';
@@ -69,6 +70,24 @@ const Alunos = () => {
     const [formData, setFormData] = useState({
         nome: '',
         bi: '',
+        genero: '',
+        data_nascimento: '',
+        nacionalidade: 'Angolana',
+        naturalidade: '',
+        deficiencia: 'Não',
+        email: '',
+        telefone: '',
+        provincia: '',
+        municipio: '',
+        bairro: '',
+        numero_casa: '',
+        foto: null,
+        enc_nome: '',
+        enc_bi: '',
+        enc_telefone: '',
+        enc_email: '',
+        enc_profissao: '',
+        enc_parentesco: 'Pai',
         id_curso: '',
         id_classe: '',
         id_sala: '',
@@ -76,6 +95,7 @@ const Alunos = () => {
         id_turma: '',
         status: 'Ativo'
     });
+    const [fotoPreview, setFotoPreview] = useState(null);
     const tableRef = useRef(null);
     const dropdownRef = useRef(null); // Ref for the dropdown menu
 
@@ -189,14 +209,14 @@ const Alunos = () => {
         matricula: student.numero_matricula,
         nome: student.nome_completo,
         foto: student.img_path,
-        anoLectivo: student.ano_lectivo || 'N/A',
+        anoLectivo: student.numero_matricula ? (student.ano_lectivo || 'N/A') : '---',
         anoLectivoAtivo: student.ano_lectivo_ativo,
-        classe: student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A',
-        curso: student.curso_nome || 'N/A',
-        sala: student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A',
-        turno: student.periodo_nome || 'N/A',
-        turma: student.turma_codigo,
-        status: student.status_aluno,
+        classe: student.numero_matricula ? (student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A') : '---',
+        curso: student.numero_matricula ? (student.curso_nome || 'N/A') : '---',
+        sala: student.numero_matricula ? (student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A') : '---',
+        turno: student.numero_matricula ? (student.periodo_nome || 'N/A') : '---',
+        turma: student.numero_matricula ? (student.turma_codigo || 'N/A') : '---',
+        status: student.status_aluno === 'Activo' ? 'Ativo' : student.status_aluno,
         sugeridoTipo: null,
         dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
         genero: student.genero || 'N/A',
@@ -414,9 +434,28 @@ const Alunos = () => {
     const handleAdd = () => {
         setModalMode('add');
         setSelectedStudentId(null);
+        setFotoPreview(null);
         setFormData({
             nome: '',
             bi: '',
+            genero: '',
+            data_nascimento: '',
+            nacionalidade: 'Angolana',
+            naturalidade: '',
+            deficiencia: 'Não',
+            email: '',
+            telefone: '',
+            provincia: '',
+            municipio: '',
+            bairro: '',
+            numero_casa: '',
+            foto: null,
+            enc_nome: '',
+            enc_bi: '',
+            enc_telefone: '',
+            enc_email: '',
+            enc_profissao: '',
+            enc_parentesco: 'Pai',
             id_curso: '',
             id_classe: '',
             id_sala: '',
@@ -435,23 +474,62 @@ const Alunos = () => {
                 return;
             }
 
-            const payload = {
-                nome_completo: formData.nome,
-                numero_bi: formData.bi,
-                status_aluno: formData.status
-                // Add more fields as needed
-            };
+            // Use FormData to support photo upload
+            const fd = new FormData();
+            fd.append('nome_completo', formData.nome);
+            fd.append('numero_bi', formData.bi);
+            if (formData.genero) fd.append('genero', formData.genero);
+            if (formData.data_nascimento) fd.append('data_nascimento', formData.data_nascimento);
+            fd.append('nacionalidade', formData.nacionalidade || 'Angolana');
+            if (formData.naturalidade) fd.append('naturalidade', formData.naturalidade);
+            fd.append('deficiencia', formData.deficiencia || 'Não');
+            if (formData.email) fd.append('email', formData.email);
+            if (formData.telefone) fd.append('telefone', formData.telefone);
+            if (formData.provincia) fd.append('provincia_residencia', formData.provincia);
+            if (formData.municipio) fd.append('municipio_residencia', formData.municipio);
+            if (formData.bairro) fd.append('bairro_residencia', formData.bairro);
+            if (formData.numero_casa) fd.append('numero_casa', formData.numero_casa);
+            fd.append('status_aluno', formData.status || 'Ativo');
+            if (formData.foto instanceof File) fd.append('img_path', formData.foto);
 
+            let alunoId = null;
             if (modalMode === 'add') {
-                await api.post('alunos/', payload);
+                const res = await api.post('alunos/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                alunoId = res.data?.id_aluno || res.data?.id;
+
+                // Criar encarregado se nome fornecido
+                if (formData.enc_nome && alunoId) {
+                    try {
+                        const encPayload = {
+                            nome_completo: formData.enc_nome,
+                            numero_bi: formData.enc_bi || '',
+                            telefone: formData.enc_telefone ? [formData.enc_telefone] : [],
+                            email: formData.enc_email || '',
+                            profissao: formData.enc_profissao || '',
+                            senha_hash: formData.enc_bi || '123456',
+                        };
+                        const encRes = await api.post('encarregados/', encPayload);
+                        const encId = encRes.data?.id_encarregado || encRes.data?.id;
+                        if (encId) {
+                            await api.post('aluno-encarregados/', {
+                                id_aluno: alunoId,
+                                id_encarregado: encId,
+                                grau_parentesco: formData.enc_parentesco || 'Pai'
+                            });
+                        }
+                    } catch (encErr) {
+                        console.warn('Encarregado não foi criado:', encErr);
+                    }
+                }
                 alert("Aluno registrado com sucesso!");
             } else {
-                await api.patch(`alunos/${selectedStudentId}/`, payload);
+                await api.patch(`alunos/${selectedStudentId}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
                 alert("Dados do aluno atualizados com sucesso!");
             }
 
             setShowModal(false);
-            refresh(true); // Silent refresh
+            setFotoPreview(null);
+            refresh(true);
         } catch (err) {
             console.error("Erro ao salvar aluno:", err);
             const msg = parseApiError(err, "Erro ao salvar aluno.");
@@ -829,7 +907,7 @@ const Alunos = () => {
                                             <td data-label="Curso" style={{ color: '#475569' }}>{s.curso}</td>
                                             <td data-label="Sala">{s.sala}</td>
                                             <td data-label="Turno">{s.turno}</td>
-                                            <td data-label="Turma">{s.turma}</td>
+                                            <td data-label="Turma">{s.turma || 'N/A'}</td>
                                              <td data-label="Estado">
                                                  <span
                                                      className="student-status-badge"
@@ -1346,7 +1424,18 @@ const Alunos = () => {
                                     </div>
                                     <div>
                                         <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Grau de Parentesco</label>
-                                        <input type="text" value={editPersonalData.encarregado_parentesco} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_parentesco: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Ex: Pai, Mãe, Tutor" />
+                                        <select value={editPersonalData.encarregado_parentesco} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_parentesco: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="">Selecione...</option>
+                                            <option value="Pai">Pai</option>
+                                            <option value="Mãe">Mãe</option>
+                                            <option value="Tutor(a)">Tutor(a)</option>
+                                            <option value="Avô">Avô</option>
+                                            <option value="Avó">Avó</option>
+                                            <option value="Tio(a)">Tio(a)</option>
+                                            <option value="Irmão(ã)">Irmão(ã)</option>
+                                            <option value="Padrasto / Madrasta">Padrasto / Madrasta</option>
+                                            <option value="Outro">Outro</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Telefone do Encarregado</label>
@@ -1362,7 +1451,30 @@ const Alunos = () => {
                                     </div>
                                     <div style={{ gridColumn: 'span 2' }}>
                                         <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Profissão do Encarregado</label>
-                                        <input type="text" value={editPersonalData.encarregado_profissao} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_profissao: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                        <select value={editPersonalData.encarregado_profissao} onChange={e => setEditPersonalData(p => ({ ...p, encarregado_profissao: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="">Selecione...</option>
+                                            <option value="Professor(a)">Professor(a)</option>
+                                            <option value="Médico(a)">Médico(a)</option>
+                                            <option value="Enfermeiro(a)">Enfermeiro(a)</option>
+                                            <option value="Engenheiro(a)">Engenheiro(a)</option>
+                                            <option value="Advogado(a)">Advogado(a)</option>
+                                            <option value="Agricultor(a)">Agricultor(a)</option>
+                                            <option value="Comerciante">Comerciante</option>
+                                            <option value="Condutor(a)">Condutor(a)</option>
+                                            <option value="Contabilista">Contabilista</option>
+                                            <option value="Economista">Economista</option>
+                                            <option value="Funcionário(a) Público(a)">Funcionário(a) Público(a)</option>
+                                            <option value="Gestor(a)">Gestor(a)</option>
+                                            <option value="Jornalista">Jornalista</option>
+                                            <option value="Militar">Militar</option>
+                                            <option value="Pastor(a)">Pastor(a)</option>
+                                            <option value="Policia">Policia</option>
+                                            <option value="Técnico(a)">Técnico(a)</option>
+                                            <option value="Trabalhador(a) por Conta Própria">Trabalhador(a) por Conta Própria</option>
+                                            <option value="Desempregado(a)">Desempregado(a)</option>
+                                            <option value="Reformado(a)">Reformado(a)</option>
+                                            <option value="Outra">Outra</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -1378,6 +1490,215 @@ const Alunos = () => {
                                 style={{ padding: '10px 28px', border: 'none', borderRadius: '10px', background: isSavingPersonal ? '#94a3b8' : 'linear-gradient(135deg, #1e3a8a, #3b82f6)', color: 'white', fontWeight: 700, cursor: isSavingPersonal ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(30,58,138,0.3)' }}>
                                 <CheckCircle size={16} />
                                 {isSavingPersonal ? 'A guardar...' : 'Guardar Alterações'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ===== MODAL NOVO ALUNO COMPLETO ===== */}
+            {showModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999,
+                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '20px'
+                }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
+                    <div style={{
+                        background: 'white', borderRadius: '20px', width: '100%', maxWidth: '850px',
+                        maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column',
+                        boxShadow: '0 25px 60px rgba(0,0,0,0.25)', animation: 'fadeIn 0.2s'
+                    }}>
+                        <div style={{
+                            padding: '20px 24px', borderBottom: '1px solid #e2e8f0',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            position: 'sticky', top: 0, zIndex: 10
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '10px', borderRadius: '12px' }}>
+                                    <User size={22} color="white" />
+                                </div>
+                                <h2 style={{ color: 'white', margin: 0, fontSize: '18px', fontWeight: 700 }}>Dados Pessoais do Aluno</h2>
+                            </div>
+                            <button onClick={() => setShowModal(false)}
+                                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '10px', padding: '8px', cursor: 'pointer', color: 'white' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div style={{ padding: '24px' }}>
+                            <p style={{fontSize: '12px', color: '#64748b', marginBottom: '20px', background: '#f8fafc', padding: '10px 15px', borderRadius: '8px', borderLeft: '4px solid #10b981'}}>
+                                Cadastre os dados pessoais do aluno. A matrícula (turma, curso, etc.) será feita posteriormente.
+                            </p>
+
+                            {/* Foto + Campos lado a lado */}
+                            <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+
+                                {/* Coluna Foto */}
+                                <div style={{ width: '160px', flexShrink: 0, textAlign: 'center', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ width: '110px', height: '110px', borderRadius: '20px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '2px solid #e2e8f0', margin: '0 auto 10px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+                                        {fotoPreview ? (
+                                            <img src={fotoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ textAlign: 'center' }}>
+                                                <User size={36} color="#cbd5e1" />
+                                                <p style={{ fontSize: '9px', color: '#94a3b8', margin: '4px 0 0', fontWeight: 600 }}>SEM FOTO</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'var(--primary-color, #4f46e5)', color: 'white', padding: '8px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                        <Upload size={14} />
+                                        {fotoPreview ? 'Trocar' : 'Anexar Foto'}
+                                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                setFormData(p => ({ ...p, foto: file }));
+                                                setFotoPreview(URL.createObjectURL(file));
+                                            }
+                                        }} />
+                                    </label>
+                                    <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px', fontWeight: 500 }}>Fundo Branco, 3×4</p>
+                                </div>
+
+                                {/* Coluna Campos */}
+                                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+                                    <div style={{ gridColumn: 'span 3' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
+                                        <input type="text" value={formData.nome} onChange={e => setFormData(p => ({ ...p, nome: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} placeholder="Nome do Aluno" />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Data de Nascimento</label>
+                                        <input type="date" value={formData.data_nascimento} onChange={e => setFormData(p => ({ ...p, data_nascimento: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Gênero</label>
+                                        <select value={formData.genero} onChange={e => setFormData(p => ({ ...p, genero: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="">Selecione...</option>
+                                            <option value="M">Masculino</option>
+                                            <option value="F">Feminino</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nº BI *</label>
+                                        <input type="text" value={formData.bi} onChange={e => setFormData(p => ({ ...p, bi: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none' }} placeholder="000000000LA000" />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Naturalidade</label>
+                                        <input type="text" value={formData.naturalidade} onChange={e => setFormData(p => ({ ...p, naturalidade: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Ex: Luanda" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nacionalidade</label>
+                                        <input type="text" value={formData.nacionalidade} onChange={e => setFormData(p => ({ ...p, nacionalidade: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Deficiência?</label>
+                                        <select value={formData.deficiencia} onChange={e => setFormData(p => ({ ...p, deficiencia: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="Não">Não</option>
+                                            <option value="Sim">Sim</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email</label>
+                                        <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="exemplo@email.com" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Telefone</label>
+                                        <input type="text" value={formData.telefone} onChange={e => setFormData(p => ({ ...p, telefone: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="9XXXXXXXX" />
+                                    </div>
+
+                                    <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', margin: '2px 0' }}></div>
+
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Província</label>
+                                        <input type="text" value={formData.provincia} onChange={e => setFormData(p => ({ ...p, provincia: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Huíla" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Município</label>
+                                        <input type="text" value={formData.municipio} onChange={e => setFormData(p => ({ ...p, municipio: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Lubango" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Bairro</label>
+                                        <input type="text" value={formData.bairro} onChange={e => setFormData(p => ({ ...p, bairro: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Bairro..." />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Secção Encarregado */}
+                            <div style={{ marginTop: '24px', padding: '20px', background: '#f0f9ff', borderRadius: '14px', border: '1px solid #bae6fd' }}>
+                                <p style={{ fontSize: '12px', color: '#0284c7', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
+                                    <ShieldCheck size={14} /> Dados do Encarregado de Educação <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '11px', color: '#64748b' }}>(opcional)</span>
+                                </p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nome do Encarregado</label>
+                                        <input type="text" value={formData.enc_nome} onChange={e => setFormData(p => ({ ...p, enc_nome: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }} placeholder="Nome completo" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Grau de Parentesco</label>
+                                        <select value={formData.enc_parentesco} onChange={e => setFormData(p => ({ ...p, enc_parentesco: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="Pai">Pai</option>
+                                            <option value="Mãe">Mãe</option>
+                                            <option value="Tutor">Tutor</option>
+                                            <option value="Avô">Avô</option>
+                                            <option value="Avó">Avó</option>
+                                            <option value="Tio">Tio</option>
+                                            <option value="Outro">Outro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>BI do Encarregado</label>
+                                        <input type="text" value={formData.enc_bi} onChange={e => setFormData(p => ({ ...p, enc_bi: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', background: 'white' }} placeholder="000000000LA000" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Telefone</label>
+                                        <input type="text" value={formData.enc_telefone} onChange={e => setFormData(p => ({ ...p, enc_telefone: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }} placeholder="9XXXXXXXX" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email</label>
+                                        <input type="email" value={formData.enc_email} onChange={e => setFormData(p => ({ ...p, enc_email: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }} placeholder="email@exemplo.com" />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Profissão</label>
+                                        <select value={formData.enc_profissao} onChange={e => setFormData(p => ({ ...p, enc_profissao: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                            <option value="">Selecione...</option>
+                                            <option value="Professor(a)">Professor(a)</option>
+                                            <option value="Médico(a)">Médico(a)</option>
+                                            <option value="Enfermeiro(a)">Enfermeiro(a)</option>
+                                            <option value="Engenheiro(a)">Engenheiro(a)</option>
+                                            <option value="Advogado(a)">Advogado(a)</option>
+                                            <option value="Agricultor(a)">Agricultor(a)</option>
+                                            <option value="Comerciante">Comerciante</option>
+                                            <option value="Condutor(a)">Condutor(a)</option>
+                                            <option value="Contabilista">Contabilista</option>
+                                            <option value="Economista">Economista</option>
+                                            <option value="Funcionário(a) Público(a)">Funcionário(a) Público(a)</option>
+                                            <option value="Gestor(a)">Gestor(a)</option>
+                                            <option value="Jornalista">Jornalista</option>
+                                            <option value="Militar">Militar</option>
+                                            <option value="Pastor(a)">Pastor(a)</option>
+                                            <option value="Policia">Policia</option>
+                                            <option value="Técnico(a)">Técnico(a)</option>
+                                            <option value="Trabalhador(a) por Conta Própria">Trabalhador(a) por Conta Própria</option>
+                                            <option value="Desempregado(a)">Desempregado(a)</option>
+                                            <option value="Reformado(a)">Reformado(a)</option>
+                                            <option value="Outra">Outra</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc', position: 'sticky', bottom: 0 }}>
+                            <button onClick={() => setShowModal(false)}
+                                style={{ padding: '10px 20px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>
+                                Cancelar
+                            </button>
+                            <button onClick={handleSave}
+                                style={{ padding: '10px 24px', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
+                                <CheckCircle size={16} />
+                                Guardar Aluno
                             </button>
                         </div>
                     </div>
@@ -1400,7 +1721,7 @@ const Alunos = () => {
                         }}
                     >
                         {/* Warning info if closed year */}
-                        {menuStudent.anoLectivoAtivo === false && (
+                        {(menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo') && (
                              <div style={{ padding: '8px 12px', fontSize: '11px', color: '#dc2626', background: '#fef2f2', borderBottom: '1px solid #fee2e2' }}>
                                  <AlertCircle size={12} style={{display:'inline', marginRight:'4px'}}/>
                                  Ano Lectivo Encerrado
@@ -1411,20 +1732,37 @@ const Alunos = () => {
                             <button 
                                 onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); }}
                                 className="dropdown-item-btn"
-                                disabled={menuStudent.anoLectivoAtivo === false}
-                                style={menuStudent.anoLectivoAtivo === false ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                                disabled={menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo'}
+                                style={(menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo') ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                             >
                                 <div style={{ color: '#64748b' }}><Edit size={16} /></div>
                                 Editar Aluno
+                            </button>
+                        )}
+
+                        {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
+                            <button 
+                                onClick={() => {
+                                    // Navega para a página de inscrição passando o aluno ID
+                                    // Se já tem matrícula, é Confirmação. Se não, é Novo (Novo Ingresso)
+                                    const tipo = menuStudent.matricula ? 'Confirmacao' : 'Novo';
+                                    navigate(`/matriculas/nova?aluno_id=${menuStudent.id}&tipo=${tipo}`);
+                                    setActiveMenuId(null);
+                                }}
+                                className="dropdown-item-btn"
+                                style={{ color: '#0ea5e9' }}
+                            >
+                                <div style={{ color: '#0ea5e9' }}><BookOpen size={16} /></div>
+                                Matricular
                             </button>
                         )}
                         
                         {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
                             <div 
                                 className="submenu-trigger"
-                                onMouseEnter={menuStudent.anoLectivoAtivo !== false ? handleStatusEnter : undefined}
-                                onMouseLeave={menuStudent.anoLectivoAtivo !== false ? handleStatusLeave : undefined}
-                                style={menuStudent.anoLectivoAtivo === false ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+                                onMouseEnter={(menuStudent.anoLectivoAtivo !== false || !menuStudent.matricula || menuStudent.status === 'Ativo') ? handleStatusEnter : undefined}
+                                onMouseLeave={(menuStudent.anoLectivoAtivo !== false || !menuStudent.matricula || menuStudent.status === 'Ativo') ? handleStatusLeave : undefined}
+                                style={(menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo') ? { pointerEvents: 'none', opacity: 0.5 } : {}}
                             >
                                 <button 
                                     className={`trigger-btn ${showStatusSubmenu ? 'active' : ''}`}

@@ -131,7 +131,7 @@ const NovaMatricula = () => {
                 setAnosDisponiveis(yearsData);
 
                 // Auto-select active year
-                const activeYear = yearsData.find(a => a.activo === true);
+                const activeYear = yearsData.find(a => a.activo === true || a.activo === 1 || String(a.activo).toLowerCase() === 'true');
 
                 if (activeYear) {
                     setFormData(prev => ({ ...prev, ano_lectivo: activeYear.nome }));
@@ -312,15 +312,22 @@ const NovaMatricula = () => {
                         municipio: s.municipio_residencia || '',
                         bairro: s.bairro_residencia || '',
                         numero_casa: s.numero_casa || '',
+                        naturalidade: s.naturalidade || '',
+                        nacionalidade: s.nacionalidade || 'Angolana',
+                        deficiencia: s.deficiencia || 'Não',
                         curso: s.id_turma?.id_curso?.nome_curso || '',
                         classe: suggestedClasseId,
                         turno: s.id_turma?.id_periodo?.periodo || '',
                         tipo: tipo_param || 'Confirmacao',
-                        novo_aluno_foto: s.img_path,
-                        // Guardian info
-                        nome_encarregado: s.encarregados?.[0]?.nome_completo || '',
-                        telefone_encarregado: s.encarregados?.[0]?.telefone || '',
-                        parentesco_encarregado: s.encarregados?.[0]?.grau_parentesco || '',
+                        novo_aluno_foto: s.img_path || s.foto || '',
+                        // Guardian info - Try multiple common keys from API
+                        nome_encarregado: s.encarregado_principal?.nome || s.encarregado?.nome || s.encarregados?.[0]?.nome_completo || '',
+                        telefone_encarregado: s.encarregado_principal?.telefone || s.encarregado?.telefone || s.encarregados?.[0]?.telefone || '',
+                        parentesco_encarregado: s.encarregado_principal?.parentesco || s.encarregado?.parentesco || s.encarregados?.[0]?.grau_parentesco || '',
+                        numero_bi_encarregado: s.encarregado_principal?.numero_bi || s.encarregado?.numero_bi || '',
+                        profissao_encarregado: s.encarregado_principal?.profissao || s.encarregado?.profissao || '',
+                        // Do not overwrite ano_lectivo if it was already set by fetchInitialData
+                        ano_lectivo: prev.ano_lectivo || '',
                     }));
                     
                     if (s.id_turma?.id_curso?.nome_curso) {
@@ -336,11 +343,16 @@ const NovaMatricula = () => {
 
     const fetchTurmas = async (cursoFilter = null, turnoFilter = null, classeFilter = null) => {
         try {
-            const response = await api.get('turmas/');
-            let data = response.data.results || response.data;
+            const res = await api.get('turmas/');
+            let data = res.data.results || res.data;
             
-            // Filter by Active Status (Critical: Hide concluded classes from past years)
+            // Filtrar apenas turmas ativas
             data = data.filter(t => t.status === 'Ativa');
+
+            // Filtro por Ano Lectivo (CRÍTICO para evitar erro de ano encerrado)
+            if (formData.ano_lectivo) {
+                data = data.filter(t => t.ano_lectivo_nome === formData.ano_lectivo);
+            }
             
             // Filter by the selected course
             const currentCourse = cursoFilter || formData.curso;
@@ -376,6 +388,8 @@ const NovaMatricula = () => {
              fetchTurmas(formData.curso, formData.turno, value);
         } else if (name === 'curso') {
              fetchTurmas(value, formData.turno, formData.classe);
+        } else if (name === 'ano_lectivo') {
+             fetchTurmas(formData.curso, formData.turno, formData.classe);
         }
     };
 
@@ -430,9 +444,51 @@ const NovaMatricula = () => {
         setHistoricoEscolar(historicoEscolar.filter(h => h.id !== id));
     };
 
+    const handleBiBlur = async () => {
+        if (formData.numero_bi && formData.numero_bi.length > 5 && !formData.aluno_id) {
+            try {
+                const res = await api.get(`alunos/?search=${formData.numero_bi}`);
+                const alunos = res.data.results || res.data;
+                const alunoFound = alunos.find(a => 
+                    a.numero_bi === formData.numero_bi || 
+                    a.detalhes?.bi === formData.numero_bi
+                );
+                
+                if (alunoFound) {
+                    setFormData(prev => ({
+                        ...prev,
+                        aluno_id: alunoFound.id_aluno || alunoFound.id,
+                        nome_completo: alunoFound.nome_completo || alunoFound.nome,
+                        genero: alunoFound.genero,
+                        data_nascimento: alunoFound.data_nascimento || '',
+                        email: alunoFound.email || '',
+                        telefone: alunoFound.telefone || '',
+                        provincia: alunoFound.provincia_residencia || '',
+                        municipio: alunoFound.municipio_residencia || '',
+                        bairro: alunoFound.bairro_residencia || '',
+                        numero_casa: alunoFound.numero_casa || '',
+                        naturalidade: alunoFound.naturalidade || '',
+                        nacionalidade: alunoFound.nacionalidade || 'Angolana',
+                        deficiencia: alunoFound.deficiencia || 'Não',
+                        novo_aluno_foto: alunoFound.img_path || null,
+                        tipo: 'Confirmacao'
+                    }));
+                    alert(`✅ Aluno encontrado no sistema!\n\nO aluno: ${alunoFound.nome_completo || alunoFound.nome} já existe.\nOs dados pessoais foram preenchidos automaticamente. Preencha os dados académicos para matricular.`);
+                }
+            } catch (error) {
+                console.log("Aluno não encontrado ou erro na busca:", error);
+            }
+        }
+    };
+
     const handleSubmit = async () => {
         if (!formData.turma_id) {
             alert("Por favor, selecione uma turma.");
+            return;
+        }
+
+        if (!formData.ano_lectivo) {
+            alert("Erro: Nenhum ano lectivo selecionado ou ativo. Por favor, selecione um ano lectivo no Passo 2.");
             return;
         }
 
@@ -526,8 +582,8 @@ const NovaMatricula = () => {
         // So we won't use a global isReadOnly for the inputs.
         const isConfirming = tipo_param === 'Confirmacao' || (location.state && location.state.tipo === 'Confirmacao');
         const isEditing = formData.tipo === 'Edicao' || (location.state && location.state.tipo === 'Edicao');
-        const isStrictlyReadOnly = isConfirming && !isEditing; 
-        const isReadOnly = isStrictlyReadOnly;
+        const isStrictlyReadOnly = false; // Permitir alterações sempre
+        const isReadOnly = false;
 
         // Se for edição e ainda não escolheu o que editar, mostra o menu de escolha
         if (isEditing && !editStepChoice && step === 1) {
@@ -658,18 +714,7 @@ const NovaMatricula = () => {
                                     />
                                 </div>
 
-                                {formData.numero_matricula && (
-                                    <div>
-                                        <label className="field-label">Nº de Matrícula (Permanente)</label>
-                                        <input 
-                                            type="text" 
-                                            value={formData.numero_matricula}
-                                            readOnly
-                                            className="field-input read-only"
-                                            style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}
-                                        />
-                                    </div>
-                                )}
+
 
                                 <div>
                                     <label className="field-label">Data de Nascimento</label>
@@ -765,6 +810,7 @@ const NovaMatricula = () => {
                                         name="numero_bi"
                                         value={formData.numero_bi}
                                         onChange={handleInputChange}
+                                        onBlur={handleBiBlur}
                                         readOnly={isStrictlyReadOnly}
                                         className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
                                         placeholder="000000000LA000"
@@ -870,27 +916,60 @@ const NovaMatricula = () => {
                                 </div>
                                  <div>
                                     <label className="field-label">Parentesco</label>
-                                    <input 
-                                        type="text" 
+                                    <select 
                                         name="parentesco_encarregado"
                                         value={formData.parentesco_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isStrictlyReadOnly}
-                                        className="field-input small-input"
+                                        disabled={isStrictlyReadOnly}
+                                        className="field-select"
                                         style={{ height: '38px' }}
-                                    />
+                                    >
+                                        <option value="">Selecione...</option>
+                                        <option value="Pai">Pai</option>
+                                        <option value="Mãe">Mãe</option>
+                                        <option value="Tutor(a)">Tutor(a)</option>
+                                        <option value="Avô">Avô</option>
+                                        <option value="Avó">Avó</option>
+                                        <option value="Tio(a)">Tio(a)</option>
+                                        <option value="Irmão(ã)">Irmão(ã)</option>
+                                        <option value="Padrasto / Madrasta">Padrasto / Madrasta</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="field-label">Profissão</label>
-                                    <input 
-                                        type="text" 
+                                    <select 
                                         name="profissao_encarregado"
                                         value={formData.profissao_encarregado}
                                         onChange={handleInputChange}
-                                        readOnly={isStrictlyReadOnly}
-                                        className="field-input small-input"
+                                        disabled={isStrictlyReadOnly}
+                                        className="field-select"
                                         style={{ height: '38px' }}
-                                    />
+                                    >
+                                        <option value="">Selecione...</option>
+                                        <option value="Professor(a)">Professor(a)</option>
+                                        <option value="Médico(a)">Médico(a)</option>
+                                        <option value="Enfermeiro(a)">Enfermeiro(a)</option>
+                                        <option value="Engenheiro(a)">Engenheiro(a)</option>
+                                        <option value="Advogado(a)">Advogado(a)</option>
+                                        <option value="Agricultor(a)">Agricultor(a)</option>
+                                        <option value="Comerciante">Comerciante</option>
+                                        <option value="Condutor(a)">Condutor(a)</option>
+                                        <option value="Contabilista">Contabilista</option>
+                                        <option value="Economista">Economista</option>
+                                        <option value="Enfermeiro(a) Auxiliar">Enfermeiro(a) Auxiliar</option>
+                                        <option value="Funcionário(a) Público(a)">Funcionário(a) Público(a)</option>
+                                        <option value="Gestor(a)">Gestor(a)</option>
+                                        <option value="Jornalista">Jornalista</option>
+                                        <option value="Militar">Militar</option>
+                                        <option value="Pastor(a)">Pastor(a)</option>
+                                        <option value="Policia">Policia</option>
+                                        <option value="Técnico(a)">Técnico(a)</option>
+                                        <option value="Trabalhador(a) por Conta Própria">Trabalhador(a) por Conta Própria</option>
+                                        <option value="Desempregado(a)">Desempregado(a)</option>
+                                        <option value="Reformado(a)">Reformado(a)</option>
+                                        <option value="Outra">Outra</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -923,13 +1002,7 @@ const NovaMatricula = () => {
                             {/* Coluna 1: Curso */}
                             <div style={{ gridColumn: (formData.curso_primario && formData.curso_secundario) ? 'span 2' : 'span 1' }}>
                                 <label className="field-label">Curso</label>
-                                {isConfirming ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '9px 14px' }}>
-                                        <CheckCircle size={16} color="#16a34a" />
-                                        <span style={{ fontWeight: 700, color: '#15803d', fontSize: '14px' }}>{formData.curso}</span>
-                                        <span style={{ fontSize: '11px', color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: '20px', marginLeft: 'auto' }}>Curso Fixo</span>
-                                    </div>
-                                ) : formData.curso_primario && formData.curso_secundario ? (
+                                {formData.curso_primario && formData.curso_secundario ? (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
                                             type="button"
@@ -1040,9 +1113,14 @@ const NovaMatricula = () => {
                                     disabled={isReadOnly}
                                 >
                                     <option value="">Selecione...</option>
-                                    {anosDisponiveis.map(a => (
-                                        <option key={a.id || a.id_ano} value={a.nome}>{a.nome}</option>
-                                    ))}
+                                    {anosDisponiveis.map(a => {
+                                        const isActive = a.activo === true || a.activo === 1 || String(a.activo).toLowerCase() === 'true';
+                                        return (
+                                            <option key={a.id || a.id_ano} value={a.nome}>
+                                                {a.nome} {isActive ? '(Ativo)' : '(Encerrado)'}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                         </div>
