@@ -2526,9 +2526,9 @@ const Configuracoes = () => {
                                 <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6' }}>
                                     Aceda ao manual completo do utilizador para aprender a gerir alunos, turmas, matrículas e relatórios financeiros.
                                 </p>
-                                <button className="btn-premium btn-secondary-premium" style={{ marginTop: '12px', width: '100%' }}>
-                                    <FileText size={18} /> Ver Manual PDF
-                                </button>
+                                <a href="/docs/manual_sistema.pdf" target="_blank" rel="noopener noreferrer" download className="btn-premium btn-secondary-premium" style={{ marginTop: '12px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+                                    <FileText size={18} /> Ver Manual PDF com toda explicação completa do sistema.
+                                </a>
                             </div>
 
                             <div className="info-card-v2">
@@ -2541,7 +2541,7 @@ const Configuracoes = () => {
                                         <Bell size={16} /> suporte@escola.ao
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--primary-color)' }}>
-                                        <Info size={16} /> +244 9XX XXX XXX
+                                        <Info size={16} /> +244 946 464 376
                                     </div>
                                 </div>
                             </div>
@@ -2552,7 +2552,7 @@ const Configuracoes = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
                                     <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como redefinir a senha de um usuário?</summary>
-                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Vá em Segurança, edite o usuário e preencha o campo "Definir Senha".</p>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Pode redefinir através do seu perfil na aba de segurança e senha, ou, como administrador, indo em Segurança, editando o usuário e preenchendo o campo "Definir Senha".</p>
                                 </details>
                                 <details style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer' }}>
                                     <summary style={{ fontWeight: 600, fontSize: '14px' }}>Como encerrar o ano lectivo?</summary>

@@ -141,7 +141,8 @@ const Ajuda = () => {
                             <h3 style={{ margin: 0, color: 'white' }}>Manuais</h3>
                         </div>
                         <p style={{ fontSize: '14px', opacity: '0.9', marginBottom: '20px' }}>Baixe o manual completo do utilizador para aprender a usar todas as funcionalidades.</p>
-                        <button style={{ 
+                        <a href="/docs/manual_sistema.pdf" download className="btn-premium btn-secondary-premium" style={{ 
+                            display: 'block',
                             width: '100%', 
                             padding: '12px', 
                             borderRadius: '8px', 
@@ -149,10 +150,12 @@ const Ajuda = () => {
                             background: 'white', 
                             color: 'var(--primary-color)', 
                             fontWeight: '600', 
+                            textAlign: 'center',
+                            textDecoration: 'none',
                             cursor: 'pointer' 
                         }}>
                             Download PDF (2MB)
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
