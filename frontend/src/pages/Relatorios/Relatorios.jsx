@@ -197,53 +197,7 @@ const Relatorios = () => {
                 </div>
             </header>
 
-            <div className="stats-summary-grid" style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-                gap: '20px',
-                marginTop: '24px'
-            }}>
-                <div className="stat-card premium animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '12px', color: '#2563eb' }}>
-                            <Users size={24} />
-                        </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Alunos</span>
-                    </div>
-                    <div>
-                        <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', margin: '4px 0' }}>{stats.total_alunos}</h3>
-                        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Matrículas registradas</p>
-                    </div>
-                </div>
 
-                <div className="stat-card premium animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ background: '#fff7ed', padding: '10px', borderRadius: '12px', color: '#d97706' }}>
-                            <TrendingUp size={24} />
-                        </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Inscritos</span>
-                    </div>
-                    <div>
-                        <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', margin: '4px 0' }}>{stats.total_candidatos}</h3>
-                        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Candidatos em espera</p>
-                    </div>
-                </div>
-
-
-
-                <div className="stat-card premium animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ background: '#f5f3ff', padding: '10px', borderRadius: '12px', color: '#7c3aed' }}>
-                            <FileText size={24} />
-                        </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Modelos</span>
-                    </div>
-                    <div>
-                        <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', margin: '4px 0' }}>{finalReports.length}</h3>
-                        <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Relatórios configurados</p>
-                    </div>
-                </div>
-            </div>
 
             <div className="table-card" style={{ marginTop: '24px' }}>
                 {/* TOOLBAR */}
