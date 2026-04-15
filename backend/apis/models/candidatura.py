@@ -90,7 +90,7 @@ class Candidato(BaseModel):
         if not self.ano_lectivo:
              raise ValidationError("Não existe um Ano Lectivo Ativo no sistema. É necessário abrir um novo ano lectivo para realizar candidaturas.")
 
-        if self.ano_lectivo and not self.ano_lectivo.activo:
+        if self.ano_lectivo and self.ano_lectivo.status == 'Encerrado':
              raise ValidationError(f"O Ano Lectivo '{self.ano_lectivo.nome}' está encerrado. Não são permitidas novas candidaturas ou alterações.")
 
         if not self.numero_inscricao:
@@ -123,11 +123,11 @@ class Candidato(BaseModel):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if self.ano_lectivo and not self.ano_lectivo.activo:
+        if self.ano_lectivo and self.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo selecionado está encerrado. Não são permitidas alterações.")
 
     def delete(self, *args, **kwargs):
-        if self.ano_lectivo and not self.ano_lectivo.activo:
+        if self.ano_lectivo and self.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo selecionado está encerrado. Não é possível excluir.")
         super().delete(*args, **kwargs)
 
@@ -161,7 +161,7 @@ class ExameAdmissao(BaseModel):
         verbose_name = 'Exame de Admissão'
 
     def clean(self):
-        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+        if self.candidato.ano_lectivo and self.candidato.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
 
     def save(self, *args, **kwargs):
@@ -169,7 +169,7 @@ class ExameAdmissao(BaseModel):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+        if self.candidato.ano_lectivo and self.candidato.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
         super().delete(*args, **kwargs)
         
@@ -212,7 +212,7 @@ class RupeCandidato(BaseModel):
         verbose_name_plural = 'RUPs Candidatos'
 
     def clean(self):
-        if self.inscricao.ano_lectivo and not self.inscricao.ano_lectivo.activo:
+        if self.inscricao.ano_lectivo and self.inscricao.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
 
     def save(self, *args, **kwargs):
@@ -220,7 +220,7 @@ class RupeCandidato(BaseModel):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if self.inscricao.ano_lectivo and not self.inscricao.ano_lectivo.activo:
+        if self.inscricao.ano_lectivo and self.inscricao.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
         super().delete(*args, **kwargs)
 
@@ -242,7 +242,7 @@ class ListaEspera(BaseModel):
         return f"Espera: {self.candidato.nome_completo}"
 
     def clean(self):
-        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+        if self.candidato.ano_lectivo and self.candidato.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não são permitidas alterações.")
 
     def save(self, *args, **kwargs):
@@ -250,6 +250,6 @@ class ListaEspera(BaseModel):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if self.candidato.ano_lectivo and not self.candidato.ano_lectivo.activo:
+        if self.candidato.ano_lectivo and self.candidato.ano_lectivo.status == 'Encerrado':
              raise ValidationError("O Ano Lectivo deste candidato está encerrado. Não é possível excluir.")
         super().delete(*args, **kwargs)

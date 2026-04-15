@@ -73,31 +73,73 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
             
-        # Segundo verificar o cronograma do ano lectivo activo
-        active_year = AnoLectivo.get_active_year()
-        if active_year and not active_year.is_inscricoes_abertas:
-            return Response(
-                {
-                    'erro': 'Período de inscrições encerrado.', 
-                    'detalhe': f'O período de inscrições para o ano {active_year.nome} foi concluído.'
-                }, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        # Segundo verificar o cronograma do ano lectivo pretendido
+        ano_lectivo_id = request.data.get('ano_lectivo')
+        target_year = None
+        if ano_lectivo_id:
+            try:
+                target_year = AnoLectivo.objects.get(pk=ano_lectivo_id)
+            except AnoLectivo.DoesNotExist:
+                pass
+                
+        if not target_year:
+            # Buscar ano lectivo com inscrições válidas em vez do fixo get_active_year
+            anos_candidatos = AnoLectivo.objects.filter(status__in=['Ativo', 'Planeado']).order_by('-id_ano')
+            
+            # Tenta ano com datas precisas
+            for ano in anos_candidatos:
+                if ano.inicio_inscricoes and ano.fim_inscricoes and ano.is_inscricoes_abertas:
+                    target_year = ano
+                    break
+                    
+            if not target_year:
+                # Fallback: pega o ano que "is_inscricoes_abertas" aceita, priorizando 'Planeado'
+                for ano in anos_candidatos:
+                    if ano.is_inscricoes_abertas:
+                        target_year = ano
+                        if ano.status == 'Planeado':
+                            break
+                            
+            if not target_year:
+                target_year = AnoLectivo.get_active_year()
+
+        if target_year and not target_year.is_inscricoes_abertas:
+            from django.utils import timezone
+            import datetime
+            now = timezone.now()
+            
+            # Se a data de início está no futuro
+            if target_year.inicio_inscricoes and isinstance(target_year.inicio_inscricoes, datetime.date) and now.date() < target_year.inicio_inscricoes:
+                return Response(
+                    {
+                        'erro': 'Período de inscrições ainda não começou.', 
+                        'detalhe': f'As inscrições para o ano {target_year.nome} só iniciarão a {target_year.inicio_inscricoes.strftime("%d/%m/%Y")}.'
+                    }, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            else:
+                return Response(
+                    {
+                        'erro': 'Período de inscrições encerrado.', 
+                        'detalhe': f'O período de inscrições para o ano {target_year.nome} foi concluído.'
+                    }, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         try:
             # Validação: Um candidato não pode se inscrever duas vezes no mesmo Ano Lectivo
             numero_bi = request.data.get('numero_bi')
-            if numero_bi and active_year:
-                if Candidato.objects.filter(numero_bi=numero_bi, ano_lectivo=active_year).exists():
+            if numero_bi and target_year:
+                if Candidato.objects.filter(numero_bi=numero_bi, ano_lectivo=target_year).exists():
                     return Response({
                         'erro': 'Candidatura já existe.',
-                        'detalhe': f'O BI {numero_bi} já possui uma candidatura neste Ano Lectivo ({active_year.nome}).'
+                        'detalhe': f'O BI {numero_bi} já possui uma candidatura neste Ano Lectivo ({target_year.nome}).'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             serializer = self.get_serializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            self.perform_create(serializer)
+            serializer.save(ano_lectivo=target_year)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
