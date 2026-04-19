@@ -1,6 +1,6 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import { PERMISSIONS } from "../utils/permissions";
 import Layout from "../components/Layout/Layout";
@@ -24,6 +24,7 @@ import Configuracoes from "../pages/Configuracoes/Configuracoes";
 import NovaMatricula from "../pages/Matriculas/NovaMatricula";
 import Relatorios from "../pages/Relatorios/Relatorios";
 import VagasCursos from "../pages/VagasCursos/VagasCursos";
+import Welcome from "../pages/Welcome/Welcome";
 
 
 import Perfil from "../pages/Perfil/Perfil";
@@ -32,7 +33,7 @@ import NotFound from "../pages/NotFound/NotFound";
 
 // PrivateRoute now keeps the layout mounted even during loading
 const PrivateRoute = ({ children }) => {
-    const { signed, loading, user } = useAuth();
+    const { signed, loading } = useAuth();
     
     // SEO optimization: if we have a user in session, don't block the initial render
     const hasSession = !!sessionStorage.getItem('@App:token');
@@ -82,14 +83,14 @@ export default function Routers() {
         <Suspense fallback={<Loader />}>
             <Routes>
                 {/* Public Routes */}
+                <Route path="/" element={<Welcome />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/definir-senha" element={<DefinirSenha />} />
                 <Route path="/candidatura" element={<Candidatura />} />
                 <Route path="/candidatos" element={<Candidatura />} />
                 <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-                <Route path="/" element={<Login />} />
 
-                {/* Persistent Layout and Protected Routes */}
                 <Route element={<ProtectedLayout />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     
