@@ -82,7 +82,7 @@ class AuthService:
                         defaults={
                             'email': django_user.email,
                             'nome_completo': django_user.get_full_name() or django_user.username,
-                            'papel': 'Admin' if django_user.is_superuser else 'Comum',
+                            'papel': 'Admin' if django_user.is_superuser else 'Normal',
                             'is_superuser': django_user.is_superuser
                         }
                     )
@@ -95,7 +95,7 @@ class AuthService:
                             defaults={
                                 'email': django_user.email,
                                 'nome_completo': django_user.get_full_name() or django_user.username,
-                                'papel': 'Admin' if django_user.is_superuser else 'Comum',
+                                'papel': 'Admin' if django_user.is_superuser else 'Normal',
                                 'is_superuser': django_user.is_superuser
                             }
                         )
@@ -156,10 +156,15 @@ class AuthService:
                 # Tenta por email
                 user = Aluno.objects.get(email__iexact=email)
             except Aluno.DoesNotExist:
-                # Tenta por número de matrícula
+                # Tenta por número de matrícula (na tabela Matricula)
+                from apis.models import Matricula
                 try:
-                    user = Aluno.objects.get(numero_matricula=email)
-                except (Aluno.DoesNotExist, ValueError, TypeError):
+                    matricula = Matricula.objects.filter(numero_matricula=email).select_related('id_aluno').first()
+                    if matricula:
+                        user = matricula.id_aluno
+                    else:
+                        raise ValueError('Aluno não encontrado.')
+                except (ValueError, TypeError):
                     raise ValueError('Aluno não encontrado.')
                 
             if not check_password(password, user.senha_hash):
@@ -171,7 +176,7 @@ class AuthService:
                 'papel': 'Aluno',
                 'nome': user.nome_completo,
                 'email': user.email,
-                'numero_matricula': user.numero_matricula,
+                'numero_matricula': user.matricula_set.order_by('-data_matricula').first().numero_matricula if user.matricula_set.exists() else None,
                 'turma': user.id_turma.codigo_turma if user.id_turma else None,
                 'status': user.status_aluno,
                 'permissoes': [],
@@ -211,16 +216,19 @@ class AuthService:
     @staticmethod
     def generate_tokens(user_data):
         """Gera par de tokens (Access + Refresh) com claims customizadas."""
+        # RefreshToken.for_user(django_user) seria o padrão, mas aqui usamos dados customizados
         refresh = RefreshToken()
         
-        # Claims padrão
+        # Claims customizadas para persistirem na renovação
         refresh['user_id'] = user_data['id']
         refresh['user_type'] = user_data['tipo']
         
-        # Copia claims para o access token também
+        # O Access Token herda do Refresh Token
         access_token = refresh.access_token
         access_token['user_id'] = user_data['id']
         access_token['user_type'] = user_data['tipo']
+        # Adicionar nome para facilitar leitura no frontend se necessário
+        access_token['nome'] = user_data.get('nome')
         
         return {
             'refresh': str(refresh),
@@ -229,38 +237,72 @@ class AuthService:
 
     @staticmethod
     def log_login_activity(user, user_type, request):
-        """Registra o login no histórico."""
+        """Registra o login no histórico e controla o limite de sessões."""
+        from apis.models import HistoricoLogin
+        from django.utils import timezone
+        from django.db.models import Q
         try:
+            # 1. Determinar identificadores para filtro de sessões
+            user_filter = Q()
+            if hasattr(user, 'id_usuario'):
+                user_filter = Q(id_usuario=user)
+            elif hasattr(user, 'id_aluno'):
+                user_filter = Q(id_aluno=user)
+            elif hasattr(user, 'id_encarregado'):
+                user_filter = Q(id_encarregado=user)
+            elif hasattr(user, 'id_funcionario'):
+                user_filter = Q(id_funcionario=user)
+
+            # 2. CONTROLE DE SESSÕES (Máximo 2)
+            # Antes de criar a nova, encerramos excedentes se houver >= 2 activa
+            active_sessions = HistoricoLogin.objects.filter(user_filter, estado='activa').order_by('hora_entrada')
+            if active_sessions.count() >= 2:
+                # Pegamos as mais antigas para fechar, deixando apenas 1 (a nova será a 2ª)
+                sessions_to_close = active_sessions[:(active_sessions.count() - 1)]
+                for session in sessions_to_close:
+                    session.estado = 'encerrada'
+                    session.hora_saida = timezone.now()
+                    session.save()
+
+            # 3. Determinar IP e Dispositivo/Navegador
+            from apis.utils.auth_utils import get_user_agent_info
+            
             x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
             ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
             
-            user_agent = request.META.get('HTTP_USER_AGENT', '')[:150]
-            
-            historico_data = {
+            ua_info = get_user_agent_info(request)
+
+            log_data = {
                 'ip_usuario': ip,
-                'dispositivo': user_agent,
-                'navegador': user_agent
+                'dispositivo': ua_info['dispositivo'],
+                'navegador': ua_info['navegador'],
+                'estado': 'activa',
+                'hora_entrada': timezone.now(),
+                'last_activity': timezone.now()
             }
+
+            # 4. Vínculo do Perfil
+            if hasattr(user, 'id_usuario'):
+                log_data['id_usuario'] = user
+                if hasattr(user, 'funcionario_perfil'):
+                    log_data['id_funcionario'] = user.funcionario_perfil
+            elif hasattr(user, 'id_funcionario'):
+                log_data['id_funcionario'] = user
+                if hasattr(user, 'usuario'):
+                    log_data['id_usuario'] = user.usuario
+            elif hasattr(user, 'id_aluno'):
+                log_data['id_aluno'] = user
+            elif hasattr(user, 'id_encarregado'):
+                log_data['id_encarregado'] = user
+
+            # 5. GRAVAÇÃO DA NOVA SESSÃO
+            HistoricoLogin.objects.create(**log_data)
             
-            if user_type in ['funcionario', 'usuario']:
-                # Se for funcionário, o objeto user passado deve ser a instância de Usuario
-                if isinstance(user, Usuario):
-                    historico_data['id_usuario'] = user 
-                elif hasattr(user, 'usuario'): # Se passou instância Funcionario
-                    historico_data['id_usuario'] = user.usuario
-            elif user_type == 'aluno':
-                historico_data['id_aluno'] = user
-            elif user_type == 'encarregado':
-                historico_data['id_encarregado'] = user
-            
-            HistoricoLogin.objects.create(**historico_data)
-            
-            # Atualiza status online usando update() para bypassar validações do modelo
-            # (evita bloquear alunos com estado final ao fazer login)
+            # 6. Forçar status online
             user.__class__.objects.filter(pk=user.pk).update(is_online=True)
-            
+
         except Exception as e:
-            print(f"Erro ao registrar log de login: {e}")
+            print(f"ERRO CRÍTICO AO GRAVAR LOG DE LOGIN: {e}")
 
     @staticmethod
     def get_user_profile(user_id, user_type):
@@ -308,8 +350,8 @@ class AuthService:
                 'status': user.status_funcionario,
                 'is_active': user.status_funcionario == 'Activo',
                 'is_superuser': is_super,
-                'papel': 'Admin' if is_super else (user.usuario.papel if user.usuario else 'Comum'),
-                'role': 'Admin' if is_super else (user.usuario.papel if user.usuario else 'Comum'),
+                'papel': 'Admin' if is_super else (user.usuario.papel if user.usuario else 'Normal'),
+                'role': 'Admin' if is_super else (user.usuario.papel if user.usuario else 'Normal'),
                 'permissoes': perms,
                 'foto_obj': user.img_path if user.img_path else (user.usuario.img_path if user.usuario else None)
             }
@@ -349,7 +391,7 @@ class AuthService:
                 'email': user.email,
                 'telefone': user.telefone,
                 'endereco': f"{user.municipio_residencia or ''}, {user.bairro_residencia or ''}, {user.numero_casa or ''}".strip(', '),
-                'numero_matricula': user.numero_matricula,
+                'numero_matricula': user.matricula_set.order_by('-data_matricula').first().numero_matricula if user.matricula_set.exists() else None,
                 'turma': user.id_turma.codigo_turma if user.id_turma else None,
                 'status': user.status_aluno,
                 'is_online': True,
@@ -515,46 +557,27 @@ class AuthService:
     @staticmethod
     def logout_user(user_id, user_type):
         """
-        Realiza logout do usuário (atualiza status e histórico).
+        Realiza logout do usuário dispara o sinal correspondente.
         """
-        from datetime import datetime
-        from django.utils import timezone
+        from django.contrib.auth.signals import user_logged_out
         
         user = None
         try:
             if user_type == 'funcionario' or user_type == 'usuario':
-                # No logout, o frontend manda o ID do perfil geralmente, ou ID do auth user.
-                # Precisamos ser flexíveis.
                 try:
                     user = Usuario.objects.get(id_usuario=user_id)
                 except Usuario.DoesNotExist:
-                     # Se enviou Auth ID
                      user = Usuario.objects.get(user__id=user_id)
             elif user_type == 'aluno':
                 user = Aluno.objects.get(id_aluno=user_id)
             elif user_type == 'encarregado':
                 user = Encarregado.objects.get(id_encarregado=user_id)
         except:
-             # Se não achar o usuário, não faz nada (pode já ter sido deletado)
              return
             
         if user:
-            # usa update() direto para bypassar validações do modelo
-            # (evita bloquear alunos com estado final ao fazer logout)
-            user.__class__.objects.filter(pk=user.pk).update(is_online=False)
-            
-            # Registrar saída no histórico
-            historico = None
-            if user_type in ['funcionario', 'usuario']:
-                 historico = HistoricoLogin.objects.filter(id_usuario=user, hora_saida__isnull=True).order_by('-hora_entrada').first()
-            elif user_type == 'aluno':
-                 historico = HistoricoLogin.objects.filter(id_aluno=user, hora_saida__isnull=True).order_by('-hora_entrada').first()
-            elif user_type == 'encarregado':
-                 historico = HistoricoLogin.objects.filter(id_encarregado=user, hora_saida__isnull=True).order_by('-hora_entrada').first()
-
-            if historico:
-                historico.hora_saida = timezone.now()
-                historico.save()
+            # Enviamos o sinal de logout. O listener em signals.py cuidará de atualizar o HistoricoLogin.
+            user_logged_out.send(sender=user.__class__, request=None, user=user)
 
     @staticmethod
     def update_password_via_token(user_id, user_type, new_password):

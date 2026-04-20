@@ -1,476 +1,566 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { 
-    Search, 
-    Plus, 
-    Edit3, 
-    X, 
-    Home, 
-    Users, 
-    ChevronRight,
-    MapPin,
-    Grid,
-    Layers,
-    LayoutGrid,
-    Filter
-} from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  Search,
+  Plus,
+  Edit3,
+  X,
+  Home,
+  Users,
+  ChevronRight,
+  MapPin,
+  Grid,
+  Layers,
+  LayoutGrid,
+  Filter,
+} from "lucide-react";
 
-import Pagination from '../../components/Common/Pagination';
-import FilterModal from '../../components/Common/FilterModal';
-import api from '../../services/api';
-import { parseApiError } from '../../utils/errorParser';
-import { useCache } from '../../context/CacheContext';
-import { usePermission } from '../../hooks/usePermission';
-import { PERMISSIONS } from '../../utils/permissions';
-import './Salas.css';
+import Pagination from "../../components/Common/Pagination";
+import FilterModal from "../../components/Common/FilterModal";
+import api from "../../services/api";
+import { parseApiError } from "../../utils/errorParser";
+import { useCache } from "../../context/CacheContext";
+import { usePermission } from "../../hooks/usePermission";
+import { PERMISSIONS } from "../../utils/permissions";
+import "./Salas.css";
 
 const Salas = () => {
-    const { hasPermission } = usePermission();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
-    const [filters, setFilters] = useState({
-        bloco: '',
-        tipo: ''
-    });
-    const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-    const [selectedSala, setSelectedSala] = useState(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const tableRef = useRef(null);
+  const { hasPermission } = usePermission();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    bloco: "",
+    tipo: "",
+  });
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState("add"); // 'add' or 'edit'
+  const [selectedSala, setSelectedSala] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const tableRef = useRef(null);
 
-    // Pagination State
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(23);
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(23);
 
+  const [salas, setSalas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  const [formData, setFormData] = useState({
+    numero_sala: "",
+    bloco: "",
+    capacidade_alunos: "",
+  });
 
-    const [salas, setSalas] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  // Cache
+  const { getCache, setCache } = useCache();
 
-    const [formData, setFormData] = useState({
-        numero_sala: '',
-        bloco: '',
-        capacidade_alunos: ''
-    });
+  // Fetch Salas
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Cache
-    const { getCache, setCache } = useCache();
-
-    // Fetch Salas
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    // Polling Inteligente para atualizações em tempo real
-    useEffect(() => {
-        const syncIfVisible = () => {
-            if (!document.hidden) {
-                fetchData(true);
-            }
-        };
-
-        const interval = setInterval(syncIfVisible, 60000); // 60 segundos
-        
-        window.addEventListener('focus', syncIfVisible);
-        
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('focus', syncIfVisible);
-        };
-    }, []);
-
-    const fetchData = async (force = false) => {
-        if (!force) {
-            const cachedData = getCache('salas');
-            if (cachedData) {
-                setSalas(cachedData);
-                setLoading(false);
-                return;
-            }
-        }
-
-        try {
-            // Do not set loading=true on polling to avoid flash
-            const response = await api.get('salas/?page_size=5000');
-            const data = response.data.results || response.data;
-            setSalas(Array.isArray(data) ? data : []);
-            setCache('salas', Array.isArray(data) ? data : []);
-            setLoading(false);
-        } catch (err) {
-            console.error('Erro ao buscar salas:', err);
-            // Only show error on initial load
-            if (loading) {
-                setError('Falha ao carregar lista de salas.');
-                setLoading(false);
-            }
-        }
+  // Polling Inteligente para atualizações em tempo real
+  useEffect(() => {
+    const syncIfVisible = () => {
+      if (!document.hidden) {
+        fetchData(true);
+      }
     };
 
-    const handleSave = async () => {
-        if (isSaving) return;
-        try {
-            setIsSaving(true);
-            // Validacao simples
-            if (!formData.numero_sala || !formData.capacidade_alunos) {
-                alert("Preencha o número da sala e a capacidade.");
-                return;
-            }
+    const interval = setInterval(syncIfVisible, 60000); // 60 segundos
 
-            const payload = {
-                numero_sala: formData.numero_sala,
-                bloco: formData.bloco,
-                capacidade_alunos: formData.capacidade_alunos
-            };
+    window.addEventListener("focus", syncIfVisible);
 
-            if (modalMode === 'add') {
-                await api.post('salas/', payload);
-                alert('Sala criada com sucesso!');
-            } else {
-                await api.patch(`salas/${selectedSala.id_sala}/`, payload);
-                alert('Sala atualizada com sucesso!');
-            }
-
-            setShowModal(false);
-            fetchData(true); // Force refresh to update cache
-        } catch (err) {
-            console.error("Erro ao salvar sala:", err);
-            const msg = parseApiError(err, "Erro ao salvar sala.");
-            alert(msg);
-        } finally {
-            setIsSaving(false);
-        }
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", syncIfVisible);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const handleEdit = (sala) => {
-        setSelectedSala(sala);
-        setFormData({
-            numero_sala: sala.numero_sala,
-            bloco: sala.bloco || '',
-            capacidade_alunos: sala.capacidade_alunos
-        });
-        setModalMode('edit');
-        setShowModal(true);
-    };
-
-    const handleAdd = () => {
-        setSelectedSala(null);
-        setFormData({
-            numero_sala: '',
-            bloco: '',
-            capacidade_alunos: ''
-        });
-        setModalMode('add');
-        setShowModal(true);
-    };
-
-    // Helper to determine Room Type based on capacity/name
-    function getRoomType(sala) {
-        const cap = parseInt(sala.capacidade_alunos);
-        if (cap >= 60) return { label: 'Auditório', color: '#7c3aed', bg: '#f5f3ff' };
-        if (cap <= 25) return { label: 'Laboratório', color: '#059669', bg: '#ecfdf5' };
-        return { label: 'Sala de Aula', color: '#2563eb', bg: '#eff6ff' };
+  const fetchData = async (force = false) => {
+    if (!force) {
+      const cachedData = getCache("salas");
+      if (cachedData) {
+        setSalas(cachedData);
+        setLoading(false);
+        return;
+      }
     }
 
-    // Helper for progress bar color
-    function getCapacityColor(cap) {
-        if (cap >= 60) return '#7c3aed';
-        if (cap >= 40) return '#2563eb';
-        return '#059669';
+    try {
+      // Do not set loading=true on polling to avoid flash
+      const response = await api.get("salas/?page_size=5000");
+      const data = response.data.results || response.data;
+      setSalas(Array.isArray(data) ? data : []);
+      setCache("salas", Array.isArray(data) ? data : []);
+      setLoading(false);
+    } catch (err) {
+      console.error("Erro ao buscar salas:", err);
+      // Only show error on initial load
+      if (loading) {
+        setError("Falha ao carregar lista de salas.");
+        setLoading(false);
+      }
     }
+  };
 
-    // Filter & Sort Logic
-    const filteredData = React.useMemo(() => {
-        let sortableItems = salas.filter(item => {
-            const term = searchTerm.toLowerCase();
-            const matchesSearch = 
-                String(item.numero_sala).includes(term) ||
-                String(item.bloco || '').toLowerCase().includes(term);
-            
-            const type = getRoomType(item).label;
-            const matchesFilters = 
-                (filters.bloco === '' || item.bloco === filters.bloco) &&
-                (filters.tipo === '' || type === filters.tipo);
+  const handleSave = async () => {
+    if (isSaving) return;
+    try {
+      setIsSaving(true);
+      // Validacao simples
+      if (!formData.numero_sala || !formData.capacidade_alunos) {
+        alert("Preencha o número da sala e a capacidade.");
+        return;
+      }
 
-            return matchesSearch && matchesFilters;
-        });
+      const payload = {
+        numero_sala: formData.numero_sala,
+        bloco: formData.bloco,
+        capacidade_alunos: formData.capacidade_alunos,
+      };
 
-        // Default sort by ID descending (newest first)
-        sortableItems.sort((a, b) => b.id_sala - a.id_sala);
-        
-        return sortableItems;
-    }, [salas, searchTerm, filters]);
+      if (modalMode === "add") {
+        await api.post("salas/", payload);
+        alert("Sala criada com sucesso!");
+      } else {
+        await api.patch(`salas/${selectedSala.id_sala}/`, payload);
+        alert("Sala atualizada com sucesso!");
+      }
 
-    // Pagination Slicing
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentSalas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+      setShowModal(false);
+      fetchData(true); // Force refresh to update cache
+    } catch (err) {
+      console.error("Erro ao salvar sala:", err);
+      const msg = parseApiError(err, "Erro ao salvar sala.");
+      alert(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    const filterButtonRef = useRef(null);
+  const handleEdit = (sala) => {
+    setSelectedSala(sala);
+    setFormData({
+      numero_sala: sala.numero_sala,
+      bloco: sala.bloco || "",
+      capacidade_alunos: sala.capacidade_alunos,
+    });
+    setModalMode("edit");
+    setShowModal(true);
+  };
 
-    // Filter Configs
-    const filterConfigs = useMemo(() => [
-        {
-            key: 'bloco',
-            label: 'Bloco',
-            icon: Grid,
-            options: [
-                ...[...new Set(salas.map(s => s.bloco))].filter(Boolean).map(bloco => ({ label: bloco, value: bloco }))
-            ]
-        },
-        {
-            key: 'tipo',
-            label: 'Tipo de Sala',
-            icon: Layers,
-            options: [
-                { label: 'Sala de Aula', value: 'Sala de Aula' },
-                { label: 'Laboratório', value: 'Laboratório' },
-                { label: 'Auditório', value: 'Auditório' }
-            ]
-        }
-    ], [salas]);
+  const handleAdd = () => {
+    setSelectedSala(null);
+    setFormData({
+      numero_sala: "",
+      bloco: "",
+      capacidade_alunos: "",
+    });
+    setModalMode("add");
+    setShowModal(true);
+  };
 
-    const handleFilterChange = (key, value) => {
-        setFilters({ ...filters, [key]: value });
-        setCurrentPage(1);
-    };
+  // Helper to determine Room Type based on capacity/name
+  function getRoomType(sala) {
+    const cap = parseInt(sala.capacidade_alunos);
+    if (cap >= 60)
+      return { label: "Auditório", color: "#7c3aed", bg: "#f5f3ff" };
+    if (cap <= 25)
+      return { label: "Laboratório", color: "#059669", bg: "#ecfdf5" };
+    return { label: "Sala de Aula", color: "#2563eb", bg: "#eff6ff" };
+  }
 
-    const resetFilters = () => {
-        setFilters({ bloco: '', tipo: '' });
-        setSearchTerm('');
-        setCurrentPage(1);
-    };
+  // Filter & Sort Logic
+  const filteredData = React.useMemo(() => {
+    let sortableItems = salas.filter((item) => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch =
+        String(item.numero_sala).includes(term) ||
+        String(item.bloco || "")
+          .toLowerCase()
+          .includes(term);
 
-    return (
-        <div className="page-container salas-page">
-            <header className="page-header">
-                <div className="page-header-content">
-                    <div>
-                        <h1>Gestão de Salas</h1>
-                        <p>Controlo e distribuição das {salas.length} salas de aula e laboratórios.</p>
-                    </div>
-                    <div className="page-header-actions">
-                        {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
-                            <button onClick={handleAdd} className="btn-primary-action">
-                                <Plus size={20} />
-                                Nova Sala
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </header>
+      const type = getRoomType(item).label;
+      const matchesFilters =
+        (filters.bloco === "" || item.bloco === filters.bloco) &&
+        (filters.tipo === "" || type === filters.tipo);
 
-            <div className="table-card" style={{ padding: '0' }} ref={tableRef}>
-                <div className="search-filters-header">
-                    <div className="search-box-sala">
-                        <Search className="search-icon-sala" size={20} aria-hidden="true" />
-                        <input
-                            type="text"
-                            placeholder="Pesquisar por Sala ou Bloco..."
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            className="search-input-sala"
-                        />
-                    </div>
-                    <div style={{ position: 'relative' }}>
-                        <button 
-                            ref={filterButtonRef}
-                            onClick={() => setShowFilters(!showFilters)} 
-                            className={`btn-alternar-filtros ${showFilters ? 'active' : ''}`}
-                        >
-                            <Filter size={18} />
-                            Filtros
-                        </button>
+      return matchesSearch && matchesFilters;
+    });
 
-                        <FilterModal
-                            isOpen={showFilters}
-                            onClose={() => setShowFilters(false)}
-                            filterConfigs={filterConfigs}
-                            activeFilters={filters}
-                            onFilterChange={handleFilterChange}
-                            onClearFilters={resetFilters}
-                            triggerRef={filterButtonRef}
-                        />
-                    </div>
-                </div>
+    // Default sort by ID descending (newest first)
+    sortableItems.sort((a, b) => b.id_sala - a.id_sala);
 
-                {loading ? (
-                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', gap: '16px', color: '#64748b'}}>
-                        <div className="loading-spinner" style={{width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: 'var(--primary-color)', borderRadius: '50%', animation: 'spinner 0.8s linear infinite'}}></div>
-                        <span style={{fontWeight: 500}}>A carregar dados...</span>
-                    </div>
-                ) : (
-                    <>
-                        <div className="table-wrapper">
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Sala</th>
-                                        <th>Tipo</th>
-                                        <th>Bloco</th>
-                                        <th>Capacidade</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {error ? (
-                                        <tr>
-                                            <td colSpan="5" style={{textAlign: 'center', padding: '20px', color: '#ef4444'}}>
-                                                {error}
-                                            </td>
-                                        </tr>
-                                    ) : currentSalas.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="5" style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
-                                                Nenhuma sala encontrada.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        currentSalas.map((s) => {
-                                            const type = getRoomType(s);
-                                            return (
-                                                <tr key={s.id_sala} className="animate-fade-in">
-                                                    <td className="sala-name-cell" data-label="Sala">
-                                                        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                                                            <div style={{
-                                                                width: '36px', height: '36px', 
-                                                                background: '#f1f5f9', borderRadius: '10px',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                color: '#475569'
-                                                            }}>
-                                                                <LayoutGrid size={18} />
-                                                            </div>
-                                                             <div>
-                                                                <span>Sala {s.numero_sala}</span>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td data-label="Tipo">
-                                                        <span style={{
-                                                            padding: '4px 10px', 
-                                                            borderRadius: '6px', 
-                                                            fontSize: '12px', 
-                                                            fontWeight: 600,
-                                                            background: type.bg,
-                                                            color: type.color
-                                                        }}>
-                                                            {type.label}
-                                                        </span>
-                                                    </td>
-                                                    <td data-label="Bloco">
-                                                        <div className="bloco-badge">
-                                                            <MapPin size={14} />
-                                                            {s.bloco || 'Principal'}
-                                                        </div>
-                                                    </td>
-                                                    <td data-label="Capacidade">
-                                                        <div style={{ fontWeight: 600, color: '#475569' }}>
-                                                            {s.capacidade_alunos} Alunos
-                                                        </div>
-                                                    </td>
-                                                    <td data-label="Ações">
-                                                        {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
-                                                            <button
-                                                                onClick={() => handleEdit(s)}
-                                                                className="btn-edit-sala"
-                                                                title="Editar Sala"
-                                                            >
-                                                                <Edit3 size={18} />
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination 
-                            totalItems={filteredData.length} 
-                            itemsPerPage={itemsPerPage} 
-                            currentPage={currentPage}
-                            onPageChange={setCurrentPage}
-                        />
-                    </>
-                )}
+    return sortableItems;
+  }, [salas, searchTerm, filters]);
+
+  // Pagination Slicing
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSalas = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
+  const filterButtonRef = useRef(null);
+
+  // Filter Configs
+  const filterConfigs = useMemo(
+    () => [
+      {
+        key: "bloco",
+        label: "Bloco",
+        icon: Grid,
+        options: [
+          ...[...new Set(salas.map((s) => s.bloco))]
+            .filter(Boolean)
+            .map((bloco) => ({ label: bloco, value: bloco })),
+        ],
+      },
+      {
+        key: "tipo",
+        label: "Tipo de Sala",
+        icon: Layers,
+        options: [
+          { label: "Sala de Aula", value: "Sala de Aula" },
+          { label: "Laboratório", value: "Laboratório" },
+          { label: "Auditório", value: "Auditório" },
+        ],
+      },
+    ],
+    [salas],
+  );
+
+  const handleFilterChange = (key, value) => {
+    setFilters({ ...filters, [key]: value });
+    setCurrentPage(1);
+  };
+
+  const resetFilters = () => {
+    setFilters({ bloco: "", tipo: "" });
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
+  return (
+    <div className="page-container salas-page">
+      <header className="page-header">
+        <div className="page-header-content">
+          <div>
+            <h1>Gestão de Salas</h1>
+            <p>Controlo e distribuição das salas de aula e laboratórios.</p>
+          </div>
+          <div className="page-header-actions">
+            {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
+              <button onClick={handleAdd} className="btn-primary-action">
+                <Plus size={20} />
+                Nova Sala
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="table-card" style={{ padding: "0" }} ref={tableRef}>
+        <div className="search-filters-header">
+          <div className="search-box-sala">
+            <Search className="search-icon-sala" size={20} aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Pesquisar por Sala ou Bloco..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="search-input-sala"
+            />
+          </div>
+          <div style={{ position: "relative" }}>
+            <button
+              ref={filterButtonRef}
+              onClick={() => setShowFilters(!showFilters)}
+              className={`btn-alternar-filtros ${showFilters ? "active" : ""}`}
+            >
+              <Filter size={18} />
+              Filtros
+            </button>
+
+            <FilterModal
+              isOpen={showFilters}
+              onClose={() => setShowFilters(false)}
+              filterConfigs={filterConfigs}
+              activeFilters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={resetFilters}
+              triggerRef={filterButtonRef}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "300px",
+              gap: "16px",
+              color: "#64748b",
+            }}
+          >
+            <div
+              className="loading-spinner"
+              style={{
+                width: "40px",
+                height: "40px",
+                border: "3px solid #e2e8f0",
+                borderTopColor: "var(--primary-color)",
+                borderRadius: "50%",
+                animation: "spinner 0.8s linear infinite",
+              }}
+            ></div>
+            <span style={{ fontWeight: 500 }}>A carregar dados...</span>
+          </div>
+        ) : (
+          <>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Sala</th>
+                    <th>Tipo</th>
+                    <th>Bloco</th>
+                    <th>Capacidade</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {error ? (
+                    <tr>
+                      <td
+                        colSpan="5"
+                        style={{
+                          textAlign: "center",
+                          padding: "20px",
+                          color: "#ef4444",
+                        }}
+                      >
+                        {error}
+                      </td>
+                    </tr>
+                  ) : currentSalas.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan="5"
+                        style={{
+                          textAlign: "center",
+                          padding: "40px",
+                          color: "#64748b",
+                        }}
+                      >
+                        Nenhuma sala encontrada.
+                      </td>
+                    </tr>
+                  ) : (
+                    currentSalas.map((s) => {
+                      const type = getRoomType(s);
+                      return (
+                        <tr key={s.id_sala} className="animate-fade-in">
+                          <td className="sala-name-cell" data-label="Sala">
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  background: "#f1f5f9",
+                                  borderRadius: "10px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#475569",
+                                }}
+                              >
+                                <LayoutGrid size={18} />
+                              </div>
+                              <div>
+                                <span>Sala {s.numero_sala}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td data-label="Tipo">
+                            <span
+                              style={{
+                                padding: "4px 10px",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                background: type.bg,
+                                color: type.color,
+                              }}
+                            >
+                              {type.label}
+                            </span>
+                          </td>
+                          <td data-label="Bloco">
+                            <div className="bloco-badge">
+                              <MapPin size={14} />
+                              {s.bloco || "Principal"}
+                            </div>
+                          </td>
+                          <td data-label="Capacidade">
+                            <div style={{ fontWeight: 600, color: "#475569" }}>
+                              {s.capacidade_alunos} Alunos
+                            </div>
+                          </td>
+                          <td data-label="Ações">
+                            {hasPermission(PERMISSIONS.MANAGE_SALAS) && (
+                              <button
+                                onClick={() => handleEdit(s)}
+                                className="btn-edit-sala"
+                                title="Editar Sala"
+                              >
+                                <Edit3 size={18} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              totalItems={filteredData.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Modal de Criar/Editar Sala */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content-salas">
+            <div className="modal-header-salas">
+              <h2 className="modal-title-salas">
+                {modalMode === "add"
+                  ? "Adicionar Nova Sala"
+                  : `Editar Sala ${selectedSala?.numero_sala}`}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="btn-close-modal-salas"
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            {/* Modal de Criar/Editar Sala */}
-            {showModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content-salas">
-                        <div className="modal-header-salas">
-                            <h2 className="modal-title-salas">
-                                {modalMode === 'add' ? 'Adicionar Nova Sala' : `Editar Sala ${selectedSala?.numero_sala}`}
-                            </h2>
-                            <button onClick={() => setShowModal(false)} className="btn-close-modal-salas">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form className="modal-form-salas" onSubmit={(e) => e.preventDefault()}>
-                            <div className="form-grid-salas-modal">
-                                <div>
-                                    <label className="form-label-salas">Número da Sala</label>
-                                    <input 
-                                        type="number" 
-                                        placeholder="Ex: 101" 
-                                        value={formData.numero_sala}
-                                        onChange={e => setFormData({...formData, numero_sala: e.target.value})}
-                                        className="form-input-salas"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="form-label-salas">Bloco</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Ex: Bloco A" 
-                                        value={formData.bloco}
-                                        onChange={e => setFormData({...formData, bloco: e.target.value})}
-                                        className="form-input-salas"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="form-label-salas">Capacidade (Alunos)</label>
-                                    <input 
-                                        type="number" 
-                                        placeholder="Ex: 40" 
-                                        value={formData.capacidade_alunos}
-                                        onChange={e => setFormData({...formData, capacidade_alunos: e.target.value})}
-                                        className="form-input-salas"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="modal-actions-salas">
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="btn-modal-cancel"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="btn-modal-submit-sala"
-                                    disabled={isSaving}
-                                    style={isSaving ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
-                                >
-                                    {isSaving ? (
-                                        <>
-                                            <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: '8px' }}></span>
-                                            A Processar...
-                                        </>
-                                    ) : (
-                                        <>{modalMode === 'add' ? 'Adicionar Sala' : 'Salvar Alterações'} <ChevronRight size={18} /></>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+            <form
+              className="modal-form-salas"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              <div className="form-grid-salas-modal">
+                <div>
+                  <label className="form-label-salas">Número da Sala</label>
+                  <input
+                    type="number"
+                    placeholder="Ex: 101"
+                    value={formData.numero_sala}
+                    onChange={(e) =>
+                      setFormData({ ...formData, numero_sala: e.target.value })
+                    }
+                    className="form-input-salas"
+                  />
                 </div>
-            )}
+                <div>
+                  <label className="form-label-salas">Bloco</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Bloco A"
+                    value={formData.bloco}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bloco: e.target.value })
+                    }
+                    className="form-input-salas"
+                  />
+                </div>
+                <div>
+                  <label className="form-label-salas">
+                    Capacidade (Alunos)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Ex: 40"
+                    value={formData.capacidade_alunos}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        capacidade_alunos: e.target.value,
+                      })
+                    }
+                    className="form-input-salas"
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions-salas">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="btn-modal-cancel"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="btn-modal-submit-sala"
+                  disabled={isSaving}
+                  style={
+                    isSaving ? { opacity: 0.7, cursor: "not-allowed" } : {}
+                  }
+                >
+                  {isSaving ? (
+                    <>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: "16px",
+                          height: "16px",
+                          border: "2px solid rgba(255,255,255,0.4)",
+                          borderTopColor: "white",
+                          borderRadius: "50%",
+                          animation: "spin 0.8s linear infinite",
+                          marginRight: "8px",
+                        }}
+                      ></span>
+                      A Processar...
+                    </>
+                  ) : (
+                    <>
+                      {modalMode === "add"
+                        ? "Adicionar Sala"
+                        : "Salvar Alterações"}{" "}
+                      <ChevronRight size={18} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default Salas;

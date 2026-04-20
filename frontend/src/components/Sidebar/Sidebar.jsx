@@ -21,7 +21,7 @@ import {
   X
 } from 'lucide-react';
 import logo from '../../assets/img/logo_ipm2.png';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { usePermission } from '../../hooks/usePermission';
 import { useConfig } from '../../context/ConfigContext';
 import { PERMISSIONS } from '../../utils/permissions';

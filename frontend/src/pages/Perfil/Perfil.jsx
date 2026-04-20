@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { User, Mail, Shield, Camera, Save, Lock, MapPin, Key, Phone, Edit3 } from 'lucide-react';
 import './Perfil.css';
 

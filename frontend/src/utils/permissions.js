@@ -103,7 +103,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.VIEW_NOTAS,
         PERMISSIONS.VIEW_FALTAS
     ],
-    COMUM: [
+    NORMAL: [
         PERMISSIONS.VIEW_DASHBOARD
     ]
 };
@@ -225,7 +225,7 @@ export const PERMISSION_GROUPS = [
  * @returns {boolean}
  */
 export const hasPermission = (user, permission) => {
-    const DEBUG = process.env.NODE_ENV === 'development';
+    const DEBUG = import.meta.env.DEV;
     
     if (DEBUG) console.log('🔍 [hasPermission] Iniciando verificação para:', permission);
     
@@ -292,7 +292,7 @@ export const hasPermission = (user, permission) => {
     else if (normalizedRole.includes('prof') || normalizedRole.includes('docente')) roleKey = 'PROFESSOR';
     else if (normalizedRole.includes('aluno')) roleKey = 'ALUNO';
     else if (normalizedRole.includes('encarregado')) roleKey = 'ENCARREGADO';
-    else if (normalizedRole.includes('comum')) roleKey = 'COMUM';
+    else if (normalizedRole.includes('normal')) roleKey = 'NORMAL';
 
     if (roleKey) {
         if (DEBUG) console.log('🎭 [hasPermission] Role identificado via fallback:', roleKey);

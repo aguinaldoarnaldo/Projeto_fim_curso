@@ -4,9 +4,10 @@ URLs da API v1
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from apis.views import (
+from .views import (
     # Auth views
     login_view, logout_view, me_view, update_profile_view, define_password_view, recover_password_view,
+    SchoolTokenRefreshView,
     # ViewSets
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
     UsuarioViewSet, # Added
@@ -69,7 +70,7 @@ router.register(r'candidaturas', CandidaturaViewSet, basename='candidatura')
 router.register(r'lista-espera', ListaEsperaViewSet, basename='lista-espera')
 
 # Matriculas
-from apis.views.matricula_views import MatriculaViewSet
+from .views.matricula_views import MatriculaViewSet
 router.register(r'matriculas', MatriculaViewSet, basename='matricula')
 
 # Configuração
@@ -78,7 +79,7 @@ router.register(r'backups', BackupViewSet, basename='backup')
 router.register(r'backup-agendamentos', AgendamentoBackupViewSet, basename='backup-agendamento')
 
 # Notificações
-from apis.views.notificacao import NotificacaoViewSet
+from .views.notificacao import NotificacaoViewSet
 router.register(r'notificacoes', NotificacaoViewSet, basename='notificacao')
 
 # Relatórios
@@ -96,6 +97,7 @@ urlpatterns = [
     path('auth/profile/update/', update_profile_view, name='update_profile'),
     path('auth/define-password/', define_password_view, name='define_password'),
     path('auth/recover-password/', recover_password_view, name='recover_password'),
+    path('auth/refresh/', SchoolTokenRefreshView.as_view(), name='token_refresh'),
     
     # Incluir rotas do router
     path('', include(router.urls)),

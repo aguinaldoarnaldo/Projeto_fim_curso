@@ -4,22 +4,21 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
-
-from apis.models import (
+from ..permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
+from ..models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
     Curso, Periodo, Turma, AnoLectivo, VagaCurso
 )
-from apis.serializers.academico_serializers import (
+from ..serializers.academico_serializers import (
     SalaSerializer, ClasseSerializer, DepartamentoSerializer, SeccaoSerializer,
     AreaFormacaoSerializer, CursoSerializer, CursoListSerializer,
     PeriodoSerializer, TurmaSerializer, TurmaListSerializer, AnoLectivoSerializer,
     VagaCursoSerializer
 )
-from apis.mixins import AuditMixin
+from ..mixins import AuditMixin
 
 from rest_framework.pagination import PageNumberPagination
-from apis.utils.pagination import LargeResultsSetPagination
+from ..utils.pagination import LargeResultsSetPagination
 
 class AnoLectivoPagination(PageNumberPagination):
     page_size = 6
@@ -110,7 +109,7 @@ class AnoLectivoViewSet(AuditMixin, viewsets.ModelViewSet):
         # Imports locais para evitar dependências circulares
         from django.db.models.functions import ExtractMonth
         from django.db.models import Count
-        from apis.models import Matricula, Candidato
+        from ..models import Matricula, Candidato
         
         ano_lectivo = self.get_object()
         
@@ -255,8 +254,8 @@ class CursoViewSet(AuditMixin, viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def disciplinas(self, request, pk=None):
-        from apis.models import DisciplinaCurso
-        from apis.serializers import DisciplinaListSerializer
+        from ..models import DisciplinaCurso
+        from ..serializers import DisciplinaListSerializer
         curso = self.get_object()
         vinculos = DisciplinaCurso.objects.filter(id_curso=curso).select_related('id_disciplina')
         disciplinas = [v.id_disciplina for v in vinculos]
@@ -298,8 +297,8 @@ class TurmaViewSet(AuditMixin, viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def alunos(self, request, pk=None):
-        from apis.models import Aluno
-        from apis.serializers import AlunoListSerializer
+        from ..models import Aluno
+        from ..serializers import AlunoListSerializer
         turma = self.get_object()
         alunos = Aluno.objects.filter(id_turma=turma)
         serializer = AlunoListSerializer(alunos, many=True)
@@ -307,7 +306,7 @@ class TurmaViewSet(AuditMixin, viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def estatisticas(self, request, pk=None):
-        from apis.models import Aluno
+        from ..models import Aluno
         from django.db.models import Count
         turma = self.get_object()
         total_alunos = Aluno.objects.filter(id_turma=turma).count()

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import (
+from ..models import (
     Sala, Classe, Departamento, Seccao, AreaFormacao,
     Curso, Periodo, Turma, AnoLectivo, VagaCurso
 )
@@ -29,7 +29,7 @@ class SalaSerializer(serializers.ModelSerializer):
         
     def get_total_alunos(self, obj):
         # Counts students linked to turmas in this room (Total Headcount) for the active/specific year
-        from apis.models import Aluno, AnoLectivo
+        from ..models import Aluno, AnoLectivo
         
         # 1. Tentar obter ano do contexto (query params)
         request = self.context.get('request')
@@ -46,7 +46,7 @@ class SalaSerializer(serializers.ModelSerializer):
         return 0
 
     def get_ocupacao_detalhada(self, obj):
-        from apis.models import Aluno, AnoLectivo
+        from ..models import Aluno, AnoLectivo
         from django.db.models import Count
 
         # 1. Tentar obter ano do contexto
@@ -150,11 +150,11 @@ class CursoListSerializer(serializers.ModelSerializer):
         return obj.id_responsavel.nome_completo if obj.id_responsavel else "Sem Coordenador"
 
     def get_total_turmas(self, obj):
-        from apis.models import Turma
+        from ..models import Turma
         return Turma.objects.filter(id_curso=obj).count()
 
     def get_vagas_totais(self, obj):
-        from apis.models import VagaCurso, AnoLectivo
+        from ..models import VagaCurso, AnoLectivo
         active_year = AnoLectivo.get_active_year()
         if active_year:
             vaga_reg = VagaCurso.objects.filter(id_curso=obj, ano_lectivo=active_year).first()
@@ -163,8 +163,8 @@ class CursoListSerializer(serializers.ModelSerializer):
         return 0
 
     def get_vagas_disponiveis(self, obj):
-        from apis.models import AnoLectivo, VagaCurso
-        from apis.models.matriculas import Matricula
+        from ..models import AnoLectivo, VagaCurso
+        from ..models.matriculas import Matricula
         active_year = AnoLectivo.get_active_year()
         if not active_year:
             return 0
@@ -223,7 +223,7 @@ class TurmaSerializer(serializers.ModelSerializer):
         return obj.ano_lectivo.activo if obj.ano_lectivo else False
         
     def get_total_alunos(self, obj):
-        from apis.models.matriculas import Matricula
+        from ..models.matriculas import Matricula
         # Usar lista abrangente para tratar inconsistências de estados na DB
         status_validos = ['Ativa', 'Ativo', 'Activa', 'Activo', 'Concluida', 'Concluída']
         return Matricula.objects.filter(id_turma=obj, status__in=status_validos).count()
@@ -250,11 +250,11 @@ class TurmaSerializer(serializers.ModelSerializer):
         ano_lectivo = data.get('ano_lectivo') or (self.instance.ano_lectivo if self.instance else None)
 
         if not ano_lectivo:
-            from apis.models.academico import AnoLectivo
+            from ..models.academico import AnoLectivo
             ano_lectivo = AnoLectivo.get_active_year()
 
         if id_sala and id_periodo and ano_lectivo:
-            from apis.models.academico import Turma
+            from ..models.academico import Turma
             qs = Turma.objects.filter(
                 id_sala=id_sala,
                 id_periodo=id_periodo,
@@ -298,7 +298,7 @@ class TurmaListSerializer(serializers.ModelSerializer):
         return obj.ano_lectivo.activo if obj.ano_lectivo else False
         
     def get_total_alunos(self, obj):
-        from apis.models.matriculas import Matricula
+        from ..models.matriculas import Matricula
         # Usar lista abrangente para tratar inconsistências de estados na DB
         status_validos = ['Ativa', 'Ativo', 'Activa', 'Activo', 'Concluida', 'Concluída']
         return Matricula.objects.filter(id_turma=obj, status__in=status_validos).count()
@@ -321,7 +321,7 @@ class VagaCursoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
     def get_vagas_preenchidas(self, obj):
-        from apis.models.matriculas import Matricula
+        from ..models.matriculas import Matricula
         # Contamos as matrículas ativas para este curso e ano lectivo
         # Matriculas que NÃO contam como ocupadas: Desistente, Transferido
         status_ativos = ['Ativa', 'Concluida']

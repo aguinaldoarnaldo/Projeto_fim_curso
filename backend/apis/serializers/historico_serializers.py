@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import HistoricoEscolar
+from ..models import HistoricoEscolar
 
 class HistoricoEscolarSerializer(serializers.ModelSerializer):
     class Meta:

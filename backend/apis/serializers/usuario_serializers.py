@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from apis.models import Cargo, Funcionario, Encarregado, CargoFuncionario, Usuario
+from ..models import Cargo, Funcionario, Encarregado, CargoFuncionario, Usuario
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
@@ -65,7 +65,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             
         if obj.is_staff:
             return 'Equipe'
-        return 'Comum'
+        return 'Normal'
         
     def get_cargo_nome(self, obj):
         if hasattr(obj, 'profile') and obj.profile.cargo:
@@ -97,7 +97,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         senha = validated_data.pop('senha_hash', None)
         cargo = validated_data.pop('cargo', None)
-        papel = self.initial_data.get('papel', 'Comum') 
+        papel = self.initial_data.get('papel', 'Normal') 
         
         nome_completo = self.initial_data.get('nome_completo', '')
         

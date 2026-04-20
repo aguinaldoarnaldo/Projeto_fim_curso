@@ -47,7 +47,13 @@ class Historico(models.Model):
 
 
 class HistoricoLogin(models.Model):
-    """Histórico de logins"""
+    """Histórico de logins e controle de sessão"""
+    ESTADO_SESSAO = [
+        ('activa', 'Activa'),
+        ('encerrada', 'Encerrada'),
+        ('expirada', 'Expirada'),
+    ]
+
     id_historico_login = models.AutoField(primary_key=True)
     id_usuario = models.ForeignKey(
         Usuario,
@@ -83,6 +89,13 @@ class HistoricoLogin(models.Model):
     navegador = models.CharField(max_length=150, null=True, blank=True, verbose_name='Navegador',editable=False)
     hora_entrada = models.DateTimeField(auto_now_add=True, verbose_name='Hora de Entrada',editable=False)
     hora_saida = models.DateTimeField(null=True, blank=True, verbose_name='Hora de Saída',editable=False)
+    last_activity = models.DateTimeField(auto_now=True, verbose_name='Última Atividade')
+    estado = models.CharField(
+        max_length=20, 
+        choices=ESTADO_SESSAO, 
+        default='activa', 
+        verbose_name='Estado'
+    )
     
     class Meta:
         db_table = 'historico_login'
@@ -91,4 +104,4 @@ class HistoricoLogin(models.Model):
         ordering = ['-hora_entrada']
     
     def __str__(self):
-        return f"Login {self.id_historico_login} - {self.hora_entrada}"
+        return f"Sessão {self.id_historico_login} - {self.id_usuario or self.id_aluno or self.id_encarregado} ({self.estado})"

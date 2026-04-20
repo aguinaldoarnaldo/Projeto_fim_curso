@@ -9,8 +9,6 @@ import {
     Edit3,
     X,
     Users,
-    User,
-    Home,
     Clock,
     Calendar,
     BookOpen,
@@ -24,7 +22,6 @@ import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
-import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { useDataCache } from '../../hooks/useDataCache';
 import { PERMISSIONS } from '../../utils/permissions';
@@ -104,8 +101,7 @@ const Turmas = () => {
         data: turmas = [], 
         loading, 
         error, 
-        refresh, 
-        update: updateTurma 
+        refresh 
     } = useDataCache('turmas', fetchTurmasData);
 
     // Fetch static metadata
@@ -180,22 +176,7 @@ const Turmas = () => {
                  alert("Turma criada com sucesso!");
             } else {
                  await api.patch(`turmas/${selectedTurma.id}/`, payload);
-            alert("Turma atualizada com sucesso!");
-                 
-                 // OPTIMISTIC UPDATE: Update local state immediately for instant feedback
-                 setTurmas(prev => prev.map(t => {
-                    if (t.id === selectedTurma.id) {
-                        return {
-                            ...t,
-                            turma: payload.codigo_turma,
-                            capacidade: payload.capacidade,
-                            status: payload.status,
-                            // Update other fields as needed if they don't require external lookups
-                            // For complex lookups (like updating Sala Name based on ID), existing fetchData will handle it in a moment
-                        };
-                    }
-                    return t;
-                 }));
+                 alert("Turma atualizada com sucesso!");
             }
             
             setShowModal(false);
@@ -212,15 +193,7 @@ const Turmas = () => {
     };
 
     // Sorting State
-    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'desc' });
-
-    const requestSort = (key) => {
-        let direction = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
+    const [sortConfig] = useState({ key: 'id', direction: 'desc' });
 
     const handleFilterChange = (key, value) => {
         setFilters({ ...filters, [key]: value });
@@ -362,7 +335,7 @@ const Turmas = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Turmas</h1>
-                        <p>Configuração e monitoramento das {turmas.length} turmas do ano lectivo corrente.</p>
+                        <p>Configuração e monitoramento das turmas do ano lectivo corrente.</p>
                     </div>
                     {hasPermission(PERMISSIONS.MANAGE_TURMAS) && (
                         <button

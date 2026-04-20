@@ -171,6 +171,27 @@ const Candidatura = () => {
         }
     };
 
+    const handleVerificarEncarregado = async () => {
+        if (!formData.numero_bi_encarregado || formData.numero_bi_encarregado.length < 5) return;
+        
+        try {
+            const response = await api.get(`candidaturas/verificar_encarregado_existente/?numero_bi=${formData.numero_bi_encarregado.trim()}`);
+            if (response.data.encontrado) {
+                const dados = response.data.dados;
+                setFormData(prev => ({
+                    ...prev,
+                    ...dados
+                }));
+                const msg = response.data.origem === 'encarregado' ? 
+                    "Encarregado já cadastrado no sistema! Dados preenchidos." : 
+                    "Dados do encarregado recuperados de uma inscrição anterior.";
+                alert(msg);
+            }
+        } catch (error) {
+            console.error("Erro ao verificar encarregado:", error);
+        }
+    };
+
     const handleNextStep = (e) => {
         e.preventDefault();
         setStep(step + 1);
@@ -235,16 +256,24 @@ const Candidatura = () => {
                 responseType: 'blob', // Important for PDF
             });
             
-            // Create Blob URL
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            // Create Blob with explicit type
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Comprovativo_${id}.pdf`);
+            link.setAttribute('download', `Comprovativo_Inscricao_${id}.pdf`);
             document.body.appendChild(link);
             link.click();
-            link.remove();
+            
+            // Cleanup with small delay to ensure browser triggers download
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
         } catch (error) {
-            console.error("Erro ao baixar comprovativo", error);
+            console.error("Erro ao baixar comprovativo:", error);
             alert("Erro ao baixar documento. Tente novamente.");
         }
     };
@@ -470,7 +499,14 @@ const Candidatura = () => {
                     </div>
                     <div className="form-control">
                         <label>Nº do Bilhete (Encarregado)</label>
-                        <input name="numero_bi_encarregado" value={formData.numero_bi_encarregado || ''} onChange={handleChange} required placeholder="Ex: 006475839LA045" />
+                        <input 
+                            name="numero_bi_encarregado" 
+                            value={formData.numero_bi_encarregado || ''} 
+                            onChange={handleChange} 
+                            onBlur={handleVerificarEncarregado}
+                            required 
+                            placeholder="Ex: 006475839LA045" 
+                        />
                     </div>
                     <div className="form-control">
                         <label>Telefone Principal</label>

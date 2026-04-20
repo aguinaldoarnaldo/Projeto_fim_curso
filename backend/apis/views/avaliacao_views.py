@@ -4,15 +4,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
-from apis.services.academic_service import AcademicService
-from apis.mixins import AuditMixin
+from ..permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
+from ..services.academic_service import AcademicService
+from ..mixins import AuditMixin
 
-from apis.models import (
+from ..models import (
     TipoDisciplina, Disciplina, DisciplinaCurso,
     ProfessorDisciplina, Nota, FaltaAluno
 )
-from apis.serializers import (
+from ..serializers import (
     TipoDisciplinaSerializer, DisciplinaSerializer, DisciplinaListSerializer,
     DisciplinaCursoSerializer, ProfessorDisciplinaSerializer,
     NotaSerializer, NotaListSerializer, NotaLancamentoLoteSerializer,
@@ -110,7 +110,7 @@ class NotaViewSet(AuditMixin, viewsets.ModelViewSet):
             notas_data = serializer.validated_data['notas']
             
             try:
-                from apis.models import Nota, Aluno, Disciplina, Funcionario, Turma
+                from ..models import Nota, Aluno, Disciplina, Funcionario, Turma
                 turma = Turma.objects.get(id_turma=id_turma)
                 
                 # Check active year
@@ -179,7 +179,7 @@ class FaltaAlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         observacao = request.data.get('observacao')
         
         try:
-            from apis.models import Turma
+            from ..models import Turma
             turma = Turma.objects.get(pk=turma_id)
             if turma.ano_lectivo and not turma.ano_lectivo.activo:
                  return Response(

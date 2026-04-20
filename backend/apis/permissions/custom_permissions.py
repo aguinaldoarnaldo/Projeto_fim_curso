@@ -166,10 +166,10 @@ class HasAdditionalPermission(permissions.BasePermission):
              PROFESSOR_PERMISSIONS = ['view_dashboard', 'view_turmas', 'view_alunos', 'view_notas', 'view_faltas']
              return required_permission in PROFESSOR_PERMISSIONS
 
-        # COMUM
-        if 'comum' in role:
-             COMUM_PERMISSIONS = ['view_dashboard']
-             return required_permission in COMUM_PERMISSIONS
+        # NORMAL
+        if 'normal' in role:
+             NORMAL_PERMISSIONS = ['view_dashboard']
+             return required_permission in NORMAL_PERMISSIONS
 
         return False
 
@@ -192,7 +192,7 @@ class IsActiveYearOrReadOnly(permissions.BasePermission):
 
         # 2. Se for POST (Criação), precisamos verificar se há um ano ativo
         if request.method == 'POST':
-            from apis.models import AnoLectivo
+            from ..models import AnoLectivo
             # Tenta pegar 'ano_lectivo' do body
             ano_id = request.data.get('ano_lectivo')
             

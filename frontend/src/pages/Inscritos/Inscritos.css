@@ -1487,7 +1487,32 @@ tr.animate-fade-in:nth-child(10) { animation-delay: 0.5s; }
    LISTA DE ESPERA PANEL (embedded)
    ================================================================ */
 .le-panel { display: flex; flex-direction: column; gap: 0; }
-
+.le-header-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 0 12px;
+    border-radius: 8px;
+    height: 42px;
+    transition: all 0.2s;
+}
+.le-header-filter:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-light-bg);
+}
+.le-select-ano {
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    cursor: pointer;
+    min-width: 180px;
+    height: 100%;
+}
 .le-panel-stats {
     display: flex;
     align-items: center;

@@ -5,6 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
 
@@ -19,14 +20,7 @@ def get_client_ip(request):
     return ip
 
 
-def get_user_agent_info(request):
-    """Extrai informações do User-Agent"""
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    # Simplificado - pode usar biblioteca como user-agents para parsing mais detalhado
-    return {
-        'dispositivo': user_agent[:150] if user_agent else 'Desconhecido',
-        'navegador': user_agent[:150] if user_agent else 'Desconhecido'
-    }
+from ..utils.auth_utils import get_user_agent_info
 
 
 @api_view(['POST'])
@@ -39,7 +33,7 @@ def login_view(request):
     Utiliza AuthService para abstrair a complexidade de múltiplos tipos de usuários.
     """
     request.throttle_scope = 'login'
-    from apis.services.auth_service import AuthService
+    from ..services.auth_service import AuthService
 
     email = request.data.get('email')
     senha = request.data.get('senha')
@@ -100,7 +94,7 @@ def logout_view(request):
     """
     Endpoint de logout.
     """
-    from apis.services.auth_service import AuthService
+    from ..services.auth_service import AuthService
     
     try:
         user_id = request.data.get('user_id')
@@ -121,7 +115,7 @@ def me_view(request):
     Retorna informações do perfil do usuário autenticado.
     """
     from rest_framework_simplejwt.authentication import JWTAuthentication
-    from apis.services.auth_service import AuthService
+    from ..services.auth_service import AuthService
     
     try:
         # Autenticar token manualmente
@@ -172,7 +166,7 @@ def update_profile_view(request):
     Endpoint para atualização de perfil do usuário logado via AuthService.
     """
     from rest_framework_simplejwt.tokens import AccessToken
-    from apis.services.auth_service import AuthService
+    from ..services.auth_service import AuthService
 
     try:
         # 1. Extrair ID e Tipo do Token (Manualmente para suportar todos os tipos)
@@ -245,7 +239,7 @@ def recover_password_view(request):
     Solicita recuperação de senha verificando o e-mail.
     """
     request.throttle_scope = 'password_recovery'
-    from apis.services.auth_service import AuthService
+    from ..services.auth_service import AuthService
     
     email = request.data.get('email')
     if not email:
@@ -273,8 +267,8 @@ def define_password_view(request):
     """
     Redefine senha usando token de recuperação.
     """
-    from apis.utils.auth_utils import decode_password_token
-    from apis.services.auth_service import AuthService
+    from ..utils.auth_utils import decode_password_token
+    from ..services.auth_service import AuthService
     
     token = request.data.get('token')
     password = request.data.get('password')
@@ -301,3 +295,15 @@ def define_password_view(request):
         return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': 'Erro interno.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SchoolTokenRefreshView(TokenRefreshView):
+    """
+    Customização do Refresh Token para retornar dados adicionais se necessário 
+    ou apenas seguir o padrão do sistema.
+    """
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            # Poderíamos adicionar dados do usuário aqui para refrescar o frontend
+            pass
+        return response

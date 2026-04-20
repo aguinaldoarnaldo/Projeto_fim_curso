@@ -1,30 +1,12 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import "./Inscritos.css";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import './Inscritos.css';
 import {
-  Calendar,
-  Printer,
-  Search,
-  Filter,
-  BookOpen,
-  Activity,
-  CreditCard,
-  Clock,
-  UserPlus,
-  Bell,
-  Trash2,
-  ArrowRight,
-  AlertCircle,
-  CheckCircle,
-  Users,
-  X,
-  Info,
-  ChevronDown,
-  ChevronUp,
-  GraduationCap,
-  Plus,
-  Pencil,
-} from "lucide-react";
+  Calendar, Printer, Search, Filter, RotateCcw,
+  BookOpen, Activity, CreditCard, Clock, UserPlus,
+  Bell, Trash2, ArrowRight, AlertCircle, CheckCircle,
+  Users, X, Info, ChevronDown, ChevronUp, GraduationCap, Plus
+} from 'lucide-react';
 
 import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/Common/Pagination";
@@ -35,12 +17,13 @@ import { usePermission } from "../../hooks/usePermission";
 import { PERMISSIONS } from "../../utils/permissions";
 
 // Sub-components
-import InscritosTable from "./components/InscritosTable";
-import EvaluationModal from "./components/EvaluationModal";
-import ExamSchedulingModal from "./components/ExamSchedulingModal";
-import CandidateDetailModal from "./components/CandidateDetailModal";
-import EditCandidateModal from "./components/EditCandidateModal";
-import FilterModal from "../../components/Common/FilterModal";
+import InscritosTable from './components/InscritosTable';
+import EvaluationModal from './components/EvaluationModal';
+import ExamSchedulingModal from './components/ExamSchedulingModal';
+import CallListModal from './components/CallListModal';
+import CandidateDetailModal from './components/CandidateDetailModal';
+import EditCandidateModal from './components/EditCandidateModal';
+import FilterModal from '../../components/Common/FilterModal';
 
 // ─────────────────────────────────────────────────────────────
 //  LISTA DE ESPERA PANEL (inline, no separate page)
@@ -52,28 +35,10 @@ const ListaEsperaPanel = ({
 }) => {
   const { hasPermission } = usePermission();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedAno, setSelectedAno] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(23);
-  const [sortConfig, setSortConfig] = useState({
-    key: "prioridade",
-    direction: "desc",
-  });
-
-  // Default to active year
-  useEffect(() => {
-    if (anosDisponiveis && anosDisponiveis.length > 0 && !selectedAno) {
-      const activeAno = anosDisponiveis.find(
-        (a) =>
-          a.ativo === true ||
-          a.status === "Ativo" ||
-          a.status === "Activo" ||
-          a.is_ativo === true,
-      );
-      if (activeAno) setSelectedAno(activeAno.nome);
-    }
-  }, [anosDisponiveis, selectedAno]);
+  const [sortConfig, setSortConfig] = useState({ key: 'prioridade', direction: 'desc' });
 
   // Add to waitlist modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -90,28 +55,21 @@ const ListaEsperaPanel = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // Edit waitlist item
-  const [showEditEsperaModal, setShowEditEsperaModal] = useState(false);
-  const [editingEspera, setEditingEspera] = useState(null);
-  const [esperaFormData, setEsperaFormData] = useState({
-    prioridade: 0,
-    observacao: "",
-  });
-
-  const {
-    data: cachedLista,
-    loading: loadingLista,
-    refresh: refreshLista,
-  } = useDataCache("lista-espera", async () => {
-    const res = await api.get("lista-espera/");
-    return res.data.results || res.data || [];
-  });
-  const lista = useMemo(
-    () => (Array.isArray(cachedLista) ? cachedLista : []),
-    [cachedLista],
+  // Lista de espera data
+  const { data: cachedLista, loading: loadingLista, refresh: refreshLista } = useDataCache(
+    'lista-espera',
+    async () => {
+      const res = await api.get('lista-espera/');
+      return res.data.results || res.data || [];
+    }
   );
+  const lista = Array.isArray(cachedLista) ? cachedLista : [];
 
   // Candidates that are in "LISTA_ESPERA" status (from inscritos)
+  const listaEsperaCandidates = useMemo(() =>
+    inscritosList.filter(i => i.status === 'LISTA_ESPERA'),
+    [inscritosList]
+  );
 
   // Candidate search debounce
   useEffect(() => {
@@ -125,14 +83,7 @@ const ListaEsperaPanel = ({
         const res = await api.get(`candidaturas/?search=${candidateSearch}`);
         const data = res.data.results || res.data || [];
         setAvailableCandidates(
-          data.filter(
-            (c) =>
-              c.status !== "MATRICULADO" &&
-              c.status !== "LISTA_ESPERA" &&
-              !c.lista_espera_id &&
-              c.nota_exame !== null &&
-              c.nota_exame !== undefined,
-          ),
+          data.filter(c => c.status !== 'MATRICULADO' && c.status !== 'LISTA_ESPERA' && !c.lista_espera_id)
         );
       } catch {
         setAvailableCandidates([]);
@@ -167,13 +118,8 @@ const ListaEsperaPanel = ({
     setIsSubmitting(true);
     setFormError("");
     try {
-      const dataToSend = {
-        ...formData,
-        prioridade: parseInt(formData.prioridade) || 0,
-      };
-      await api.post("lista-espera/adicionar_candidato_reprovado/", dataToSend);
-      refreshLista();
-      onRefreshInscritos();
+      await api.post('lista-espera/adicionar_candidato_reprovado/', formData);
+      refreshLista(); onRefreshInscritos();
       resetModal();
     } catch (err) {
       setFormError(err.response?.data?.erro || "Erro ao adicionar candidato.");
@@ -201,39 +147,8 @@ const ListaEsperaPanel = ({
       return;
     try {
       await api.delete(`lista-espera/${id}/`);
-      refreshLista();
-      onRefreshInscritos();
-    } catch {
-      alert("Erro ao remover candidato.");
-    }
-  };
-
-  const handleEditEspera = (item) => {
-    setEditingEspera(item);
-    setEsperaFormData({
-      prioridade: item.prioridade,
-      observacao: item.observacao || "",
-    });
-    setShowEditEsperaModal(true);
-  };
-
-  const handleSaveEsperaEdit = async () => {
-    if (!editingEspera) return;
-    setIsSubmitting(true);
-    try {
-      const dataToSend = {
-        ...esperaFormData,
-        prioridade: parseInt(esperaFormData.prioridade) || 0,
-      };
-      await api.patch(`lista-espera/${editingEspera.id}/`, dataToSend);
-      refreshLista();
-      setShowEditEsperaModal(false);
-      setEditingEspera(null);
-    } catch (err) {
-      alert(err.response?.data?.erro || "Erro ao atualizar dados.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      refreshLista(); onRefreshInscritos();
+    } catch { alert('Erro ao remover candidato.'); }
   };
 
   const handleMatricularEspera = (candidato) => {
@@ -257,17 +172,10 @@ const ListaEsperaPanel = ({
     ) : null;
 
   const filteredLista = useMemo(() => {
-    let items = lista.filter((item) => {
-      const matchesSearch =
-        (item.candidato_nome || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (item.candidato_numero || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      const matchesAno = !selectedAno || item.ano_lectivo_nome === selectedAno;
-      return matchesSearch && matchesAno;
-    });
+    let items = lista.filter(item =>
+      (item.candidato_nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.candidato_numero || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
     if (sortConfig.key) {
       items.sort((a, b) => {
         let av = a[sortConfig.key] ?? "";
@@ -285,16 +193,11 @@ const ListaEsperaPanel = ({
     currentPage * itemsPerPage,
   );
 
-  const stats = useMemo(() => {
-    const relevantItems = lista.filter(
-      (i) => !selectedAno || i.ano_lectivo_nome === selectedAno,
-    );
-    return {
-      total: relevantItems.length,
-      aguardando: relevantItems.filter((i) => i.status === "Aguardando").length,
-      chamados: relevantItems.filter((i) => i.status === "Chamado").length,
-    };
-  }, [lista, selectedAno]);
+  const stats = useMemo(() => ({
+    total: lista.length,
+    aguardando: lista.filter(i => i.status === 'Aguardando').length,
+    chamados: lista.filter(i => i.status === 'Chamado').length,
+  }), [lista]);
 
   return (
     <div className="le-panel">
@@ -340,11 +243,8 @@ const ListaEsperaPanel = ({
       </div>
 
       {/* Search */}
-      <div
-        className="search-filter-header"
-        style={{ borderRadius: "12px 12px 0 0", gap: "12px" }}
-      >
-        <div className="search-input-container" style={{ flex: 1 }}>
+      <div className="search-filter-header" style={{ borderRadius: '12px 12px 0 0' }}>
+        <div className="search-input-container">
           <Search className="search-input-icon" size={18} />
           <input
             type="text"
@@ -439,199 +339,86 @@ const ListaEsperaPanel = ({
                 </td>
               </tr>
             ) : currentData.length === 0 ? (
-              <tr>
-                <td
-                  colSpan="8"
-                  style={{
-                    textAlign: "center",
-                    padding: "60px",
-                    color: "#94a3b8",
-                  }}
-                >
-                  <Clock
-                    size={32}
-                    style={{
-                      margin: "0 auto 12px",
-                      display: "block",
-                      opacity: 0.4,
-                    }}
-                  />
-                  <p style={{ margin: 0 }}>
-                    Nenhum candidato na lista de espera.
+              <tr><td colSpan="8" style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
+                <Clock size={32} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.4 }} />
+                <p style={{ margin: 0 }}>Nenhum candidato na lista de espera.</p>
+                {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
+                  <p style={{ fontSize: '13px', marginTop: '8px' }}>
+                    Use o botão <strong>"Adicionar à Lista"</strong> para inserir candidatos.
                   </p>
-                  {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                    <p style={{ fontSize: "13px", marginTop: "8px" }}>
-                      Use o botão <strong>"Adicionar à Lista"</strong> para
-                      inserir candidatos.
-                    </p>
-                  )}
-                </td>
-              </tr>
-            ) : (
-              currentData.map((item, idx) => {
-                // Find the full candidate from inscritos list for matricula
-                const inscrito = inscritosList.find(
-                  (i) => i.id === item.candidato_numero,
-                );
-                return (
-                  <tr
-                    key={item.id}
-                    className="animate-fade-in"
-                    style={{ animationDelay: `${idx * 0.04}s` }}
-                  >
-                    <td data-label="Prioridade">
-                      <span
-                        className={`le-prio-badge ${item.prioridade >= 50 ? "high" : item.prioridade >= 20 ? "medium" : "low"}`}
-                      >
-                        {item.prioridade}
-                      </span>
-                    </td>
-                    <td data-label="Candidato">
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          color: "var(--text-color)",
-                          fontSize: "14px",
-                        }}
-                      >
-                        {item.candidato_nome}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-muted)",
-                          fontFamily: "monospace",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {item.candidato_numero}
-                      </div>
-                    </td>
-                    <td
-                      data-label="Curso"
-                      style={{ fontSize: "13px", color: "var(--text-muted)" }}
-                    >
-                      {item.curso1 || "—"}
-                    </td>
-                    <td
-                      data-label="Média"
-                      style={{ fontWeight: 800, color: "var(--primary-color)" }}
-                    >
-                      {item.media || "—"}
-                    </td>
-                    <td
-                      data-label="Data"
-                      style={{ fontSize: "13px", color: "var(--text-muted)" }}
-                    >
-                      {item.data_entrada
-                        ? new Date(item.data_entrada).toLocaleDateString(
-                            "pt-PT",
-                          )
-                        : "—"}
-                    </td>
-                    <td
-                      data-label="Observação"
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--text-muted)",
-                        maxWidth: "160px",
-                      }}
-                    >
-                      {item.observacao ? (
-                        <span
-                          title={item.observacao}
-                          style={{
-                            display: "block",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            maxWidth: "160px",
-                          }}
+                )}
+              </td></tr>
+            ) : currentData.map((item, idx) => {
+              // Find the full candidate from inscritos list for matricula
+              const inscrito = inscritos.find(i => i.id === item.candidato_numero);
+              return (
+                <tr key={item.id} className="animate-fade-in" style={{ animationDelay: `${idx * 0.04}s` }}>
+                  <td data-label="Prioridade">
+                    <span className={`le-prio-badge ${item.prioridade >= 50 ? 'high' : item.prioridade >= 20 ? 'medium' : 'low'}`}>
+                      {item.prioridade}
+                    </span>
+                  </td>
+                  <td data-label="Candidato">
+                    <div style={{ fontWeight: 700, color: 'var(--text-color)', fontSize: '14px' }}>{item.candidato_nome}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600 }}>{item.candidato_numero}</div>
+                  </td>
+                  <td data-label="Curso" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item.curso1 || '—'}</td>
+                  <td data-label="Média" style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{item.media || '—'}</td>
+                  <td data-label="Data" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    {item.data_entrada ? new Date(item.data_entrada).toLocaleDateString('pt-PT') : '—'}
+                  </td>
+                  <td data-label="Observação" style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '160px' }}>
+                    {item.observacao
+                      ? <span title={item.observacao} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>{item.observacao}</span>
+                      : <span style={{ color: 'var(--border-color)', fontStyle: 'italic' }}>—</span>
+                    }
+                  </td>
+                  <td data-label="Estado">
+                    <span className={`status-badge status-${item.status?.toLowerCase()}`}>
+                      {item.status === 'Chamado' && <CheckCircle size={11} />}
+                      {item.status === 'Aguardando' && <Clock size={11} />}
+                      {item.status === 'Expirado' && <AlertCircle size={11} />}
+                      {item.status}
+                    </span>
+                  </td>
+                  <td data-label="Ações">
+                    <div className="actions-cell">
+                      {/* Chamar */}
+                      {item.status === 'Aguardando' && hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
+                        <button
+                          className="btn-icon btn-view"
+                          onClick={() => handleCall(item.id, item.candidato_nome)}
+                          title="Chamar Candidato"
+                          style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-light)' }}
                         >
-                          {item.observacao}
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            color: "var(--border-color)",
-                            fontStyle: "italic",
-                          }}
-                        >
-                          —
-                        </span>
+                          <Bell size={15} />
+                        </button>
                       )}
-                    </td>
-                    <td data-label="Estado">
-                      <span
-                        className={`status-badge status-${item.status?.toLowerCase()}`}
-                      >
-                        {item.status === "Chamado" && <CheckCircle size={11} />}
-                        {item.status === "Aguardando" && <Clock size={11} />}
-                        {item.status === "Expirado" && (
-                          <AlertCircle size={11} />
-                        )}
-                        {item.status}
-                      </span>
-                    </td>
-                    <td data-label="Ações">
-                      <div className="actions-cell">
-                        {/* Editar */}
-                        {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                          <button
-                            className="btn-icon btn-edit"
-                            onClick={() => handleEditEspera(item)}
-                            title="Editar Prioridade/Observação"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                        )}
-                        {/* Chamar */}
-                        {item.status === "Aguardando" &&
-                          hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                            <button
-                              className="btn-icon btn-view"
-                              onClick={() =>
-                                handleCall(item.id, item.candidato_nome)
-                              }
-                              title="Chamar Candidato"
-                              style={{
-                                background: "var(--primary-light-bg)",
-                                color: "var(--primary-light)",
-                              }}
-                            >
-                              <Bell size={15} />
-                            </button>
-                          )}
-                        {/* Matricular */}
-                        {hasPermission(PERMISSIONS.CREATE_MATRICULA) &&
-                          inscrito &&
-                          item.status === "Chamado" && (
-                            <button
-                              className="btn-icon btn-enroll can-enroll"
-                              onClick={() => handleMatricularEspera(inscrito)}
-                              title="Matricular Candidato (vaga disponível)"
-                            >
-                              <GraduationCap size={15} />
-                            </button>
-                          )}
-                        {/* Remover */}
-                        {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                          <button
-                            className="btn-icon btn-delete"
-                            onClick={() =>
-                              handleRemove(item.id, item.candidato_nome)
-                            }
-                            title="Remover da Lista de Espera"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
+                      {/* Matricular */}
+                      {hasPermission(PERMISSIONS.CREATE_MATRICULA) && inscrito && (
+                        <button
+                          className="btn-icon btn-enroll can-enroll"
+                          onClick={() => handleMatricularEspera(inscrito)}
+                          title="Matricular Candidato (vaga disponível)"
+                        >
+                          <GraduationCap size={15} />
+                        </button>
+                      )}
+                      {/* Remover */}
+                      {hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => handleRemove(item.id, item.candidato_nome)}
+                          title="Remover da Lista de Espera"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -740,143 +527,64 @@ const ListaEsperaPanel = ({
                 </div>
               </div>
 
-              <div
-                style={{
-                  padding: "24px 28px",
-                  overflowY: "auto",
-                  maxHeight: "calc(80vh - 180px)",
-                }}
-              >
-                {addStep === 1 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "16px",
-                    }}
-                  >
-                    <div className="le-info-note">
-                      <Info size={14} />
-                      Apenas candidatos <strong>já avaliados</strong> (com nota
-                      de exame) e que não estejam matriculados podem ser
-                      adicionados à lista de espera.
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">
-                        Pesquisar Candidato (Nome, BI ou Nº Inscrição)
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <Search
-                          style={{
-                            position: "absolute",
-                            left: "14px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            color: "#94a3b8",
-                          }}
-                          size={16}
-                        />
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ paddingLeft: "42px", width: "100%" }}
-                          placeholder="Digite pelo menos 2 caracteres..."
-                          value={candidateSearch}
-                          onChange={(e) => setCandidateSearch(e.target.value)}
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                    <div className="le-results-box">
-                      {isSearching ? (
-                        <div className="le-results-state">Pesquisando...</div>
-                      ) : availableCandidates.length > 0 ? (
-                        availableCandidates.map((c) => (
-                          <div
-                            key={c.id_candidato}
-                            className="le-candidate-row"
-                            onClick={() => handleSelectCandidate(c)}
-                          >
-                            <div className="le-cand-avatar">
-                              {(c.nome_completo || "?")[0].toUpperCase()}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontWeight: 700,
-                                  color: "#1e293b",
-                                  fontSize: "14px",
-                                }}
-                              >
-                                {c.nome_completo}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "#64748b",
-                                  marginTop: "2px",
-                                  display: "flex",
-                                  gap: "6px",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <span>{c.numero_inscricao}</span>
-                                <span>•</span>
-                                <span>{c.numero_bi}</span>
-                                <span>•</span>
-                                <span
-                                  style={{
-                                    color: "var(--primary-light)",
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {c.curso1_nome || "Sem curso"}
-                                </span>
-                              </div>
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "flex-end",
-                                gap: "4px",
-                              }}
-                            >
-                              <span
-                                className={`status-badge ${c.status === "NAO_CLASSIFICADO" ? "status-rejected" : c.status === "INSCRITO" ? "status-pending" : "status-analysis"}`}
-                                style={{ fontSize: "10px" }}
-                              >
-                                {c.status}
-                              </span>
-                              <ArrowRight
-                                size={14}
-                                style={{ color: "var(--text-muted)" }}
-                              />
-                            </div>
-                          </div>
-                        ))
-                      ) : candidateSearch.length >= 2 ? (
-                        <div
-                          className="le-results-state"
-                          style={{ color: "#94a3b8" }}
-                        >
-                          <AlertCircle
-                            size={20}
-                            style={{ margin: "0 auto 8px", display: "block" }}
-                          />
-                          Nenhum candidato elegível encontrado.
-                        </div>
-                      ) : (
-                        <div
-                          className="le-results-state"
-                          style={{ color: "#cbd5e1" }}
-                        >
-                          Digite para pesquisar
-                        </div>
-                      )}
+            <div style={{ padding: '24px 28px', overflowY: 'auto', maxHeight: 'calc(80vh - 180px)' }}>
+              {addStep === 1 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="le-info-note">
+                    <Info size={14} />
+                    Apenas candidatos com status <strong>NAO_CLASSIFICADO</strong>, <strong>AUSENTE</strong> ou <strong>INSCRITO</strong> podem ser adicionados.
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Pesquisar Candidato (Nome, BI ou Nº Inscrição)</label>
+                    <div style={{ position: 'relative' }}>
+                      <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={{ paddingLeft: '42px', width: '100%' }}
+                        placeholder="Digite pelo menos 2 caracteres..."
+                        value={candidateSearch}
+                        onChange={e => setCandidateSearch(e.target.value)}
+                        autoFocus
+                      />
                     </div>
                   </div>
-                )}
+                  <div className="le-results-box">
+                    {isSearching ? (
+                      <div className="le-results-state">Pesquisando...</div>
+                    ) : availableCandidates.length > 0 ? (
+                      availableCandidates.map(c => (
+                        <div key={c.id_candidato} className="le-candidate-row" onClick={() => handleSelectCandidate(c)}>
+                          <div className="le-cand-avatar">{(c.nome_completo || '?')[0].toUpperCase()}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>{c.nome_completo}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              <span>{c.numero_inscricao}</span>
+                              <span>•</span>
+                              <span>{c.numero_bi}</span>
+                              <span>•</span>
+                              <span style={{ color: 'var(--primary-light)', fontWeight: 600 }}>{c.curso1_nome || 'Sem curso'}</span>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                            <span className={`status-badge ${c.status === 'NAO_CLASSIFICADO' ? 'status-rejected' : c.status === 'INSCRITO' ? 'status-pending' : 'status-analysis'}`} style={{ fontSize: '10px' }}>
+                              {c.status}
+                            </span>
+                            <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
+                          </div>
+                        </div>
+                      ))
+                    ) : candidateSearch.length >= 2 ? (
+                      <div className="le-results-state" style={{ color: '#94a3b8' }}>
+                        <AlertCircle size={20} style={{ margin: '0 auto 8px', display: 'block' }} />
+                        Nenhum candidato elegível encontrado.
+                      </div>
+                    ) : (
+                      <div className="le-results-state" style={{ color: '#cbd5e1' }}>Digite para pesquisar</div>
+                    )}
+                  </div>
+                </div>
+              )}
 
                 {addStep === 2 && selectedCandidate && (
                   <div
@@ -943,72 +651,31 @@ const ListaEsperaPanel = ({
                       </button>
                     </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 2fr",
-                        gap: "16px",
-                      }}
-                    >
-                      <div className="form-group">
-                        <label className="form-label">
-                          Prioridade (0 – 100)
-                        </label>
-                        <input
-                          type="number"
-                          className="form-input"
-                          style={{ width: "100%" }}
-                          value={formData.prioridade}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setFormData((prev) => ({
-                              ...prev,
-                              prioridade: val === "" ? "" : parseInt(val) || 0,
-                            }));
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          min="0"
-                          max="100"
-                        />
-                        <small
-                          style={{
-                            fontSize: "11px",
-                            color: "#94a3b8",
-                            marginTop: "4px",
-                            display: "block",
-                          }}
-                        >
-                          Maior número = maior prioridade na fila
-                        </small>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">
-                          Observação{" "}
-                          <span style={{ color: "#94a3b8", fontWeight: 400 }}>
-                            (opcional)
-                          </span>
-                        </label>
-                        <textarea
-                          className="form-input"
-                          style={{
-                            width: "100%",
-                            resize: "vertical",
-                            minHeight: "70px",
-                            lineHeight: "1.5",
-                            fontFamily: "inherit",
-                          }}
-                          placeholder="Ex: Alta nota de exame, preferência pelo turno da manhã..."
-                          value={formData.observacao}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              observacao: e.target.value,
-                            }))
-                          }
-                          rows={3}
-                        />
-                      </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Prioridade (0 – 100)</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ width: '100%' }}
+                        value={formData.prioridade}
+                        onChange={e => setFormData(prev => ({ ...prev, prioridade: parseInt(e.target.value) || 0 }))}
+                        min="0" max="100"
+                      />
+                      <small style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>Maior número = maior prioridade na fila</small>
                     </div>
+                    <div className="form-group">
+                      <label className="form-label">Observação <span style={{ color: '#94a3b8', fontWeight: 400 }}>(opcional)</span></label>
+                      <textarea
+                        className="form-input"
+                        style={{ width: '100%', resize: 'vertical', minHeight: '70px', lineHeight: '1.5', fontFamily: 'inherit' }}
+                        placeholder="Ex: Alta nota de exame, preferência pelo turno da manhã..."
+                        value={formData.observacao}
+                        onChange={e => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
+                        rows={3}
+                      />
+                    </div>
+                  </div>
 
                     {formError && (
                       <div
@@ -1031,244 +698,29 @@ const ListaEsperaPanel = ({
                 )}
               </div>
 
-              {/* Footer */}
-              <div
-                className="modal-footer le-modal-footer-btns"
-                style={{
-                  background: "#ffffff",
-                  borderTop: "1px solid #f1f5f9",
-                  padding: "18px 28px",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "12px",
-                  flexShrink: 0,
-                }}
+            {/* Footer */}
+            <div className="modal-footer le-modal-footer-btns" style={{ background: '#ffffff', borderTop: '1px solid #f1f5f9', padding: '18px 28px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexShrink: 0 }}>
+              <button
+                onClick={addStep === 1 ? resetModal : () => setAddStep(1)}
+                style={{ height: '44px', padding: '0 20px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
               >
+                {addStep === 1 ? 'Cancelar' : '← Voltar'}
+              </button>
+              {addStep === 2 && (
                 <button
-                  onClick={addStep === 1 ? resetModal : () => setAddStep(1)}
-                  style={{
-                    height: "44px",
-                    padding: "0 20px",
-                    background: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    fontWeight: 600,
-                    color: "#475569",
-                    cursor: "pointer",
-                  }}
-                >
-                  {addStep === 1 ? "Cancelar" : "← Voltar"}
-                </button>
-                {addStep === 2 && (
-                  <button
-                    onClick={handleAdd}
-                    disabled={isSubmitting || !formData.id_candidato}
-                    className="btn-primary"
-                    style={{
-                      height: "44px",
-                      padding: "0 24px",
-                      borderRadius: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {isSubmitting ? (
-                      "Adicionando..."
-                    ) : (
-                      <>
-                        <Plus size={16} /> Confirmar Inclusão
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* ─── EDIT WAITLIST ITEM MODAL ─── via Portal */}
-      {showEditEsperaModal &&
-        createPortal(
-          <div
-            className="modal-overlay"
-            onClick={() => setShowEditEsperaModal(false)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              background: "rgba(0, 0, 0, 0.5)",
-              backdropFilter: "blur(8px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 99999,
-              padding: "20px",
-              boxSizing: "border-box",
-            }}
-          >
-            <div
-              className="le-add-modal"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "#ffffff",
-                width: "100%",
-                maxWidth: "500px",
-                borderRadius: "20px",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "0 25px 60px -12px rgba(0,0,0,0.35)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                className="modal-header"
-                style={{
-                  background: "#ffffff",
-                  borderBottom: "1px solid #f1f5f9",
-                  padding: "22px 28px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "14px" }}
-                >
-                  <div
-                    className="le-modal-icon-wrap"
-                    style={{
-                      background: "var(--primary-light-bg)",
-                      color: "var(--primary-light)",
-                    }}
-                  >
-                    <Pencil size={20} />
-                  </div>
-                  <div>
-                    <h3
-                      style={{ margin: 0, fontSize: "18px", fontWeight: 800 }}
-                    >
-                      Editar Item da Lista
-                    </h3>
-                    <p
-                      style={{
-                        margin: "2px 0 0",
-                        fontSize: "13px",
-                        color: "var(--text-muted)",
-                      }}
-                    >
-                      Candidato: {editingEspera?.candidato_nome}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowEditEsperaModal(false)}
-                  className="le-close-btn"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div style={{ padding: "24px 28px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "20px",
-                  }}
-                >
-                  <div className="form-group">
-                    <label className="form-label">Prioridade (0 – 100)</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      style={{ width: "100%" }}
-                      value={esperaFormData.prioridade}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEsperaFormData((prev) => ({
-                          ...prev,
-                          prioridade: val === "" ? "" : parseInt(val) || 0,
-                        }));
-                      }}
-                      onFocus={(e) => e.target.select()}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Observação</label>
-                    <textarea
-                      className="form-input"
-                      style={{
-                        width: "100%",
-                        resize: "vertical",
-                        minHeight: "80px",
-                      }}
-                      value={esperaFormData.observacao}
-                      onChange={(e) =>
-                        setEsperaFormData((prev) => ({
-                          ...prev,
-                          observacao: e.target.value,
-                        }))
-                      }
-                      rows={4}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="modal-footer"
-                style={{
-                  background: "#ffffff",
-                  borderTop: "1px solid #f1f5f9",
-                  padding: "18px 28px",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "12px",
-                }}
-              >
-                <button
-                  onClick={() => setShowEditEsperaModal(false)}
-                  style={{
-                    height: "44px",
-                    padding: "0 20px",
-                    background: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    fontWeight: 600,
-                    color: "#475569",
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSaveEsperaEdit}
-                  disabled={isSubmitting}
+                  onClick={handleAdd}
+                  disabled={isSubmitting || !formData.id_candidato}
                   className="btn-primary"
-                  style={{
-                    height: "44px",
-                    padding: "0 24px",
-                    borderRadius: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    cursor: "pointer",
-                  }}
+                  style={{ height: '44px', padding: '0 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+                  {isSubmitting ? 'Adicionando...' : <><Plus size={16} /> Confirmar Inclusão</>}
                 </button>
-              </div>
+              )}
             </div>
-          </div>,
-          document.body,
-        )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
@@ -1376,11 +828,8 @@ const Inscritos = () => {
   };
 
   const {
-    data: cachedInscritos,
-    loading: isLoading,
-    refresh,
-    update: updateInscrito,
-  } = useDataCache("inscritos", fetchCandidatesData);
+    data: cachedInscritos, loading: isLoading, refresh, update: updateInscrito, error: fetchError
+  } = useDataCache('inscritos', fetchCandidatesData);
 
   const inscritos = useMemo(
     () => (Array.isArray(cachedInscritos) ? cachedInscritos : []),
@@ -1389,17 +838,14 @@ const Inscritos = () => {
 
   useEffect(() => {
     if (selectedCandidato && inscritos.length > 0) {
-      const updated = inscritos.find((i) => i.id === selectedCandidato.id);
-      if (
-        updated &&
-        (updated.status !== selectedCandidato.status ||
-          updated.notaExame !== selectedCandidato.notaExame ||
-          updated.rupe?.status_rup !== selectedCandidato.rupe?.status_rup)
-      ) {
-        setSelectedCandidato(updated);
-      }
+      const updated = inscritos.find(i => i.id === selectedCandidato.id);
+      if (updated && (
+        updated.status !== selectedCandidato.status ||
+        updated.notaExame !== selectedCandidato.notaExame ||
+        (updated.rupe?.status_rup !== selectedCandidato.rupe?.status_rup)
+      )) { setSelectedCandidato(updated); }
     }
-  }, [inscritos, selectedCandidato]);
+  }, [inscritos, selectedCandidato?.id]);
 
   useEffect(() => {
     api
@@ -1413,22 +859,7 @@ const Inscritos = () => {
   }, []);
 
   useEffect(() => {
-    if (anosDisponiveis.length > 0 && !filters.ano) {
-      const activeAno = anosDisponiveis.find(
-        (a) =>
-          a.ativo === true ||
-          a.status === "Ativo" ||
-          a.status === "Activo" ||
-          a.is_ativo === true,
-      );
-      if (activeAno) setFilters((prev) => ({ ...prev, ano: activeAno.nome }));
-    }
-  }, [anosDisponiveis, filters.ano]);
-
-  useEffect(() => {
-    const syncIfVisible = () => {
-      if (!document.hidden) refresh(true);
-    };
+    const syncIfVisible = () => { if (!document.hidden) refresh(true); };
     // REMOVIDO: Refresh automático periódico (atendendo ao pedido do usuário)
     // const interval = setInterval(syncIfVisible, 60000);
     window.addEventListener("focus", syncIfVisible);
@@ -1448,6 +879,12 @@ const Inscritos = () => {
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   };
+
+  // Counts for tabs
+  const inscricoesCount = useMemo(() =>
+    inscritos.length, [inscritos]);
+  const listaEsperaCount = useMemo(() =>
+    inscritos.filter(i => i.status === 'LISTA_ESPERA').length, [inscritos]);
 
   const filteredInscritos = useMemo(() => {
     let items = [...inscritos]; // Mostrar todos incluindo LISTA_ESPERA
@@ -1652,10 +1089,15 @@ const Inscritos = () => {
         refresh();
       } catch (err) {
         alert(err.response?.data?.erro || "Erro ao processar distribuição.");
-      } finally {
-        setIsProcessingExams(false);
-      }
+      } finally { setIsProcessingExams(false); }
     }
+  };
+
+  const handleFetchCallList = async () => {
+    try {
+      const res = await api.get('candidaturas/lista_chamada/');
+      setCallListData(res.data); setShowCallListModal(true);
+    } catch { alert("Erro ao carregar lista de chamada."); }
   };
 
   const closeDetail = () => {
@@ -1674,59 +1116,21 @@ const Inscritos = () => {
     setShowFilters(false);
   };
 
-  const filterConfigs = useMemo(
-    () => [
-      {
-        key: "ano",
-        label: "Ano de Inscrição",
-        icon: Calendar,
-        options: anosDisponiveis.map((a) => {
-          const isActive =
-            a.ativo === true ||
-            a.status === "Ativo" ||
-            a.status === "Activo" ||
-            a.is_ativo === true;
-          return {
-            value: a.nome,
-            label: isActive ? `${a.nome} ● (Ano Activo)` : a.nome,
-          };
-        }),
-      },
-      {
-        key: "status",
-        label: "Estado/Status",
-        icon: Activity,
-        options: [
-          { value: "INSCRITO", label: "INSCRITO" },
-          { value: "AUSENTE", label: "AUSENTE" },
-          { value: "CLASSIFICADO", label: "CLASSIFICADO" },
-          { value: "NAO_CLASSIFICADO", label: "NAO_CLASSIFICADO" },
-          { value: "LISTA_ESPERA", label: "LISTA DE ESPERA" },
-          { value: "MATRICULADO", label: "MATRICULADO" },
-        ],
-      },
-      {
-        key: "status_rup",
-        label: "Estado do Pagamento",
-        icon: CreditCard,
-        options: [
-          { value: "PENDENTE", label: "PENDENTE" },
-          { value: "PAGO", label: "PAGO" },
-          { value: "EXPIRADO", label: "EXPIRADO" },
-        ],
-      },
-      {
-        key: "curso",
-        label: "Curso",
-        icon: BookOpen,
-        options: cursosDisponiveis.map((c) => ({
-          value: c.nome_curso,
-          label: c.nome_curso,
-        })),
-      },
-    ],
-    [anosDisponiveis, cursosDisponiveis],
-  );
+  const filterConfigs = useMemo(() => [
+    { key: 'ano', label: 'Ano de Inscrição', icon: Calendar, options: anosDisponiveis.map(a => ({ value: a.nome, label: a.nome })) },
+    {
+      key: 'status', label: 'Estado/Status', icon: Activity,
+      options: [
+        { value: 'INSCRITO', label: 'INSCRITO' }, { value: 'AUSENTE', label: 'AUSENTE' },
+        { value: 'CLASSIFICADO', label: 'CLASSIFICADO' }, 
+        { value: 'NAO_CLASSIFICADO', label: 'NAO_CLASSIFICADO' },
+        { value: 'LISTA_ESPERA', label: 'LISTA DE ESPERA' },
+        { value: 'MATRICULADO', label: 'MATRICULADO' }
+      ]
+    },
+    { key: 'status_rup', label: 'Estado do Pagamento', icon: CreditCard, options: [{ value: 'PENDENTE', label: 'PENDENTE' }, { value: 'PAGO', label: 'PAGO' }, { value: 'EXPIRADO', label: 'EXPIRADO' }] },
+    { key: 'curso', label: 'Curso', icon: BookOpen, options: cursosDisponiveis.map(c => ({ value: c.nome_curso, label: c.nome_curso })) }
+  ], [anosDisponiveis, cursosDisponiveis]);
 
   return (
     <div className="page-container inscritos-page">
@@ -1734,20 +1138,19 @@ const Inscritos = () => {
         <div className="page-header-content">
           <div>
             <h1>Gestão de Inscrições</h1>
-            <p>Gerencie e acompanhe todas as candidaturas em um só lugar.</p>
+            <p>Controle de {inscritos.length} candidaturas submetidas ao sistema.</p>
           </div>
           <div className="page-header-actions">
-            {activeTab === "inscricoes" &&
-              hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
-                <>
-                  <button
-                    onClick={() => setShowExamModal(true)}
-                    className="btn-primary btn-agendar"
-                  >
-                    <Calendar size={18} /> Agendar Exames
-                  </button>
-                </>
-              )}
+            {activeTab === 'inscricoes' && hasPermission(PERMISSIONS.MANAGE_INSCRITOS) && (
+              <>
+                <button onClick={() => setShowExamModal(true)} className="btn-primary btn-agendar">
+                  <Calendar size={18} /> Agendar Exames
+                </button>
+                <button onClick={handleFetchCallList} className="btn-primary">
+                  <Printer size={18} /> Lista de Chamada
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -1767,6 +1170,9 @@ const Inscritos = () => {
         >
           <Clock size={16} />
           Lista de Espera
+          {listaEsperaCount > 0 && (
+            <span className="inscritos-tab-count waiting">{listaEsperaCount}</span>
+          )}
         </button>
       </div>
 
@@ -1824,11 +1230,7 @@ const Inscritos = () => {
 
       {activeTab === "lista_espera" && (
         <div className="table-card">
-          <ListaEsperaPanel
-            inscritosList={inscritos}
-            onRefreshInscritos={refresh}
-            anosDisponiveis={anosDisponiveis}
-          />
+          <ListaEsperaPanel inscritosList={inscritos} onRefreshInscritos={refresh} />
         </div>
       )}
 
@@ -1850,6 +1252,7 @@ const Inscritos = () => {
         onDistribute={handleDistributeExams}
         isProcessing={isProcessingExams}
       />
+      <CallListModal isOpen={showCallListModal} onClose={() => setShowCallListModal(false)} data={callListData} />
       <CandidateDetailModal
         candidate={selectedCandidato}
         onClose={closeDetail}

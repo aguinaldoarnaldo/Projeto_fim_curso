@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import Configuracao, AgendamentoBackup
+from ..models import Configuracao, AgendamentoBackup
 
 class ConfiguracaoSerializer(serializers.ModelSerializer):
     proximo_fechamento = serializers.SerializerMethodField()
@@ -14,7 +14,7 @@ class ConfiguracaoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_config']
 
     def get_proximo_fechamento(self, obj):
-        from apis.models import AnoLectivo
+        from ..models import AnoLectivo
         from django.utils import timezone
         import datetime
         

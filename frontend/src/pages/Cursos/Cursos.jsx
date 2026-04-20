@@ -186,6 +186,7 @@ const Cursos = () => {
              }
         };
         fetchAuxData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Real-time Update (Polling Otimizado)
@@ -200,6 +201,7 @@ const Cursos = () => {
         const intervalId = setInterval(syncIfVisible, 30000); 
 
         return () => clearInterval(intervalId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filterButtonRef = React.useRef(null);
@@ -262,7 +264,7 @@ const Cursos = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Cursos</h1>
-                        <p>Administração dos {courses.length} cursos e grades curriculares da instituição.</p>
+                        <p>Administração dos cursos e grades curriculares da instituição.</p>
                     </div>
                     <div className="page-header-actions">
                         {hasPermission(PERMISSIONS.MANAGE_CURSOS) && ( 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import api from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { useDataCache } from '../../hooks/useDataCache';
 import CalendarWidget from '../../components/Dashboard/CalendarWidget';
 import './Dashboard.css';

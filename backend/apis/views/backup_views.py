@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import FileResponse
 from django.core.cache import cache
 import uuid
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from ..permissions.custom_permissions import HasAdditionalPermission
 
 class BackupViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, HasAdditionalPermission]

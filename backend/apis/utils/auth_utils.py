@@ -59,3 +59,28 @@ def send_password_definition_email(user, token, request=None):
     except Exception as e:
         print(f"Erro ao enviar email: {e}")
         return False
+
+def get_user_agent_info(request):
+    """Extrai informações amigáveis do User-Agent (Navegador e SO)"""
+    ua_string = request.META.get('HTTP_USER_AGENT', '').lower()
+    
+    # Detecção simples de Navegador
+    navegador = 'Desconhecido'
+    if 'edg' in ua_string: navegador = 'Edge'
+    elif 'chrome' in ua_string and 'safari' in ua_string: navegador = 'Chrome'
+    elif 'firefox' in ua_string: navegador = 'Firefox'
+    elif 'safari' in ua_string and 'chrome' not in ua_string: navegador = 'Safari'
+    elif 'opera' in ua_string or 'opr' in ua_string: navegador = 'Opera'
+    
+    # Detecção simples de Dispositivo/SO
+    dispositivo = 'Outro'
+    if 'windows' in ua_string: dispositivo = 'Windows'
+    elif 'android' in ua_string: dispositivo = 'Android'
+    elif 'iphone' in ua_string or 'ipad' in ua_string: dispositivo = 'iOS'
+    elif 'macintosh' in ua_string: dispositivo = 'macOS'
+    elif 'linux' in ua_string: dispositivo = 'Linux'
+    
+    return {
+        'dispositivo': dispositivo,
+        'navegador': navegador
+    }

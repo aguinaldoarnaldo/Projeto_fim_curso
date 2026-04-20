@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
 
-from apis.models import (
+from .models import (
     # Usuários
     Cargo, Funcionario, Encarregado, CargoFuncionario,
     # Alunos
@@ -150,10 +150,10 @@ class EncarregadoAdmin(ModelAdmin):
 
 @admin.register(Aluno)
 class AlunoAdmin(ModelAdmin):
-    list_display = ['id_aluno', 'foto_badge', 'nome_completo', 'numero_matricula', 'turma_badge', 
+    list_display = ['id_aluno', 'foto_badge', 'nome_completo', 'get_numero_matricula', 'turma_badge', 
                     'get_ano_lectivo', 'status_badge', 'genero', 'online_badge']
     list_filter = ['id_turma__ano_lectivo', 'status_aluno', 'id_turma', 'genero']
-    search_fields = ['nome_completo', 'numero_matricula', 'email']
+    search_fields = ['nome_completo', 'matricula__numero_matricula', 'email']
     list_per_page = 20
 
     class MatriculaInline(admin.StackedInline):
@@ -212,7 +212,6 @@ class AlunoAdmin(ModelAdmin):
                 ('nome_completo', 'genero'), 
                 ('numero_bi', 'data_nascimento'), 
                 ('nacionalidade', 'naturalidade', 'deficiencia'),
-                'numero_matricula'
             ),
         }),
         ('contato', {
@@ -273,6 +272,11 @@ class AlunoAdmin(ModelAdmin):
         if obj.id_turma and obj.id_turma.ano_lectivo:
             return obj.id_turma.ano_lectivo.nome
         return "-"
+
+    @display(description='Nº Matrícula', ordering='matricula__numero_matricula')
+    def get_numero_matricula(self, obj):
+        matricula = obj.matricula_set.order_by('-data_matricula').first()
+        return matricula.numero_matricula if matricula else "--"
 
 
 @admin.register(Turma)
@@ -457,7 +461,7 @@ admin.site.register(Pagamento, ModelAdmin)
 admin.site.register(Inscricao, ModelAdmin)
 from django import forms
 from django.contrib import admin
-from apis.models import Aluno, Matricula
+from .models import Aluno, Matricula
 
 class MatriculaAdminForm(forms.ModelForm):
     # Campos para criar aluno novo
@@ -518,7 +522,7 @@ class MatriculaAdmin(ModelAdmin):
         'status_badge', 'tipo', 'data_display'
     ]
     list_filter = ['ano_lectivo', 'status', 'tipo', 'ativo', 'id_turma__id_classe', 'id_turma__id_curso']
-    search_fields = ['id_aluno__nome_completo', 'id_matricula', 'id_aluno__numero_matricula', 'id_aluno__numero_bi']
+    search_fields = ['id_aluno__nome_completo', 'id_matricula', 'numero_matricula', 'id_aluno__numero_bi']
     autocomplete_fields = ['id_turma'] # Removemos id_aluno daqui pois não será usado para seleção
     list_per_page = 20
     
@@ -604,7 +608,6 @@ class MatriculaAdmin(ModelAdmin):
                 municipio_residencia=form.cleaned_data.get('novo_aluno_municipio'),
                 bairro_residencia=form.cleaned_data.get('novo_aluno_bairro'),
                 numero_casa=form.cleaned_data.get('novo_aluno_numero_casa'),
-                numero_matricula=new_num,
                 status_aluno='Ativo'
             )
             
@@ -654,9 +657,9 @@ class MatriculaAdmin(ModelAdmin):
     def id_display(self, obj):
         return obj.id_matricula
 
-    @display(description='Nº Matrícula', ordering='id_aluno__numero_matricula')
+    @display(description='Nº Matrícula', ordering='numero_matricula')
     def aluno_numero(self, obj):
-        return obj.id_aluno.numero_matricula
+        return obj.numero_matricula
 
     @display(description='Nome Completo', ordering='id_aluno__nome_completo')
     def aluno_nome(self, obj):

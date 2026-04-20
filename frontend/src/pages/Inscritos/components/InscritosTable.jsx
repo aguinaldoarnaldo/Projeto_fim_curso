@@ -166,16 +166,16 @@ const InscritosTable = ({
 
                   {hasPermission(PERMISSIONS.CREATE_MATRICULA) && (
                     <button
-                        className={`btn-icon btn-enroll ${(i.status === 'CLASSIFICADO' || i.status === 'LISTA_ESPERA') ? 'can-enroll' : ''}`}
-                        disabled={!(i.status === 'CLASSIFICADO' || i.status === 'LISTA_ESPERA') || i.status === 'MATRICULADO'}
+                        className={`btn-icon btn-enroll ${i.status === 'CLASSIFICADO' ? 'can-enroll' : ''}`}
+                        disabled={i.status !== 'CLASSIFICADO' || i.status === 'MATRICULADO'}
                         onClick={(e) => { 
                             e.stopPropagation(); 
                             navigate('/matriculas/nova', { state: { candidato: i } });
                         }}
                         title={
                             i.status === 'MATRICULADO' ? "Candidato já matriculado" :
-                            (i.status === 'CLASSIFICADO' || i.status === 'LISTA_ESPERA') ? "Matricular Candidato" : 
-                            "Matrícula indisponível (Candidato não classificado)"
+                            i.status === 'CLASSIFICADO' ? "Matricular Candidato" : 
+                            "Matrícula indisponível (Candidato não classificado ou em lista de espera)"
                         }
                     >
                         <GraduationCap size={16} />

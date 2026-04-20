@@ -1,8 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from apis.models import Notificacao
-from apis.serializers.notificacao import NotificacaoSerializer
+from ..models import Notificacao
+from ..serializers.notificacao import NotificacaoSerializer
 
 class NotificacaoViewSet(viewsets.ModelViewSet):
     queryset = Notificacao.objects.all().order_by('-data_criacao')
@@ -11,7 +11,7 @@ class NotificacaoViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         # Acionar verificação automática antes de retornar a lista
         try:
-            from apis.services.notification_service import NotificationService
+            from ..services.notification_service import NotificationService
             NotificationService.check_and_create_notifications()
         except Exception as e:
             print(f"Erro ao verificar notificações automáticas: {e}")

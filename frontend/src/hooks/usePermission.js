@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './useAuth';
 import { hasPermission } from '../utils/permissions';
 
 export const usePermission = () => {
@@ -12,7 +12,7 @@ export const usePermission = () => {
     
     const checkPermission = (permission) => {
         // DEBUG: Log completo do usuário e da verificação
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
             console.log('🔍 [usePermission] Verificando permissão:', permission);
             console.log('👤 [usePermission] Usuário:', user);
             console.log('📜 [usePermission] Permissões do usuário:', user?.permissoes);
@@ -22,7 +22,7 @@ export const usePermission = () => {
         
         const result = hasPermission(user, permission);
         
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
             console.log(`${result ? '✅' : '❌'} [usePermission] Resultado para "${permission}":`, result);
         }
         

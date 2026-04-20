@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import exceptions
-from apis.models import Funcionario, Aluno, Encarregado, Usuario
+from ..models import Funcionario, Aluno, Encarregado, Usuario
 
 class SchoolJWTAuthentication(JWTAuthentication):
     """

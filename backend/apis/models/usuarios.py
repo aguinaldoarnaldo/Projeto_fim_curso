@@ -2,6 +2,7 @@ from django.db import models
 from .base import BaseModel
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
+from ..utils.image_processing import process_image
 
 
 class Cargo(BaseModel):
@@ -34,7 +35,7 @@ class Usuario(BaseModel):
     is_active = models.BooleanField(default=True, verbose_name='Ativo')
     is_superuser = models.BooleanField(default=False, verbose_name='Superusuário')
     permissoes = models.JSONField(default=list, blank=True, verbose_name='Permissões')
-    papel = models.CharField(max_length=50, default='Comum', verbose_name='Papel/Role') # Admin, Comum
+    papel = models.CharField(max_length=50, default='Normal', verbose_name='Papel/Role') # Admin, Normal
     
     # Cargo no sistema (RBAC baseado em Cargo)
     cargo = models.ForeignKey('Cargo', on_delete=models.PROTECT, null=True, blank=True, verbose_name='Cargo/Função')
@@ -61,6 +62,16 @@ class Usuario(BaseModel):
     def save(self, *args, **kwargs):
         if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
             self.senha_hash = make_password(self.senha_hash)
+        
+        # Otimizar Foto
+        if self.img_path:
+            try:
+                old = Usuario.objects.get(pk=self.pk).img_path if self.pk else None
+                if not old or old != self.img_path:
+                    process_image(self.img_path, max_width=300, max_height=300, quality=75)
+            except Usuario.DoesNotExist:
+                process_image(self.img_path, max_width=300, max_height=300, quality=75)
+
         super(Usuario, self).save(*args, **kwargs)
 
 
@@ -139,6 +150,16 @@ class Funcionario(BaseModel):
         # Se a senha não estiver criptografada (não começa com o prefixo padrão do Django)
         if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
             self.senha_hash = make_password(self.senha_hash)
+            
+        # Otimizar Foto
+        if self.img_path:
+            try:
+                old = Funcionario.objects.get(pk=self.pk).img_path if self.pk else None
+                if not old or old != self.img_path:
+                    process_image(self.img_path, max_width=300, max_height=300, quality=75)
+            except Funcionario.DoesNotExist:
+                process_image(self.img_path, max_width=300, max_height=300, quality=75)
+
         super(Funcionario, self).save(*args, **kwargs)
 
 
@@ -175,6 +196,16 @@ class Encarregado(BaseModel):
         # Se a senha não estiver criptografada
         if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
             self.senha_hash = make_password(self.senha_hash)
+            
+        # Otimizar Foto
+        if self.img_path:
+            try:
+                old = Encarregado.objects.get(pk=self.pk).img_path if self.pk else None
+                if not old or old != self.img_path:
+                    process_image(self.img_path, max_width=300, max_height=300, quality=75)
+            except Encarregado.DoesNotExist:
+                process_image(self.img_path, max_width=300, max_height=300, quality=75)
+
         super(Encarregado, self).save(*args, **kwargs)
 
 

@@ -3,11 +3,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from django.utils import timezone
 
-from apis.models import Historico, HistoricoLogin
+from ..models import Historico, HistoricoLogin
 
 
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from ..permissions.custom_permissions import HasAdditionalPermission
 
 
 class AuditoriaViewSet(viewsets.ViewSet):
@@ -123,13 +124,25 @@ class AuditoriaViewSet(viewsets.ViewSet):
         for h in qs[start:end]:
             # Resolver nome e tipo do utilizador
             user_name = 'Desconhecido'
-            user_type = 'sistema'
+            user_type = 'Sistema'
             if h.id_funcionario_id and h.id_funcionario:
                 user_name = h.id_funcionario.nome_completo
-                user_type = 'Funcionário'
+                user_type = h.id_funcionario.id_cargo.nome_cargo if getattr(h.id_funcionario, 'id_cargo', None) else 'Funcionário'
             elif h.id_usuario_id and h.id_usuario:
                 user_name = h.id_usuario.nome_completo
-                user_type = 'Usuário'
+                # Lista de nomes que indicam um perfil não preenchido ou genérico
+                generic_names = ['administrador', 'admin', 'sistema', 'administrador do sistema', 'utilizador']
+                
+                # Se o nome for genérico ou nulo e tiver User associado, tenta buscar o nome real ou username do Django
+                if (not user_name or user_name.lower() in generic_names) and h.id_usuario.user:
+                    u = h.id_usuario.user
+                    real_name = f"{u.first_name} {u.last_name}".strip()
+                    if real_name: 
+                        user_name = real_name
+                    elif u.username:
+                        user_name = u.username
+                
+                user_type = getattr(h.id_usuario, 'papel', 'Usuário') or 'Usuário'
             elif h.id_aluno_id and h.id_aluno:
                 user_name = h.id_aluno.nome_completo
                 user_type = 'Aluno'
@@ -142,19 +155,63 @@ class AuditoriaViewSet(viewsets.ViewSet):
             duracao = None
             if h.hora_saida and h.hora_entrada:
                 diff = h.hora_saida - h.hora_entrada
-                mins = int(diff.total_seconds() // 60)
-                duracao = f"{mins} min"
+                total_seconds = int(diff.total_seconds())
+                
+                days = total_seconds // 86400
+                hours = (total_seconds % 86400) // 3600
+                minutes = (total_seconds % 3600) // 60
+                
+                parts = []
+                if days > 0: parts.append(f"{days}d")
+                if hours > 0: parts.append(f"{hours}h")
+                if minutes > 0 or not parts: parts.append(f"{minutes}m")
+                
+                duracao = " ".join(parts)
+
+            # Mapear estado interno para o rótulo solicitado
+            estado_label = 'Ativa'
+            if h.estado == 'encerrada':
+                estado_label = 'Encerrada'
+            elif h.estado == 'expirada':
+                estado_label = 'Expirada'
+            elif h.hora_saida:
+                estado_label = 'Encerrada'
+
+            entrada_local = timezone.localtime(h.hora_entrada).strftime('%d/%m/%Y %H:%M:%S') if h.hora_entrada else '—'
+            saida_local = timezone.localtime(h.hora_saida).strftime('%d/%m/%Y %H:%M:%S') if h.hora_saida else '—'
+
+            # --- PROCESSAMENTO DE USER AGENT PARA LOGS ANTIGOS ---
+            navegador = h.navegador
+            dispositivo = h.dispositivo
+            
+            # Se navegador estiver vazio ou dispositivo parecer um UA bruto (ex: contém "Mozilla")
+            if not navegador or (dispositivo and 'mozilla' in dispositivo.lower()):
+                from apis.utils.auth_utils import get_user_agent_info
+                # Simular um request minimal para reutilizar a lógica de detecção
+                class MockRequest:
+                    def __init__(self, ua):
+                        self.META = {'HTTP_USER_AGENT': ua}
+                
+                ua_string = dispositivo or h.navegador or '' # Usa o que tiver disponível
+                mock_req = MockRequest(ua_string)
+                ua_info = get_user_agent_info(mock_req)
+                
+                navegador = ua_info['navegador']
+                dispositivo = ua_info['dispositivo']
+            # ----------------------------------------------------
 
             items.append({
                 'id': h.id_historico_login,
                 'utilizador': user_name,
                 'tipo_utilizador': user_type,
                 'ip': h.ip_usuario or '—',
-                'dispositivo': h.dispositivo or '—',
-                'entrada': h.hora_entrada.strftime('%d/%m/%Y %H:%M:%S') if h.hora_entrada else '—',
-                'saida': h.hora_saida.strftime('%d/%m/%Y %H:%M:%S') if h.hora_saida else '—',
-                'duracao': duracao or ('Activo' if not h.hora_saida else '< 1 min'),
-                'sessao_activa': h.hora_saida is None,
+                'dispositivo': dispositivo or '—',
+                'navegador': navegador or '—',
+                'entrada': entrada_local,
+                'saida': saida_local,
+                'duracao': duracao or ('Ativa' if estado_label == 'Ativa' else '< 1 min'),
+                'estado_texto': estado_label,
+                'sessao_activa': estado_label == 'Ativa',
             })
 
         return Response({
@@ -172,7 +229,7 @@ class AuditoriaViewSet(viewsets.ViewSet):
         from datetime import timedelta
         from django.db.models import Count
 
-        hoje = timezone.now().date()
+        hoje = timezone.localtime().date()
         semana_atras = hoje - timedelta(days=7)
 
         total_accoes = Historico.objects.count()

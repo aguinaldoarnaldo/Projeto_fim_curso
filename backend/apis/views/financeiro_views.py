@@ -2,15 +2,15 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from ..permissions.custom_permissions import HasAdditionalPermission
 
-from apis.models import Fatura, Pagamento
-from apis.serializers import (
+from ..models import Fatura, Pagamento
+from ..serializers import (
     FaturaSerializer, FaturaListSerializer,
     PagamentoSerializer, PagamentoListSerializer
 )
-from apis.utils.pagination import LargeResultsSetPagination
-from apis.mixins import AuditMixin
+from ..utils.pagination import LargeResultsSetPagination
+from ..mixins import AuditMixin
 
 
 class FaturaViewSet(AuditMixin, viewsets.ModelViewSet):

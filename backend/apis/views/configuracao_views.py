@@ -2,10 +2,10 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
-from apis.models import Configuracao, AgendamentoBackup
-from apis.serializers.configuracao_serializers import ConfiguracaoSerializer, AgendamentoBackupSerializer
-from apis.permissions.custom_permissions import HasAdditionalPermission
-from apis.mixins import AuditMixin
+from ..models import Configuracao, AgendamentoBackup
+from ..serializers.configuracao_serializers import ConfiguracaoSerializer, AgendamentoBackupSerializer
+from ..permissions.custom_permissions import HasAdditionalPermission
+from ..mixins import AuditMixin
 
 class ConfiguracaoViewSet(AuditMixin, viewsets.GenericViewSet):
     """
@@ -29,7 +29,7 @@ class ConfiguracaoViewSet(AuditMixin, viewsets.GenericViewSet):
         config = Configuracao.get_solo()
         
         # Lógica de fechamento automático baseada no Ano Lectivo e na Configuração Global
-        from apis.models import AnoLectivo
+        from ..models import AnoLectivo
         active_year = AnoLectivo.get_active_year()
         
         # Só executa o fecho automático se:

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import Fatura, Pagamento
+from ..models import Fatura, Pagamento
 
 
 class FaturaSerializer(serializers.ModelSerializer):

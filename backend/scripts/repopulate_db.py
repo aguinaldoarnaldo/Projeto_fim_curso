@@ -9,7 +9,7 @@ django.setup()
 from apis.models import (
     Cargo, Funcionario, Encarregado,
     Sala, Classe, Departamento, Seccao, AreaFormacao, Curso, Periodo, Turma,
-    Aluno, AlunoEncarregado
+    Aluno, AlunoEncarregado, Matricula, AnoLectivo
 )
 from django.contrib.auth.hashers import make_password
 
@@ -134,6 +134,17 @@ def repopulate_database():
              'id_periodo': periodos[0], 'ano': 2024, 'id_responsavel': prof
         })
         turmas.append(t)
+    
+    # 5.1 Ano Lectivo
+    print("Garantindo Ano Lectivo...")
+    ano_lectivo, _ = AnoLectivo.objects.get_or_create(
+        nome="2024",
+        defaults={
+            'data_inicio': date(2024, 2, 1),
+            'data_fim': date(2024, 12, 15),
+            'activo': True
+        }
+    )
 
     # 6. Alunos
     print("Inserindo 120 Alunos...")
@@ -165,11 +176,10 @@ def repopulate_database():
         while Aluno.objects.filter(numero_bi=num_bi).exists():
              num_bi = f"{random.randint(100000000, 999999999)}LA{random.randint(10, 99)}"
 
-        Aluno.objects.create(
+        aluno = Aluno.objects.create(
             nome_completo=nome_completo,
             email=f"aluno{i}_{random.randint(1000,9999)}@escola.ao", # Email ultra unico
             numero_bi=num_bi,
-            numero_matricula=20240000 + i,
             telefone=[f"923{random.randint(100000,999999)}"],
             provincia_residencia='Luanda',
             municipio_residencia=random.choice(['Belas', 'Viana', 'Cacuaco', 'Cazenga', 'Luanda']),
@@ -180,6 +190,17 @@ def repopulate_database():
             img_path=foto_url,
             is_online=random.choice([True, False]),
             criado_em=date.today() - timedelta(days=random.randint(0, 100))
+        )
+
+        # Criar a Matricula para o Aluno
+        Matricula.objects.create(
+            id_aluno=aluno,
+            id_turma=turma,
+            ano_lectivo=ano_lectivo,
+            tipo='Novo',
+            status='Ativa',
+            ativo=True,
+            data_matricula=date.today() - timedelta(days=random.randint(0, 30))
         )
 
     # 7. Atualizar contagem

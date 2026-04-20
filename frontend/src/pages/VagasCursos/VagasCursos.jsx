@@ -16,7 +16,6 @@ import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
-import { useConfig } from '../../context/ConfigContext';
 import Pagination from '../../components/Common/Pagination';
 
 const VagasCursos = () => {
@@ -25,7 +24,6 @@ const VagasCursos = () => {
     const [courses, setCourses] = useState([]);
     const [academicYears, setAcademicYears] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedYear, setSelectedYear] = useState('');
     // Pagination
@@ -36,36 +34,37 @@ const VagasCursos = () => {
     const [editingVaga, setEditingVaga] = useState(null);
     const [vagasCount, setVagasCount] = useState(0);
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = React.useCallback(async () => {
         try {
             const [resVagas, resCursos, resAnos] = await Promise.all([
                 api.get('vaga-curso/'),
                 api.get('cursos/'),
                 api.get('anos-lectivos/?all=true')
             ]);
-
+    
             setVagas(resVagas.data.results || resVagas.data || []);
             setCourses(resCursos.data.results || resCursos.data || []);
             
             const anos = resAnos.data.results || resAnos.data || [];
             setAcademicYears(anos);
-
+    
             // Selecionar o ano activo por padrão se existir
             const active = anos.find(a => a.activo);
             if (active) setSelectedYear(active.id_ano);
-
+    
             setLoading(false);
         } catch (err) {
             console.error('Erro ao carregar dados:', err);
-            setError('Falha ao carregar informações de vagas.');
             setLoading(false);
         }
-    };
+    }, []); // Empty dependency array as fetchData relies on stable external api and state setters
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        // Defer execution to avoid synchronous setState warning in React 18
+        Promise.resolve().then(() => {
+            fetchData();
+        });
+    }, [fetchData]);
 
     const handleEdit = (vaga) => {
         setEditingVaga(vaga);
@@ -80,6 +79,7 @@ const VagasCursos = () => {
             });
             alert("Vagas atualizadas com sucesso!");
             setShowEditModal(false);
+            setLoading(true);
             fetchData();
         } catch (err) {
             alert(parseApiError(err, "Erro ao salvar vagas."));
@@ -97,6 +97,7 @@ const VagasCursos = () => {
                 vagas: 0
             });
             alert("Vagas vinculadas ao curso com sucesso!");
+            setLoading(true);
             fetchData();
         } catch (err) {
             alert(parseApiError(err, "Este curso já possui vagas configuradas para este ano."));
@@ -125,7 +126,7 @@ const VagasCursos = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Vagas</h1>
-                        <p>Total de {vagas.length} configurações de vagas encontradas.</p>
+                        <p>Controle a disponibilidade de vagas.</p>
                     </div>
                     <div className="page-header-actions">
                         <div className="year-selector-wrapper">

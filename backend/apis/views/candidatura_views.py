@@ -6,15 +6,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.cache import cache
-from apis.models import Candidato, RupeCandidato, Curso, ExameAdmissao, Sala
-from apis.serializers import CandidatoSerializer, CandidatoCreateSerializer, RupeCandidatoSerializer
+from ..models import Candidato, RupeCandidato, Curso, ExameAdmissao, Sala
+from ..serializers import CandidatoSerializer, CandidatoCreateSerializer, RupeCandidatoSerializer
 from decimal import Decimal
-from apis.permissions.custom_permissions import HasAdditionalPermission
-from apis.mixins import AuditMixin
-from apis.permissions.authentication import SchoolJWTAuthentication
+from ..permissions.custom_permissions import HasAdditionalPermission
+from ..mixins import AuditMixin
+from ..permissions.authentication import SchoolJWTAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from apis.utils.pagination import LargeResultsSetPagination
-from apis.services.pdf_service import PDFService
+from ..utils.pagination import LargeResultsSetPagination
+from ..services.pdf_service import PDFService
 
 class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para gerenciar candidaturas"""
@@ -60,7 +60,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         # 0. Check Global Config and Academic Year Schedule
-        from apis.models import Configuracao, AnoLectivo
+        from ..models import Configuracao, AnoLectivo
         config = Configuracao.get_solo()
         
         # Primeiro verificar se o portal está aberto manualmente
@@ -304,7 +304,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
         Parâmetros: { data_inicio: str, hora_inicio: str, limite_candidatos: int }
         """
         import datetime
-        from apis.models import Sala, ExameAdmissao, AnoLectivo
+        from ..models import Sala, ExameAdmissao, AnoLectivo
         
         data_inicio_str = request.data.get('data_inicio')
         hora_inicio_str = request.data.get('hora_inicio', '08:00')
@@ -400,7 +400,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
         """
         Retorna a lista de candidatos organizada por Data e Sala para impressão.
         """
-        from apis.models import ExameAdmissao
+        from ..models import ExameAdmissao
         exames = ExameAdmissao.objects.select_related('candidato', 'sala', 'candidato__curso_primeira_opcao').filter(
             candidato__status='INSCRITO',
             candidato__ano_lectivo__activo=True,
@@ -497,6 +497,60 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             }
         })
 
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
+    def verificar_encarregado_existente(self, request):
+        """Verifica se o BI do encarregado já existe e retorna os dados para auto-preenchimento"""
+        numero_bi = request.query_params.get('numero_bi')
+        if not numero_bi:
+            return Response({'erro': 'Informe o BI do encarregado'}, status=400)
+            
+        numero_bi = numero_bi.strip()
+        
+        # 1. Tentar buscar na tabela de Encarregados (já matriculados)
+        from ..models import Encarregado
+        enc = Encarregado.objects.filter(numero_bi__iexact=numero_bi).first()
+        if enc:
+            # Note: Encarregado.telefone is a JSONField
+            tel_principal = ""
+            tel_alt = ""
+            if isinstance(enc.telefone, list) and len(enc.telefone) > 0:
+                tel_principal = enc.telefone[0]
+                if len(enc.telefone) > 1:
+                    tel_alt = enc.telefone[1]
+            elif isinstance(enc.telefone, str):
+                tel_principal = enc.telefone
+
+            return Response({
+                'encontrado': True,
+                'origem': 'encarregado',
+                'dados': {
+                    'nome_encarregado': enc.nome_completo,
+                    'telefone_encarregado': tel_principal,
+                    'telefone_alternativo_encarregado': tel_alt,
+                    'email_encarregado': enc.email,
+                    'profissao_encarregado': enc.profissao,
+                    'residencia_encarregado': enc.bairro_residencia or enc.municipio_residencia or '',
+                }
+            })
+            
+        # 2. Tentar buscar na tabela de Candidatos (ainda não matriculados)
+        cand = Candidato.objects.filter(numero_bi_encarregado__iexact=numero_bi).order_by('-criado_em').first()
+        if cand:
+            return Response({
+                'encontrado': True,
+                'origem': 'candidato',
+                'dados': {
+                    'nome_encarregado': cand.nome_encarregado,
+                    'telefone_encarregado': cand.telefone_encarregado,
+                    'telefone_alternativo_encarregado': cand.telefone_alternativo_encarregado,
+                    'email_encarregado': cand.email_encarregado,
+                    'profissao_encarregado': cand.profissao_encarregado,
+                    'residencia_encarregado': cand.residencia_encarregado,
+                }
+            })
+            
+        return Response({'encontrado': False}, status=200)
+
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def avaliar(self, request, pk=None):
         """Avalia o exame do candidato"""
@@ -513,7 +567,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
                  return Response({'erro': 'Nota invalida'}, status=400)
                  
             # Update Exam
-            from apis.models import ExameAdmissao
+            from ..models import ExameAdmissao
             exame, _ = ExameAdmissao.objects.get_or_create(candidato=candidato, defaults={'data_exame': '2026-01-25'})
             exame.nota = nota
             exame.realizado = True
@@ -541,7 +595,7 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
         Converte Candidato Aprovado em Aluno e cria Matrícula.
         Dados esperados: { id_turma: int }
         """
-        from apis.models import Aluno, Matricula, Turma, Encarregado, AlunoEncarregado
+        from ..models import Aluno, Matricula, Turma, Encarregado, AlunoEncarregado
         from django.db import transaction
         
         candidato = self.get_object()
@@ -558,12 +612,22 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
                 turma = Turma.objects.get(pk=id_turma)
                 
                 # 1. Criar/Recuperar Encarregado
-                # Tenta buscar por telefone primeiro (mais unico que nome)
-                encarregado = Encarregado.objects.filter(telefone__contains=candidato.telefone_encarregado).first()
+                # Tenta buscar por BI primeiro (mais seguro), senão pelo telefone
+                encarregado = None
+                if candidato.numero_bi_encarregado:
+                    encarregado = Encarregado.objects.filter(numero_bi__iexact=candidato.numero_bi_encarregado.strip()).first()
+                
+                if not encarregado:
+                    encarregado = Encarregado.objects.filter(telefone__contains=candidato.telefone_encarregado).first()
+                
                 if not encarregado:
                     encarregado = Encarregado.objects.create(
                         nome_completo=candidato.nome_encarregado,
-                        telefone=candidato.telefone_encarregado,
+                        numero_bi=candidato.numero_bi_encarregado,
+                        telefone=[candidato.telefone_encarregado],
+                        profissao=candidato.profissao_encarregado,
+                        email=candidato.email_encarregado,
+                        bairro_residencia=candidato.residencia_encarregado,
                         senha_hash='123456', 
                         is_online=False
                     )
@@ -642,8 +706,8 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             # logger.error(f"Erro na matricula: {e}")
             return Response({'erro': f'Erro ao matricular: {str(e)}'}, status=500)
 
-from apis.serializers import ListaEsperaSerializer
-from apis.models import ListaEspera
+from ..serializers import ListaEsperaSerializer
+from ..models import ListaEspera
 
 class ListaEsperaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Lista de Espera"""
@@ -663,16 +727,52 @@ class ListaEsperaViewSet(AuditMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def chamar_candidato(self, request, pk=None):
-        """Altera status para Chamado e notifica (simulado)"""
+        """Altera status para Chamado e envia e-mail de notificação"""
+        from django.core.mail import send_mail
+        from django.conf import settings
+
         espera = self.get_object()
+        candidato = espera.candidato
+
         if espera.status == 'Chamado':
-             return Response({'mensagem': 'Candidato ja foi chamado.'}, status=200)
+             return Response({'mensagem': 'Este candidato já foi chamado anteriormente.'}, status=200)
+        
         espera.status = 'Chamado'
         espera.save()
-        msg = f"Ola {espera.candidato.nome_completo}, surgiu uma vaga! Compareca a secretaria."
+        
+        email_sent = False
+        if candidato.email:
+            subject = "Vaga Disponível - Lista de Espera SGMatrícula"
+            message = f"""
+            Olá {candidato.nome_completo},
+
+            Temos o prazer de informar que surgiu uma vaga disponível para a sua candidatura (Nº {candidato.numero_inscricao}) no SGMatrícula.
+
+            Como estava na nossa lista de espera, o seu status foi actualizado para "Chamado". Por favor, compareça à secretaria da instituição com os seus documentos para proceder com a matrícula o mais breve possível.
+
+            Dados da Candidatura:
+            - Nome: {candidato.nome_completo}
+            - Nº Inscrição: {candidato.numero_inscricao}
+            - Curso: {candidato.curso_primeira_opcao.nome_curso if candidato.curso_primeira_opcao else 'N/A'}
+
+            Atenciosamente,
+            Direcção de Gestão Académica
+            """
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@school.com',
+                    [candidato.email],
+                    fail_silently=False,
+                )
+                email_sent = True
+            except Exception as e:
+                print(f"Erro ao enviar e-mail de chamada: {e}")
+
         return Response({
             'mensagem': 'Candidato chamado com sucesso!',
-            'notificacao': msg,
+            'email_enviado': email_sent,
             'status': espera.status
         })
 

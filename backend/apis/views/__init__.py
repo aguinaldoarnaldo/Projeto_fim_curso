@@ -1,5 +1,8 @@
 # Importar todas as views para facilitar o uso
-from .auth_views import login_view, logout_view, me_view, update_profile_view, define_password_view, recover_password_view
+from .auth_views import (
+    login_view, logout_view, me_view, update_profile_view, 
+    define_password_view, recover_password_view, SchoolTokenRefreshView
+)
 from .usuario_views import (
     CargoViewSet, FuncionarioViewSet, EncarregadoViewSet, CargoFuncionarioViewSet,
     UsuarioViewSet
@@ -25,6 +28,7 @@ from .backup_views import BackupViewSet
 __all__ = [
     # Auth
     'login_view', 'logout_view', 'me_view', 'update_profile_view', 'define_password_view', 'recover_password_view',
+    'SchoolTokenRefreshView',
     # Usuários
     'CargoViewSet', 'FuncionarioViewSet', 'EncarregadoViewSet', 'CargoFuncionarioViewSet',
     'UsuarioViewSet',

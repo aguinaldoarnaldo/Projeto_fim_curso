@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from xhtml2pdf import pisa
 from io import BytesIO
 
-from apis.models import (
+from ..models import (
     Aluno, Turma, Pagamento, Candidato, AnoLectivo
 )
 from django.db.models import Sum, Count
@@ -77,12 +77,13 @@ class RelatorioViewSet(viewsets.ViewSet):
             
         try:
             turma = Turma.objects.select_related('id_curso', 'id_classe', 'id_periodo', 'id_sala', 'ano_lectivo').get(id_turma=turma_id)
-            alunos = Aluno.objects.filter(id_turma=turma).order_by('nome_completo')
+            from ..models import Matricula
+            matriculas = Matricula.objects.filter(id_turma=turma).select_related('id_aluno').order_by('id_aluno__nome_completo')
             
             from django.utils import timezone
             context = {
                 'turma': turma,
-                'alunos': alunos,
+                'matriculas': matriculas,
                 'data_impressao': timezone.now().strftime('%d/%m/%Y %H:%M'),
                 'hoje': timezone.now(),
                 'escola_nome': 'Complexo Escolar Politécnico'
@@ -99,7 +100,7 @@ class RelatorioViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def financeiro_resumo(self, request):
         """Gera PDF de resumo financeiro por período"""
-        from apis.models import Pagamento
+        from ..models import Pagamento
         # Acesso correto: Pagamento -> Fatura -> Aluno
         pagamentos = Pagamento.objects.select_related('id_fatura__id_aluno').order_by('-criado_em')[:50]
         total = Pagamento.objects.aggregate(total=Sum('valor_pago'))['total'] or 0
@@ -167,7 +168,7 @@ class RelatorioViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def relatorio_vagas(self, request):
         """Relatório de vagas por curso e ano lectivo"""
-        from apis.models import VagaCurso, AnoLectivo, Matricula
+        from ..models import VagaCurso, AnoLectivo, Matricula
         from django.db.models import Count, Q
         
         ano_id = request.query_params.get('ano_id')
@@ -222,7 +223,7 @@ class RelatorioViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def stats_ocupacao(self, request):
         """Relatório de ocupação de salas com contagem de alunos"""
-        from apis.models import Sala, Aluno
+        from ..models import Sala, Aluno
         from django.db.models import Count, Q
         
         # Busca todas as salas e anota com o total de alunos ativos

@@ -31,17 +31,17 @@
         </tr>
     </thead>
     <tbody>
-        {% for aluno in alunos %}
+        {% for m in matriculas %}
         <tr>
             <td style="border: 1px solid #ddd; padding: 6px;">{{ forloop.counter }}</td>
-            <td style="border: 1px solid #ddd; padding: 6px;">{{ aluno.numero_matricula }}</td>
-            <td style="border: 1px solid #ddd; padding: 6px;">{{ aluno.nome_completo }}</td>
-            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">{{ aluno.genero }}</td>
-            <td style="border: 1px solid #ddd; padding: 6px;">{{ aluno.status_aluno }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ m.numero_matricula }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ m.id_aluno.nome_completo }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px; text-align: center;">{{ m.id_aluno.genero }}</td>
+            <td style="border: 1px solid #ddd; padding: 6px;">{{ m.id_aluno.status_aluno }}</td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" style="border: 1px solid #ddd; padding: 20px; text-align: center;">Nenhum aluno matriculado nesta turma.</td>
+            <td colspan="5" style="border: 1px solid #ddd; padding: 20px; text-align: center;">Nenhuma matrícula encontrada para esta turma.</td>
         </tr>
         {% endfor %}
     </tbody>

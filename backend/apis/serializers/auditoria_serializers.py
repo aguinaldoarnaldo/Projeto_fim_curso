@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import Inscricao, Matricula, Historico, HistoricoLogin
+from ..models import Inscricao, Matricula, Historico, HistoricoLogin
 
 
 class InscricaoSerializer(serializers.ModelSerializer):
@@ -48,12 +48,14 @@ class HistoricoLoginSerializer(serializers.ModelSerializer):
     funcionario_nome = serializers.CharField(source='id_funcionario.nome_completo', read_only=True)
     aluno_nome = serializers.CharField(source='id_aluno.nome_completo', read_only=True)
     encarregado_nome = serializers.CharField(source='id_encarregado.nome_completo', read_only=True)
+    usuario_nome = serializers.CharField(source='id_usuario.nome_completo', read_only=True)
     
     class Meta:
         model = HistoricoLogin
         fields = [
-            'id_historico_login', 'id_funcionario', 'funcionario_nome',
+            'id_historico_login', 'id_usuario', 'usuario_nome',
+            'id_funcionario', 'funcionario_nome',
             'id_aluno', 'aluno_nome', 'id_encarregado', 'encarregado_nome',
-            'ip_usuario', 'dispositivo', 'navegador', 'hora_entrada', 'hora_saida'
+            'ip_usuario', 'dispositivo', 'navegador', 'hora_entrada', 'hora_saida', 'estado'
         ]
         read_only_fields = ['id_historico_login', 'hora_entrada']

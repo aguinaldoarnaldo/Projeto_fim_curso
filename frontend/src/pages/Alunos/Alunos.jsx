@@ -204,41 +204,46 @@ const Alunos = () => {
     }, []);
 
     // Centralized mapping for API -> Frontend format
-    const mapStudentFromApi = (student) => ({
-        id: student.id_aluno,
-        matricula: student.numero_matricula,
-        nome: student.nome_completo,
-        foto: student.img_path,
-        anoLectivo: student.numero_matricula ? (student.ano_lectivo || 'N/A') : '---',
-        anoLectivoAtivo: student.ano_lectivo_ativo,
-        classe: student.numero_matricula ? (student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A') : '---',
-        curso: student.numero_matricula ? (student.curso_nome || 'N/A') : '---',
-        sala: student.numero_matricula ? (student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A') : '---',
-        turno: student.numero_matricula ? (student.periodo_nome || 'N/A') : '---',
-        turma: student.numero_matricula ? (student.turma_codigo || 'N/A') : '---',
-        status: student.status_aluno === 'Activo' ? 'Ativo' : student.status_aluno,
-        sugeridoTipo: null,
-        dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
-        genero: student.genero || 'N/A',
-        detalhes: {
-            nascimento: student.data_nascimento || 'N/A',
-            encarregado: student.encarregado_principal,
-            telefone: student.telefone || 'N/A',
-            email: student.email,
-            endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
-            bi: student.numero_bi,
-            nacionalidade: student.nacionalidade || 'Angolana',
-            naturalidade: student.naturalidade || 'N/A',
-            deficiencia: student.deficiencia || 'Não',
-            bairro: student.bairro_residencia || 'N/A',
-            numeroCasa: student.numero_casa || 'N/A',
-            provincia: student.provincia_residencia || 'N/A',
-            municipio: student.municipio_residencia || 'N/A',
-            obs: '',
-            historico: student.historico_escolar || [],
-            historicoMatriculas: student.matriculas_detalhes || []
-        }
-    });
+    const mapStudentFromApi = (student) => {
+        // Se o backend enviar numero_matricula, usamos como prioridade para determinar se está matriculado
+        const isMatriculado = !!student.numero_matricula;
+        
+        return {
+            id: student.id_aluno,
+            matricula: student.numero_matricula,
+            nome: student.nome_completo,
+            foto: student.img_path,
+            anoLectivo: isMatriculado ? (student.ano_lectivo || 'N/A') : 'Não Matriculado',
+            anoLectivoAtivo: student.ano_lectivo_ativo,
+            classe: isMatriculado ? (student.classe_nivel ? `${student.classe_nivel}\u00aa Classe` : 'N/A') : '---',
+            curso: isMatriculado ? (student.curso_nome || 'N/A') : '---',
+            sala: isMatriculado ? (student.sala_numero ? `Sala ${student.sala_numero}` : 'N/A') : '---',
+            turno: isMatriculado ? (student.periodo_nome || 'N/A') : '---',
+            turma: isMatriculado ? (student.turma_codigo || 'N/A') : '---',
+            status: student.status_aluno === 'Activo' ? 'Ativo' : student.status_aluno,
+            sugeridoTipo: null,
+            dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
+            genero: student.genero || 'N/A',
+            detalhes: {
+                nascimento: student.data_nascimento || 'N/A',
+                encarregado: student.encarregado_principal,
+                telefone: student.telefone || 'N/A',
+                email: student.email,
+                endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
+                bi: student.numero_bi,
+                nacionalidade: student.nacionalidade || 'Angolana',
+                naturalidade: student.naturalidade || 'N/A',
+                deficiencia: student.deficiencia || 'Não',
+                bairro: student.bairro_residencia || 'N/A',
+                numeroCasa: student.numero_casa || 'N/A',
+                provincia: student.provincia_residencia || 'N/A',
+                municipio: student.municipio_residencia || 'N/A',
+                obs: '',
+                historico: student.historico_escolar || [],
+                historicoMatriculas: student.matriculas_detalhes || []
+            }
+        };
+    };
 
     // Data Fetcher
     const fetchStudentsData = async () => {
@@ -254,14 +259,14 @@ const Alunos = () => {
         }
     };
 
-    // USE DATA CACHE HOOK
+    // USE DATA CACHE HOOK - Atualizado para v3 para forçar atualização após migração de matrícula
     const { 
         data: students = [], 
         loading, 
         error,
         refresh,
         update: updateStudent
-    } = useDataCache('alunos_v2', fetchStudentsData);
+    } = useDataCache('alunos_v3', fetchStudentsData);
 
     // Polling Inteligente para atualizações em tempo real (Silent Refresh)
     useEffect(() => {
@@ -784,7 +789,7 @@ const Alunos = () => {
                                         className={`sortable-header ${sortConfig.key === 'matricula' ? 'active-sort' : ''}`} 
                                         onClick={() => requestSort('matricula')}
                                     >
-                                        Nº Aluno
+                                        Nº Matrícula
                                          <span className="sort-icon">
                                             {sortConfig.key === 'matricula' ? (sortConfig.direction === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : ''}
                                         </span>
@@ -899,7 +904,7 @@ const Alunos = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td data-label="Nº Aluno" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}>
+                                            <td data-label="Nº Matrícula" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-color)' }}>
                                                 {s.matricula || '---'}
                                             </td>
                                             <td data-label="Ano Lectivo">{s.anoLectivo}</td>
@@ -1017,7 +1022,7 @@ const Alunos = () => {
                                     )}
                                 </div>
                                 <h2 className="profile-name">{selectedStudent.nome}</h2>
-                                <p className="profile-id">Nº Aluno: {selectedStudent.matricula}</p>
+                                <p className="profile-id">Nº Matrícula: {selectedStudent.matricula}</p>
                                 
                                 <div 
                                     className="profile-status-interactive"

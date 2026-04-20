@@ -177,14 +177,8 @@ const Matriculas = () => {
                 ? String(item.id_aluno).padStart(4, '0')
                 : '----';
 
-            // Nº Matrícula: Ano lectivo + ID da matrícula → 2026045
-            const anoBase = item.ano_lectivo_nome
-                ? item.ano_lectivo_nome.split('/')[0]  // "2033/2034" → "2033"
-                : new Date().getFullYear();
-            const idMatFormatado = item.id_matricula
-                ? String(item.id_matricula).padStart(3, '0')
-                : '000';
-            const numMatricula = `${anoBase}${idMatFormatado}`;
+            // Nº Matrícula: Usar o campo real do banco de dados retornado pela API
+            const numMatricula = item.numero_matricula || 'Aguardando...';
             
             // Organizar os anuais de histórico de forma descendente 
             let sortedHistory = (historyMap[item.id_aluno] || []).sort((a, b) => b.id_matricula - a.id_matricula);
@@ -363,13 +357,23 @@ const Matriculas = () => {
             const response = await api.get(`matriculas/${id}/download_ficha/`, {
                 responseType: 'blob'
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            
+            // Create Blob with explicit type
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Ficha_Matricula_${matriculaNum || 'Documento'}.pdf`);
             document.body.appendChild(link);
             link.click();
-            link.remove();
+            
+            // Cleanup
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
         } catch (error) {
             console.error("Erro ao baixar PDF", error);
             const msg = parseApiError(error, "Erro ao baixar o documento.");
@@ -411,7 +415,6 @@ const Matriculas = () => {
         });
 
         // Dedup logic: Se não houver filtro de ano ativo, mostramos apenas a matrícula mais recente de cada aluno
-        // Assim evitamos "sujar" a tabela principal com histórico, deixando-o apenas para o modal de detalhes
         if (filters.ano === '') {
             const studentMap = {};
             sortableItems.forEach(m => {
@@ -427,56 +430,63 @@ const Matriculas = () => {
             sortableItems = Object.values(studentMap);
         }
 
-        // Use o sortConfig para ordenar os itens filtrados
-
         if (sortConfig.key) {
             sortableItems.sort((a, b) => {
                 let aValue = a[sortConfig.key];
                 let bValue = b[sortConfig.key];
-                
-                // Handle nulls
                 if (aValue === null) aValue = '';
                 if (bValue === null) bValue = '';
-                
-                 if (aValue < bValue) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aValue > bValue) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
+                 if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         }
         return sortableItems;
     }, [matriculas, searchTerm, filters, sortConfig]);
 
+    const getStatusStyle = (status) => {
+        if (!status) return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
+        
+        const s = status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        
+        if (s === 'inativo' || s === 'inativa') 
+            return { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' }; // Vermelho
+            
+        if (s === 'ativo' || s === 'ativa' || s === 'confirmada') 
+            return { bg: '#d1fae5', color: '#16a34a', border: '#a7f3d0' }; // Verde
+        
+        if (s.includes('conclui')) 
+            return { bg: '#dbeafe', color: '#2563eb', border: '#bfdbfe' }; // Azul
+            
+        if (s.includes('transferid')) 
+            return { bg: '#ffedd5', color: '#ea580c', border: '#fed7aa' }; // Laranja
+            
+        if (s.includes('desistente')) 
+            return { bg: '#f3f4f6', color: '#64748b', border: '#e2e8f0' };
+
+        return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' };
+    };
+
     const getStatusBadge = (status) => {
-        if (!status) return <span className="status-badge status-default">N/A</span>;
+        if (!status) return <span className="student-status-badge status-default">N/A</span>;
         
-        // Normalizamos para minúsculo para garantir o match com as chaves abaixo
-        const normalizedStatus = String(status).toLowerCase();
-        
-        // Mapeamento estrito conforme o Backend (models.py)
-        // STATUS_MATRICULA = ['Ativa', 'Confirmada', 'Concluida', 'Desistente', 'Transferido']
-        const statusMap = {
-            // Status: Ativa -> Verde
-            'ativa': 'status-confirmed',
-
-            // Status: Concluida -> Verde Sucesso
-            'concluida': 'status-success',
-            
-            // Status: Transferido -> Azul
-            'transferido': 'status-info',
-            
-            // Status: Desistente -> Vermelho
-            'desistente': 'status-danger',
-        };
-
-        // Fallback: se o status não estiver no mapa, usa status-default (Cinza)
-        const badgeClass = statusMap[normalizedStatus] || 'status-default';
+        const style = getStatusStyle(status);
         
         return (
-            <span className={`status-badge ${badgeClass}`}>
+            <span 
+                className="student-status-badge"
+                style={{
+                    background: style.bg,
+                    color: style.color,
+                    border: `1px solid ${style.border}`,
+                    padding: '6px 14px',
+                    borderRadius: '100px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                }}
+            >
                 {String(status).toUpperCase()}
             </span>
         );

@@ -5,3 +5,6 @@ class ApisConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apis'
     verbose_name = 'Sistema de Gestão Académica'
+
+    def ready(self):
+        import apis.signals

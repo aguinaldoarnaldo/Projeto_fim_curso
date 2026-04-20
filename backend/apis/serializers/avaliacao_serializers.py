@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import (
+from ..models import (
     TipoDisciplina, Disciplina, DisciplinaCurso,
     ProfessorDisciplina, Nota, FaltaAluno
 )

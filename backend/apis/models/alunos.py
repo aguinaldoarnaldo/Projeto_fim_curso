@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.hashers import make_password
 from .base import BaseModel
 from .academico import Turma
+from ..utils.image_processing import process_image
 
 
 class Aluno(BaseModel):
@@ -27,7 +28,6 @@ class Aluno(BaseModel):
     naturalidade = models.CharField(max_length=100, null=True, blank=True, verbose_name='Naturalidade')
     deficiencia = models.CharField(max_length=3, choices=[('Sim', 'Sim'), ('Não', 'Não')], default='Não', verbose_name='Deficiência')
     email = models.EmailField(max_length=250, unique=True, null=True, blank=True)
-    numero_matricula = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name='Número de Matrícula')
     telefone = models.CharField(max_length=10, verbose_name='Telefone')
     provincia_residencia = models.CharField(max_length=100, null=True, blank=True)
     municipio_residencia = models.CharField(max_length=100, null=True, blank=True)
@@ -53,7 +53,7 @@ class Aluno(BaseModel):
         ]
     
     def __str__(self):
-        return f"{self.nome_completo} - {self.numero_matricula}"
+        return f"{self.nome_completo}"
     
     def save(self, *args, **kwargs):
         # --- Bloqueio de estados finais (alunos congelados) ---
@@ -72,38 +72,24 @@ class Aluno(BaseModel):
                         f"Não são permitidas alterações nos dados enquanto estiver neste estado. "
                         f"Para editar, altere primeiro o estado do aluno."
                     )
-                
-                # --- Bloqueio de alteração do número de matrícula ---
-                # Uma vez atribuído, o número de matrícula não deve ser alterado manualmente.
-                matricula_anterior = Aluno.objects.values_list('numero_matricula', flat=True).get(pk=self.pk)
-                if matricula_anterior and self.numero_matricula != matricula_anterior:
-                    raise ValidationError(
-                        f"O Número de Matrícula ({matricula_anterior}) é permanente e não pode ser alterado."
-                    )
             except Aluno.DoesNotExist:
                 pass  # Novo registo, nada a validar
-
-        # Gerar número de matrícula se não existir
-        if not self.numero_matricula:
-            import datetime
-            year = datetime.datetime.now().year
-            start_range = year * 10000
-            end_range = (year + 1) * 10000
-            
-            # Pegar o último número do ano atual para evitar conflitos
-            last = Aluno.objects.filter(
-                numero_matricula__gte=start_range,
-                numero_matricula__lt=end_range
-            ).order_by('-numero_matricula').first()
-            
-            if last and last.numero_matricula:
-                self.numero_matricula = last.numero_matricula + 1
-            else:
-                self.numero_matricula = start_range + 1
 
         # Se a senha não estiver criptografada
         if self.senha_hash and not self.senha_hash.startswith('pbkdf2_sha256$'):
             self.senha_hash = make_password(self.senha_hash)
+
+        # --- Otimização de Imagem ---
+        # Se houver uma nova imagem sendo enviada
+        if self.img_path:
+            # Verificar se a imagem mudou ou é nova
+            try:
+                old_instance = Aluno.objects.get(pk=self.pk) if self.pk else None
+                if not old_instance or old_instance.img_path != self.img_path:
+                    process_image(self.img_path, max_width=400, max_height=400, quality=80)
+            except Aluno.DoesNotExist:
+                process_image(self.img_path, max_width=400, max_height=400, quality=80)
+
         super(Aluno, self).save(*args, **kwargs)
 
 

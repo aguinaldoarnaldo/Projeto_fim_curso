@@ -1,7 +1,7 @@
 /* Configuracoes.css - Ultra Premium Redesign */
 
 :root {
-    --config-sidebar-width: 280px;
+    --config-sidebar-width: 240px;
     --config-bg: var(--bg-color, #f1f5f9);
     --config-accent: var(--primary-color, #3b82f6);
     --config-accent-soft: var(--primary-light-bg, rgba(59, 130, 246, 0.1));
@@ -21,7 +21,7 @@
         radial-gradient(at 100% 100%, var(--primary-shadow) 0px, transparent 50%);
     background-attachment: fixed;
     min-height: 100vh;
-    padding: 40px 40px 180px 40px; /* Aumentado de 40px para 180px no fundo */
+    padding: 30px 30px 180px 30px;
     font-family: 'Outfit', 'Inter', sans-serif;
 }
 
@@ -45,8 +45,8 @@
 
 .config-layout-v2 {
     display: flex;
-    gap: 40px;
-    max-width: 1400px;
+    gap: 30px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -434,12 +434,15 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    align-items: flex-start; /* Forçar alinhamento à esquerda */
 }
 
 .config-group-v2 label {
     font-size: 14px;
     font-weight: 600;
     color: #334155;
+    text-align: left; /* Garantir texto à esquerda */
+    width: 100%;
 }
 
 .input-v2 {

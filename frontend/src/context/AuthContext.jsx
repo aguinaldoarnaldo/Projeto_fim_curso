@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 import { hasPermission } from '../utils/permissions';
 
-const AuthContext = createContext();
+import { AuthContext } from './AuthContextInstance';
 
 const INACTIVITY_TIMEOUT_MS = 3 * 60 * 60 * 1000; // 3 horas
 
@@ -37,9 +37,11 @@ export const AuthProvider = ({ children }) => {
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         sessionStorage.removeItem('@App:token');
+        sessionStorage.removeItem('@App:refresh');
         sessionStorage.removeItem('@App:user');
         sessionStorage.removeItem('@App:lastActivity');
         localStorage.removeItem('@App:token');
+        localStorage.removeItem('@App:refresh');
         localStorage.removeItem('@App:user');
         setUser(null);
         setIsLoggingOut(false);
@@ -81,7 +83,7 @@ export const AuthProvider = ({ children }) => {
                     api.defaults.headers.Authorization = `Bearer ${token}`;
                     setUser(JSON.parse(storedUser));
                     resetInactivityTimer();
-                } catch (e) {
+                } catch {
                     signOut();
                 }
             }
@@ -114,7 +116,7 @@ export const AuthProvider = ({ children }) => {
             activityEvents.forEach(e => window.removeEventListener(e, handleActivity));
             clearTimeout(inactivityTimerRef.current);
         };
-    }, [user?.id, resetInactivityTimer]);
+    }, [user, resetInactivityTimer]);
 
     // =========================================================================
     // 3. SINCRONIZAÇÃO DE PERFIL
@@ -156,7 +158,7 @@ export const AuthProvider = ({ children }) => {
         const syncIfVisible = () => { if (!document.hidden) syncRef.current(); };
         window.addEventListener('focus', syncIfVisible);
         return () => window.removeEventListener('focus', syncIfVisible);
-    }, [user?.id]);
+    }, [user]);
 
     // =========================================================================
     // LOGIN
@@ -171,10 +173,12 @@ export const AuthProvider = ({ children }) => {
                 tipo_usuario: 'usuario'
             });
 
-            const { access, user: userData } = response.data;
+            const { access, refresh, user: userData } = response.data;
             const token = access || response.data.token;
 
             sessionStorage.setItem('@App:token', token);
+            if (refresh) sessionStorage.setItem('@App:refresh', refresh);
+            
             api.defaults.headers.Authorization = `Bearer ${token}`;
 
             let fullUser = userData;
@@ -260,8 +264,3 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error('useAuth must be used within an AuthProvider');
-    return context;
-};

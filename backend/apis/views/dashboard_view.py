@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import admin
-from apis.dashboard import dashboard_callback
+from ..dashboard import dashboard_callback
 
 @staff_member_required
 def custom_dashboard_view(request):

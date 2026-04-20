@@ -4,17 +4,17 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from apis.permissions.custom_permissions import HasAdditionalPermission
+from ..permissions.custom_permissions import HasAdditionalPermission
 
-from apis.models import Funcionario, Encarregado, Cargo, CargoFuncionario, Usuario
+from ..models import Funcionario, Encarregado, Cargo, CargoFuncionario, Usuario
 from django.contrib.auth.models import User
-from apis.serializers import (
+from ..serializers import (
     FuncionarioSerializer, FuncionarioListSerializer,
     EncarregadoSerializer, EncarregadoListSerializer,
     CargoSerializer, CargoFuncionarioSerializer, UsuarioSerializer
 )
-from apis.utils.pagination import LargeResultsSetPagination
-from apis.mixins import AuditMixin
+from ..utils.pagination import LargeResultsSetPagination
+from ..mixins import AuditMixin
 
 
 class UsuarioViewSet(AuditMixin, viewsets.ModelViewSet):
@@ -85,7 +85,7 @@ class FuncionarioViewSet(AuditMixin, viewsets.ModelViewSet):
     ordering = ['nome_completo']
 
     def perform_create(self, serializer):
-        from apis.utils.auth_utils import generate_password_token, send_password_definition_email
+        from ..utils.auth_utils import generate_password_token, send_password_definition_email
         from django.utils.crypto import get_random_string
         password = self.request.data.get('senha_hash')
         is_invite = not password
@@ -147,7 +147,7 @@ class EncarregadoViewSet(AuditMixin, viewsets.ModelViewSet):
     ordering = ['nome_completo']
     
     def perform_create(self, serializer):
-        from apis.utils.auth_utils import generate_password_token, send_password_definition_email
+        from ..utils.auth_utils import generate_password_token, send_password_definition_email
         from django.utils.crypto import get_random_string
         password = self.request.data.get('senha_hash')
         is_invite = not password
@@ -169,8 +169,8 @@ class EncarregadoViewSet(AuditMixin, viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def educandos(self, request, pk=None):
-        from apis.models import AlunoEncarregado
-        from apis.serializers import AlunoListSerializer
+        from ..models import AlunoEncarregado
+        from ..serializers import AlunoListSerializer
         encarregado = self.get_object()
         vinculos = AlunoEncarregado.objects.filter(id_encarregado=encarregado).select_related('id_aluno')
         alunos = [v.id_aluno for v in vinculos]

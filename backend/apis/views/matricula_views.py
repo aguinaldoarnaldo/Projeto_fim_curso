@@ -4,15 +4,18 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.db.models import Prefetch
 from django.db import transaction
 from django.core.exceptions import ValidationError
 import json
 
-from apis.models import Matricula
-from apis.serializers.matricula_serializers import MatriculaSerializer
+from ..models import Matricula
+from ..serializers.matricula_serializers import MatriculaSerializer
 
-from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
-from apis.mixins import AuditMixin
+from ..permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
+from ..mixins import AuditMixin
 from rest_framework.pagination import PageNumberPagination
 
 class LargeResultsSetPagination(PageNumberPagination):
@@ -23,17 +26,24 @@ class LargeResultsSetPagination(PageNumberPagination):
 class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Matricula"""
     pagination_class = LargeResultsSetPagination
-    queryset = Matricula.objects.select_related(
-        'id_aluno', 
-        'id_turma', 
-        'id_turma__id_curso', 
-        'id_turma__id_sala', 
-        'id_turma__id_classe', 
-        'id_turma__id_periodo'
-    ).prefetch_related(
-        'id_aluno__alunoencarregado_set',
-        'id_aluno__alunoencarregado_set__id_encarregado'
-    ).all()
+    
+    def get_queryset(self):
+        # Otimização massiva
+        from ..models import AlunoEncarregado
+        return Matricula.objects.select_related(
+            'id_aluno', 
+            'id_turma', 
+            'id_turma__id_curso', 
+            'id_turma__id_sala', 
+            'id_turma__id_classe', 
+            'id_turma__id_periodo',
+            'ano_lectivo'
+        ).prefetch_related(
+            Prefetch(
+                'id_aluno__alunoencarregado_set',
+                queryset=AlunoEncarregado.objects.select_related('id_encarregado')
+            )
+        ).all()
     serializer_class = MatriculaSerializer
     permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     
@@ -73,7 +83,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
             # Sincronizar status do aluno se for final
             matricula = Matricula.objects.get(pk=pk)
             if new_status in ['Transferido']:
-                from apis.models import Aluno
+                from ..models import Aluno
                 # Mapeamento estrito para status do aluno
                 aluno_status_map = {
                     'Transferido': 'Transferido'
@@ -88,6 +98,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
 
 
     @action(detail=False, methods=['get'])
+    @method_decorator(cache_page(60 * 10)) # Cache de 10 min para summary
     def summary(self, request):
         """Retorna contagem total de matrículas (geral) e breakdown por estado (global)"""
         from django.db.models import Count
@@ -126,9 +137,13 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         })
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    search_fields = ['id_aluno__nome_completo', 'id_matricula', 'id_aluno__numero_bi', 'id_aluno__numero_matricula']
-    ordering_fields = ['data_matricula', 'id_aluno__nome_completo']
+    search_fields = ['id_aluno__nome_completo', 'numero_matricula', 'id_aluno__numero_bi']
+    ordering_fields = ['data_matricula', 'id_aluno__nome_completo', 'numero_matricula']
     ordering = ['-data_matricula']
+
+    @method_decorator(cache_page(60 * 5)) # Cache de 5 min para a lista
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(detail=False, methods=['post'])
     def matricular_novo_aluno(self, request):
@@ -136,7 +151,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         Matrícula direta para alunos novos (transferidos ou sem candidatura prévia).
         Recebe dados completos do aluno + turma + histórico escolar.
         """
-        from apis.models import Aluno, Turma, Encarregado, AlunoEncarregado, Matricula, HistoricoEscolar, AnoLectivo, Candidato
+        from ..models import Aluno, Turma, Encarregado, AlunoEncarregado, Matricula, HistoricoEscolar, AnoLectivo, Candidato
         import json
         
         data = request.data
@@ -354,7 +369,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                         return Response({'erro': 'Matrícula não encontrada para edição.'}, status=404)
                 else:
                     # CREATE MODE
-                    Matricula.objects.create(
+                    matricula = Matricula.objects.create(
                          id_aluno=aluno,
                          id_turma=turma,
                          ano_lectivo=ano_lectivo,
@@ -398,7 +413,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                 return Response({
                     'mensagem': f'Dados de {aluno.nome_completo} atualizados com sucesso!' if is_edit else 'Aluno matriculado com sucesso!',
                     'aluno_id': aluno.id_aluno,
-                    'matricula': aluno.numero_matricula
+                    'matricula': matricula.numero_matricula
                 }, status=200 if is_edit else 201)
 
         except ValidationError as e:
@@ -417,7 +432,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         import csv
         import io
         from datetime import datetime
-        from apis.models import Aluno, Turma, AnoLectivo, Matricula
+        from ..models import Aluno, Turma, AnoLectivo, Matricula
         from django.db import transaction
 
         file = request.FILES.get('arquivo_csv')
@@ -518,7 +533,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         if not aluno_id:
             return Response({'erro': 'aluno_id é obrigatório'}, status=400)
             
-        from apis.services.academic_service import AcademicService
+        from ..services.academic_service import AcademicService
         tipo = AcademicService.determinar_tipo_matricula(aluno_id)
         
         return Response({'tipo_sugerido': tipo})
@@ -538,7 +553,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         if id1 == id2:
             return Response({'erro': 'Não é possível permutar a mesma matrícula.'}, status=400)
 
-        from apis.models import Matricula
+        from ..models import Matricula
 
         try:
             with transaction.atomic():
@@ -600,7 +615,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         Gera e retorna a Ficha de Matrícula em PDF.
         """
         from django.http import HttpResponse
-        from apis.services.pdf_service import PDFService
+        from ..services.pdf_service import PDFService
         from django.utils import timezone
         
         matricula = self.get_object()
@@ -623,7 +638,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         
         if pdf:
             response = HttpResponse(pdf, content_type='application/pdf')
-            filename = f"Ficha_Matricula_{aluno.numero_matricula}.pdf"
+            filename = f"Ficha_Matricula_{matricula.numero_matricula}.pdf"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
         

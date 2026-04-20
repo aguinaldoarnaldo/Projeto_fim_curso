@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apis.models import Candidato, ExameAdmissao, RupeCandidato, Curso, ListaEspera
+from ..models import Candidato, ExameAdmissao, RupeCandidato, Curso, ListaEspera
 
 class CandidatoSerializer(serializers.ModelSerializer):
     curso1_nome = serializers.CharField(source='curso_primeira_opcao.nome_curso', read_only=True)
@@ -24,7 +24,7 @@ class CandidatoSerializer(serializers.ModelSerializer):
             nota = self.initial_data['nota_exame']
             if nota is not None and nota != "":
                 try:
-                    from apis.models import ExameAdmissao
+                    from ..models import ExameAdmissao
                     exame, _ = ExameAdmissao.objects.get_or_create(candidato=instance)
                     exame.nota = nota
                     exame.realizado = True
@@ -48,7 +48,7 @@ class CandidatoSerializer(serializers.ModelSerializer):
     # Adicionar info do RUPE
     rupe_info = serializers.SerializerMethodField()
     def get_rupe_info(self, obj):
-        from apis.models import RupeCandidato
+        from ..models import RupeCandidato
         rupe = RupeCandidato.objects.filter(inscricao=obj).last()
         if rupe:
             return {
@@ -105,8 +105,10 @@ class RupeCandidatoSerializer(serializers.ModelSerializer):
 class ListaEsperaSerializer(serializers.ModelSerializer):
     candidato_nome = serializers.CharField(source='candidato.nome_completo', read_only=True)
     candidato_numero = serializers.CharField(source='candidato.numero_inscricao', read_only=True)
+    id_candidato = serializers.IntegerField(source='candidato.id_candidato', read_only=True)
     curso1 = serializers.CharField(source='candidato.curso_primeira_opcao.nome_curso', read_only=True)
     media = serializers.DecimalField(source='candidato.media_final', max_digits=4, decimal_places=2, read_only=True)
+    ano_lectivo_nome = serializers.CharField(source='candidato.ano_lectivo.nome', read_only=True)
     
     class Meta:
         model = ListaEspera

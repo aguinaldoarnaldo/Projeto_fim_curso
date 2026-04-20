@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from .base import BaseModel
 from .academico import Curso, Sala, AnoLectivo
+from ..utils.image_processing import process_image
 import uuid
 
 class Candidato(BaseModel):
@@ -119,6 +120,15 @@ class Candidato(BaseModel):
                     self.numero_inscricao = candidate_number
                     break
                 next_sequence += 1
+        
+        # Otimizar Foto
+        if self.foto_passe:
+            try:
+                old = Candidato.objects.get(pk=self.pk).foto_passe if self.pk else None
+                if not old or old != self.foto_passe:
+                    process_image(self.foto_passe, max_width=400, max_height=400, quality=80)
+            except Candidato.DoesNotExist:
+                process_image(self.foto_passe, max_width=400, max_height=400, quality=80)
                 
         super().save(*args, **kwargs)
 

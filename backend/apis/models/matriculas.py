@@ -65,6 +65,7 @@ class Matricula(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_MATRICULA, default='Novo', verbose_name='Tipo de Matrícula')
     status = models.CharField(max_length=20, choices=STATUS_MATRICULA, default='Ativa', verbose_name='Estado')
     ativo = models.BooleanField(default=True, verbose_name='Ativo') # Mantendo para retrocompatibilidade
+    numero_matricula = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name='Número de Matrícula')
 
     
     doc_certificado = models.FileField(
@@ -90,7 +91,7 @@ class Matricula(models.Model):
         unique_together = ['id_aluno', 'ano_lectivo']
     
     def __str__(self):
-        return f"Matrícula {self.id_matricula} - {self.id_aluno.nome_completo}"
+        return f"Matrícula {self.numero_matricula or self.id_matricula} - {self.id_aluno.nome_completo}"
 
     def clean(self):
         # Validação estrita: Impedir qualquer alteração se o ano lectivo da matrícula estiver encerrado
@@ -144,6 +145,24 @@ class Matricula(models.Model):
         # Confirmação no sistema é o ato de renovar a matrícula para o novo ano
         if self.tipo == 'Confirmacao':
             self.status = 'Ativa'
+
+        # Gerar número de matrícula se não existir
+        if not self.numero_matricula:
+            import datetime
+            year = datetime.datetime.now().year
+            start_range = year * 10000
+            end_range = (year + 1) * 10000
+            
+            # Pegar o último número do ano atual para evitar conflitos
+            last = Matricula.objects.filter(
+                numero_matricula__gte=start_range,
+                numero_matricula__lt=end_range
+            ).order_by('-numero_matricula').first()
+            
+            if last and last.numero_matricula:
+                self.numero_matricula = last.numero_matricula + 1
+            else:
+                self.numero_matricula = start_range + 1
 
         self.clean()
         

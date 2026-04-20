@@ -4,14 +4,18 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from apis.permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
+from django.db.models import Prefetch
+from ..permissions.custom_permissions import HasAdditionalPermission, IsActiveYearOrReadOnly
 
-from apis.models import Aluno, AlunoEncarregado
-from apis.serializers import (
+from ..models import Aluno, AlunoEncarregado
+from ..serializers import (
     AlunoSerializer, AlunoListSerializer, AlunoDetailSerializer,
     AlunoEncarregadoSerializer
 )
-from apis.mixins import AuditMixin
+from ..mixins import AuditMixin
 
 
 from rest_framework.pagination import PageNumberPagination
@@ -24,22 +28,40 @@ class LargeResultsSetPagination(PageNumberPagination):
 class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     """ViewSet para Aluno"""
     pagination_class = LargeResultsSetPagination
-    queryset = Aluno.objects.select_related(
-        'id_turma',
-        'id_turma__id_curso',
-        'id_turma__id_classe',
-        'id_turma__id_periodo',
-        'id_turma__id_sala',
-        'id_turma__ano_lectivo'
-    ).prefetch_related(
-        'alunoencarregado_set__id_encarregado',
-        'matricula_set__ano_lectivo',
-        'matricula_set__id_turma__id_curso',
-        'matricula_set__id_turma__id_classe',
-        'matricula_set__id_turma__id_periodo',
-        'matricula_set__id_turma__id_sala',
-        'historico_escolar'
-    ).all()
+    
+    def get_queryset(self):
+        # Otimização massiva de queries para evitar N+1
+        from ..models import Matricula, AlunoEncarregado
+        
+        # Prefetch de matrículas ordenadas (para pegar a mais recente rapidamente no serializer)
+        matriculas_prefetch = Prefetch(
+            'matricula_set',
+            queryset=Matricula.objects.select_related(
+                'id_turma', 'id_turma__id_sala', 'id_turma__id_curso', 
+                'id_turma__id_classe', 'id_turma__id_periodo', 'ano_lectivo'
+            ).order_by('-data_matricula', '-id_matricula'),
+            to_attr='prefetched_matriculas'
+        )
+        
+        # Prefetch de encarregados
+        encarregados_prefetch = Prefetch(
+            'alunoencarregado_set',
+            queryset=AlunoEncarregado.objects.select_related('id_encarregado'),
+            to_attr='prefetched_encarregados'
+        )
+
+        return Aluno.objects.select_related(
+            'id_turma',
+            'id_turma__id_curso',
+            'id_turma__id_classe',
+            'id_turma__id_periodo',
+            'id_turma__id_sala',
+            'id_turma__ano_lectivo'
+        ).prefetch_related(
+            matriculas_prefetch,
+            encarregados_prefetch,
+            'historico_escolar'
+        ).all()
     
     permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     
@@ -132,7 +154,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         # Actualizar dados do Encarregado se fornecidos
         enc_data = request.data.get('encarregado_data')
         if enc_data:
-            from apis.models import Encarregado, AlunoEncarregado
+            from ..models import Encarregado, AlunoEncarregado
             e_id = enc_data.get('id')
             
             # Preparar campos do Encarregado
@@ -185,10 +207,14 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     #filterset_fields = ['status_aluno', 'id_turma', 'genero']
-    search_fields = ['nome_completo', 'email', 'numero_matricula', 'numero_bi']
-    ordering_fields = ['nome_completo', 'numero_matricula', 'criado_em']
+    search_fields = ['nome_completo', 'email', 'matricula__numero_matricula', 'numero_bi']
+    ordering_fields = ['nome_completo', 'matricula__numero_matricula', 'criado_em']
     ordering = ['nome_completo']
     
+    @method_decorator(cache_page(60 * 5)) # Cache de 5 minutos para a lista
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return AlunoDetailSerializer
@@ -204,10 +230,11 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
+    @method_decorator(cache_page(60 * 10)) # Cache de 10 min para estatísticas
     def stats(self, request):
         """Retorna estatísticas gerais dos alunos para o dashboard"""
         from django.db.models import Count
-        from apis.models import AnoLectivo, Turma
+        from ..models import AnoLectivo, Turma
         
         # 1. Obter ano para filtragem (Query param ou Ativo)
         year_name = request.query_params.get('ano')
@@ -262,8 +289,8 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def notas(self, request, pk=None):
         """Retorna notas do aluno"""
-        from apis.models import Nota
-        from apis.serializers import NotaListSerializer
+        from ..models import Nota
+        from ..serializers import NotaListSerializer
         
         aluno = self.get_object()
         notas = Nota.objects.filter(id_aluno=aluno).select_related(
@@ -275,8 +302,8 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def faltas(self, request, pk=None):
         """Retorna faltas do aluno"""
-        from apis.models import FaltaAluno
-        from apis.serializers import FaltaAlunoListSerializer
+        from ..models import FaltaAluno
+        from ..serializers import FaltaAlunoListSerializer
         
         aluno = self.get_object()
         faltas = FaltaAluno.objects.filter(id_aluno=aluno).select_related(
@@ -288,7 +315,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def boletim(self, request, pk=None):
         """Retorna boletim completo do aluno"""
-        from apis.models import Nota
+        from ..models import Nota, FaltaAluno
         from django.db.models import Avg, Count
         
         aluno = self.get_object()
@@ -304,7 +331,6 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         )
         
         # Faltas totais
-        from apis.models import FaltaAluno
         total_faltas = FaltaAluno.objects.filter(id_aluno=aluno).count()
         faltas_justificadas = FaltaAluno.objects.filter(
             id_aluno=aluno, justificada=True
@@ -321,7 +347,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def encarregados(self, request, pk=None):
         """Retorna encarregados do aluno"""
-        from apis.serializers import EncarregadoListSerializer
+        from ..serializers import EncarregadoListSerializer
         
         aluno = self.get_object()
         vinculos = AlunoEncarregado.objects.filter(
