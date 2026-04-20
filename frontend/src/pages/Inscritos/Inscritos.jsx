@@ -39,6 +39,7 @@ const ListaEsperaPanel = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(23);
   const [sortConfig, setSortConfig] = useState({ key: 'prioridade', direction: 'desc' });
+  const [selectedAno, setSelectedAno] = useState('');
 
   // Add to waitlist modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -350,7 +351,7 @@ const ListaEsperaPanel = ({
               </td></tr>
             ) : currentData.map((item, idx) => {
               // Find the full candidate from inscritos list for matricula
-              const inscrito = inscritos.find(i => i.id === item.candidato_numero);
+              const inscrito = inscritosList.find(i => i.id === item.candidato_numero);
               return (
                 <tr key={item.id} className="animate-fade-in" style={{ animationDelay: `${idx * 0.04}s` }}>
                   <td data-label="Prioridade">
@@ -756,6 +757,8 @@ const Inscritos = () => {
   });
 
   const [showExamModal, setShowExamModal] = useState(false);
+  const [showCallListModal, setShowCallListModal] = useState(false);
+  const [callListData, setCallListData] = useState([]);
   const [examConfig, setExamConfig] = useState({
     data_inicio: new Date().toISOString().split("T")[0],
     hora_inicio: "08:00",
@@ -1230,7 +1233,11 @@ const Inscritos = () => {
 
       {activeTab === "lista_espera" && (
         <div className="table-card">
-          <ListaEsperaPanel inscritosList={inscritos} onRefreshInscritos={refresh} />
+          <ListaEsperaPanel 
+            inscritosList={inscritos} 
+            onRefreshInscritos={refresh} 
+            anosDisponiveis={anosDisponiveis}
+          />
         </div>
       )}
 
