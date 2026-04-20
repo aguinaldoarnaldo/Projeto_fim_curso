@@ -43,7 +43,7 @@ import Pagination from '../../components/Common/Pagination';
 import FilterModal from '../../components/Common/FilterModal';
 import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
-import { useCache } from '../../context/CacheContext';
+
 import { useDataCache } from '../../hooks/useDataCache';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
