@@ -111,12 +111,6 @@ const Matriculas = () => {
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [activeMenuId]);
 
-    // Reset history index when selected matricula changes
-    useEffect(() => {
-        setSelectedHistoryIndex(0);
-    }, [selectedMatricula?.real_id]);
-
-
     // Filter states
     const [filters, setFilters] = useState({
         ano: '',
@@ -241,8 +235,10 @@ const Matriculas = () => {
         refresh 
     } = useDataCache('matriculas', fetchMatriculasData);
 
-    // Safeguard for array iteration
-    const matriculas = Array.isArray(cachedMatriculas) ? cachedMatriculas : [];
+    // Safeguard for array iteration with stable reference
+    const matriculas = useMemo(() => 
+        Array.isArray(cachedMatriculas) ? cachedMatriculas : [], 
+    [cachedMatriculas]);
 
     // 3. Fetch Filters Separately (Once)
     useEffect(() => {
@@ -766,7 +762,62 @@ const Matriculas = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentItems.map((m) => (
+                            {isLoading && currentItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" style={{ textAlign: 'center', padding: '100px 0' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div className="spinner-loader" style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                border: '3px solid #f3f3f3',
+                                                borderTop: '3px solid var(--primary-color)',
+                                                borderRadius: '50%',
+                                                animation: 'spin 1s linear infinite',
+                                                marginBottom: '16px'
+                                            }}></div>
+                                            <p style={{ color: '#64748b', fontWeight: 500 }}>Carregando registos...</p>
+                                            <style>{`
+                                                @keyframes spin {
+                                                    0% { transform: rotate(0deg); }
+                                                    100% { transform: rotate(360deg); }
+                                                }
+                                            `}</style>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : currentItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" style={{ textAlign: 'center', padding: '100px 0' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', color: '#94a3b8' }}>
+                                            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '50%' }}>
+                                                <Search size={40} strokeWidth={1.5} />
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '16px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Nenhum resultado encontrado</p>
+                                                <p style={{ fontSize: '13px' }}>Não encontramos matrículas com os critérios selecionados.</p>
+                                            </div>
+                                            {Object.values(filters).some(f => f !== '') && (
+                                                <button 
+                                                    onClick={resetFilters}
+                                                    style={{
+                                                        background: 'white',
+                                                        border: '1px solid #e2e8f0',
+                                                        padding: '8px 16px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '13px',
+                                                        fontWeight: 600,
+                                                        color: '#64748b',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Limpar Filtros
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentItems.map((m) => (
                                     <tr key={m.id} className="animate-fade-in">
 
                                         <td className="sticky-col-1" data-label="Estudante">
@@ -843,7 +894,7 @@ const Matriculas = () => {
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                                             <button 
                                                 className="btn-icon-action" 
-                                                onClick={() => setSelectedMatricula(m)}
+                                                onClick={() => { setSelectedMatricula(m); setSelectedHistoryIndex(0); }}
                                                 title="Ver Detalhes"
                                                 style={{
                                                     background: '#f1f5f9',
@@ -900,7 +951,8 @@ const Matriculas = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -915,7 +967,7 @@ const Matriculas = () => {
 
             {/* DETAILS MODAL (REDESIGN) */}
             {selectedMatricula && (
-                <div className="modal-overlay" onClick={() => setSelectedMatricula(null)}>
+                <div className="modal-overlay" onClick={() => { setSelectedMatricula(null); setSelectedHistoryIndex(0); }}>
                     
                     {/* Lightbox for Image Zoom */}
                     <div className="detail-modal-card matriculas-page" onClick={(e) => e.stopPropagation()}>
