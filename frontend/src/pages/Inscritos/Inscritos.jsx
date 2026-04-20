@@ -1039,8 +1039,6 @@ const Inscritos = () => {
     limite_candidatos: "",
   });
   const [isProcessingExams, setIsProcessingExams] = useState(false);
-  const [showCallListModal, setShowCallListModal] = useState(false);
-  const [callListData, setCallListData] = useState([]);
   const filterButtonRef = useRef(null);
   const [cursosDisponiveis, setCursosDisponiveis] = useState([]);
   const [anosDisponiveis, setAnosDisponiveis] = useState([]);
@@ -1163,13 +1161,6 @@ const Inscritos = () => {
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   };
-
-  // Counts for tabs
-  const inscricoesCount = useMemo(() => inscritos.length, [inscritos]);
-  const listaEsperaCount = useMemo(
-    () => inscritos.filter((i) => i.status === "LISTA_ESPERA").length,
-    [inscritos],
-  );
 
   const filteredInscritos = useMemo(() => {
     let items = [...inscritos]; // Mostrar todos incluindo LISTA_ESPERA
@@ -1380,16 +1371,6 @@ const Inscritos = () => {
     }
   };
 
-  const handleFetchCallList = async () => {
-    try {
-      const res = await api.get("candidaturas/lista_chamada/");
-      setCallListData(res.data);
-      setShowCallListModal(true);
-    } catch {
-      alert("Erro ao carregar lista de chamada.");
-    }
-  };
-
   const closeDetail = () => {
     setSelectedCandidato(null);
     setRupGenerated(false);
@@ -1470,9 +1451,6 @@ const Inscritos = () => {
                   >
                     <Calendar size={18} /> Agendar Exames
                   </button>
-                  <button onClick={handleFetchCallList} className="btn-primary">
-                    <Printer size={18} /> Lista de Chamada
-                  </button>
                 </>
               )}
           </div>
@@ -1487,7 +1465,6 @@ const Inscritos = () => {
         >
           <UserPlus size={16} />
           Inscrições
-          <span className="inscritos-tab-count">{inscricoesCount}</span>
         </button>
         <button
           className={`inscritos-tab ${activeTab === "lista_espera" ? "active" : ""}`}
@@ -1495,11 +1472,6 @@ const Inscritos = () => {
         >
           <Clock size={16} />
           Lista de Espera
-          {listaEsperaCount > 0 && (
-            <span className="inscritos-tab-count waiting">
-              {listaEsperaCount}
-            </span>
-          )}
         </button>
       </div>
 
@@ -1582,11 +1554,6 @@ const Inscritos = () => {
         setExamConfig={setExamConfig}
         onDistribute={handleDistributeExams}
         isProcessing={isProcessingExams}
-      />
-      <CallListModal
-        isOpen={showCallListModal}
-        onClose={() => setShowCallListModal(false)}
-        data={callListData}
       />
       <CandidateDetailModal
         candidate={selectedCandidato}
