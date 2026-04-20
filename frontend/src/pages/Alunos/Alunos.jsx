@@ -711,7 +711,7 @@ const Alunos = () => {
                 <div className="page-header-content">
                     <div>
                         <h1>Gestão de Estudantes</h1>
-                        <p>Visualização e administração de {students.length} alunos registrados.</p>
+                        <p>Visualização e administração dos alunos registrados no sistema.</p>
                     </div>
                     <div className="page-header-actions">
                         {hasPermission(PERMISSIONS.CREATE_ALUNO) && (
@@ -1150,7 +1150,7 @@ const Alunos = () => {
                                         </span>
                                         {selectedStudent.detalhes.historicoMatriculas && selectedStudent.detalhes.historicoMatriculas.length > 1 && (
                                             <span style={{ fontSize: '11px', background: '#fffbeb', padding: '4px 8px', borderRadius: '20px', border: '1px solid #fcd34d' }}>
-                                                Possui {selectedStudent.detalhes.historicoMatriculas.length} Matrículas
+                                                Histórico Académico
                                             </span>
                                         )}
                                     </h3>

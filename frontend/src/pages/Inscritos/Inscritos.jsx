@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useEffect,
   useRef,
-  useCallback,
 } from "react";
 import { createPortal } from "react-dom";
 import "./Inscritos.css";
@@ -52,7 +51,11 @@ import FilterModal from "../../components/Common/FilterModal";
 // ─────────────────────────────────────────────────────────────
 //  LISTA DE ESPERA PANEL (inline, no separate page)
 // ─────────────────────────────────────────────────────────────
-const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos, anosDisponiveis }) => {
+const ListaEsperaPanel = ({
+  inscritosList,
+  onRefreshInscritos,
+  anosDisponiveis,
+}) => {
   const { hasPermission } = usePermission();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -63,6 +66,20 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos, anosDisponiveis }
     direction: "desc",
   });
   const [selectedAno, setSelectedAno] = useState("");
+
+  // Default to active year
+  useEffect(() => {
+    if (anosDisponiveis && anosDisponiveis.length > 0 && !selectedAno) {
+      const activeAno = anosDisponiveis.find(
+        (a) =>
+          a.ativo === true ||
+          a.status === "Ativo" ||
+          a.status === "Activo" ||
+          a.is_ativo === true,
+      );
+      if (activeAno) setSelectedAno(activeAno.nome);
+    }
+  }, [anosDisponiveis, selectedAno]);
 
   // Add to waitlist modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -88,12 +105,9 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos, anosDisponiveis }
     const res = await api.get("lista-espera/");
     return res.data.results || res.data || [];
   });
-  const lista = Array.isArray(cachedLista) ? cachedLista : [];
-
-  // Candidates that are in "LISTA_ESPERA" status (from inscritos)
-  const listaEsperaCandidates = useMemo(
-    () => inscritosList.filter((i) => i.status === "LISTA_ESPERA"),
-    [inscritosList],
+  const lista = useMemo(
+    () => (Array.isArray(cachedLista) ? cachedLista : []),
+    [cachedLista],
   );
 
   // Candidate search debounce
@@ -215,6 +229,12 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos, anosDisponiveis }
           .toLowerCase()
           .includes(searchTerm.toLowerCase()),
     );
+
+    // Filter by Year
+    if (selectedAno) {
+      items = items.filter((item) => item.ano_lectivo_nome === selectedAno);
+    }
+
     if (sortConfig.key) {
       items.sort((a, b) => {
         let av = a[sortConfig.key] ?? "";
@@ -301,6 +321,31 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos, anosDisponiveis }
               setCurrentPage(1);
             }}
           />
+        </div>
+        <div className="le-header-filter">
+          <Calendar size={18} style={{ color: "#64748b" }} />
+          <select
+            value={selectedAno}
+            onChange={(e) => {
+              setSelectedAno(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="le-select-ano"
+          >
+            <option value="">Todos os Anos Lectivos</option>
+            {anosDisponiveis.map((ano) => {
+              const isActive =
+                ano.ativo === true ||
+                ano.status === "Ativo" ||
+                ano.status === "Activo" ||
+                ano.is_ativo === true;
+              return (
+                <option key={ano.id} value={ano.nome}>
+                  {ano.nome} {isActive ? "● (Ano Activo)" : ""}
+                </option>
+              );
+            })}
+          </select>
         </div>
       </div>
 
@@ -1005,7 +1050,6 @@ const ListaEsperaPanel = ({ inscritosList, onRefreshInscritos, anosDisponiveis }
 // ─────────────────────────────────────────────────────────────
 const Inscritos = () => {
   const { hasPermission } = usePermission();
-  const navigate = useNavigate();
 
   // TABS
   const [activeTab, setActiveTab] = useState("inscricoes"); // 'inscricoes' | 'lista_espera'
@@ -1108,10 +1152,12 @@ const Inscritos = () => {
     loading: isLoading,
     refresh,
     update: updateInscrito,
-    error: fetchError,
   } = useDataCache("inscritos", fetchCandidatesData);
 
-  const inscritos = Array.isArray(cachedInscritos) ? cachedInscritos : [];
+  const inscritos = useMemo(
+    () => (Array.isArray(cachedInscritos) ? cachedInscritos : []),
+    [cachedInscritos],
+  );
 
   useEffect(() => {
     if (selectedCandidato && inscritos.length > 0) {
@@ -1125,7 +1171,7 @@ const Inscritos = () => {
         setSelectedCandidato(updated);
       }
     }
-  }, [inscritos, selectedCandidato?.id]);
+  }, [inscritos, selectedCandidato]);
 
   useEffect(() => {
     api
@@ -1437,9 +1483,7 @@ const Inscritos = () => {
         <div className="page-header-content">
           <div>
             <h1>Gestão de Inscrições</h1>
-            <p>
-              Controle de {inscritos.length} candidaturas submetidas ao sistema.
-            </p>
+            <p>Controle de candidaturas submetidas ao sistema.</p>
           </div>
           <div className="page-header-actions">
             {activeTab === "inscricoes" &&

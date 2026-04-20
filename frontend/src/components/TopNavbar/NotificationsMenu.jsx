@@ -93,7 +93,7 @@ const NotificationsMenu = () => {
         <div className="notifications-container">
             <button className="notifications-trigger" onClick={() => setIsOpen(!isOpen)}>
                 <Bell size={20} />
-                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+                {unreadCount > 0 && <span className="notification-badge-dot"></span>}
             </button>
 
             {isOpen && (

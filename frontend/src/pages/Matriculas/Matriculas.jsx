@@ -1083,7 +1083,7 @@ const Matriculas = () => {
                                         </span>
                                         {selectedMatricula.detalhes.historicoMatriculas && selectedMatricula.detalhes.historicoMatriculas.length > 1 && (
                                             <span style={{ fontSize: '11px', background: '#fffbeb', padding: '4px 8px', borderRadius: '20px', border: '1px solid #fcd34d', textTransform: 'none', letterSpacing: 'normal' }}>
-                                                {selectedMatricula.detalhes.historicoMatriculas.length} Matrículas registradas
+                                                Histórico de Registos
                                             </span>
                                         )}
                                     </h3>
