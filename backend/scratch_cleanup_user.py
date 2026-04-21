@@ -1,4 +1,16 @@
+import os
+import sys
+import django
+
+# Add the current directory (backend) to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Set up Django environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+django.setup()
+
 from apis.models import Usuario, HistoricoLogin, Funcionario, Historico, Curso
+
 u = Usuario.objects.filter(nome_completo__icontains='Sebast').first()
 if u:
     name = u.nome_completo
@@ -17,3 +29,4 @@ if u:
     print(f"Eliminado utilizador '{name}' e limpas todas as dependências (Cursos, Logs, Perfis).")
 else:
     print("Nenhum utilizador encontrado com esse nome.")
+

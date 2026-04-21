@@ -558,12 +558,12 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 try:
-                    mat1 = Matricula.objects.select_related('id_turma', 'id_aluno').get(pk=id1)
+                    mat1 = Matricula.objects.select_related('id_turma__id_classe', 'id_aluno').get(pk=id1)
                 except Matricula.DoesNotExist:
                      return Response({'erro': f'Matrícula {id1} não encontrada.'}, status=404)
 
                 try:
-                    mat2 = Matricula.objects.select_related('id_turma', 'id_aluno').get(pk=id2)
+                    mat2 = Matricula.objects.select_related('id_turma__id_classe', 'id_aluno').get(pk=id2)
                 except Matricula.DoesNotExist:
                      return Response({'erro': f'Matrícula {id2} não encontrada.'}, status=404)
                 
@@ -571,13 +571,25 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                 if (mat1.ano_lectivo and not mat1.ano_lectivo.activo) or (mat2.ano_lectivo and not mat2.ano_lectivo.activo):
                      return Response({'erro': 'Não é possível permutar matrículas de um Ano Lectivo encerrado.'}, status=403)
                 
+                if mat1.ano_lectivo_id != mat2.ano_lectivo_id:
+                     return Response({'erro': 'A permuta só é permitida entre matrículas do mesmo ano lectivo.'}, status=400)
+
                 # Armazenar turmas para a troca
                 turma1 = mat1.id_turma
                 turma2 = mat2.id_turma
                 
-                # Validar se ambas têm turma (para evitar erros se uma for pendente sem turma - regra de negócio opcional)
+                # Validar se ambas têm turma
                 if not turma1 or not turma2:
                      return Response({'erro': 'Ambas as matrículas devem ter turmas atribuídas para permutar.'}, status=400)
+
+                # REGRA: Apenas alunos da mesma classe podem permutar
+                classe1 = turma1.id_classe
+                classe2 = turma2.id_classe
+                
+                if not classe1 or not classe2 or classe1.pk != classe2.pk:
+                    return Response({
+                        'erro': f'A permuta só é permitida entre alunos da mesma classe. (Tentativa: {classe1} vs {classe2})'
+                    }, status=400)
 
                 if turma1 == turma2:
                     return Response({'erro': 'Os alunos já estão na mesma turma. Permuta desnecessária.'}, status=400)

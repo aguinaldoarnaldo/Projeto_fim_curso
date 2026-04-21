@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count, Avg, Sum, Q
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
 
@@ -186,14 +187,14 @@ class AlunoAdmin(ModelAdmin):
 
         def status_certificado(self, obj):
             if obj.doc_certificado:
-                return format_html('<span style="color: #10b981; font-weight: bold;">✅ Arquivado</span>')
-            return format_html('<span style="color: #94a3b8;">(Será herdado da matrícula anterior)</span>')
+                return mark_safe('<span style="color: #10b981; font-weight: bold;">✅ Arquivado</span>')
+            return mark_safe('<span style="color: #94a3b8;">(Será herdado da matrícula anterior)</span>')
         status_certificado.short_description = "Estado do Certificado"
 
         def status_bi(self, obj):
             if obj.doc_bi:
-                return format_html('<span style="color: #10b981; font-weight: bold;">✅ Arquivado</span>')
-            return format_html('<span style="color: #94a3b8;">(Será herdado da matrícula anterior)</span>')
+                return mark_safe('<span style="color: #10b981; font-weight: bold;">✅ Arquivado</span>')
+            return mark_safe('<span style="color: #94a3b8;">(Será herdado da matrícula anterior)</span>')
         status_bi.short_description = "Estado do BI"
 
     inlines = [MatriculaInline]
@@ -238,7 +239,7 @@ class AlunoAdmin(ModelAdmin):
                 '<img src="{}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" />',
                 obj.img_path.url
             )
-        return format_html('<div style="width: 40px; height: 40px; background-color: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; font-weight: bold; font-size: 10px; border: 2px solid #e2e8f0;">N/A</div>')
+        return mark_safe('<div style="width: 40px; height: 40px; background-color: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6b7280; font-weight: bold; font-size: 10px; border: 2px solid #e2e8f0;">N/A</div>')
     
     @display(description='Turma', ordering='id_turma__codigo_turma')
     def turma_badge(self, obj):
@@ -247,7 +248,7 @@ class AlunoAdmin(ModelAdmin):
                 '<span class="badge badge-info" style="padding: 5px 10px; border-radius: 6px;">{}</span>',
                 obj.id_turma.codigo_turma
             )
-        return format_html('<span style="color: #94a3b8 italic;">Sem Turma</span>')
+        return mark_safe('<span style="color: #94a3b8 italic;">Sem Turma</span>')
     
     @display(description='Status', ordering='status_aluno')
     def status_badge(self, obj):
