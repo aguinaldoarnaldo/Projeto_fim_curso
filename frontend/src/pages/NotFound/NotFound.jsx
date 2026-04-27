@@ -140,7 +140,7 @@ const NotFound = () => {
                     </button>
 
                     <button 
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/welcome')}
                         style={{
                             display: 'flex',
                             alignItems: 'center',

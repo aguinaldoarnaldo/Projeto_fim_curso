@@ -24,9 +24,11 @@ import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 import { usePermission } from '../../hooks/usePermission';
 import { useDataCache } from '../../hooks/useDataCache';
+import { useCache } from '../../context/CacheContext';
 import { PERMISSIONS } from '../../utils/permissions';
 
 const Turmas = () => {
+    const { clearCache } = useCache();
     const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
@@ -134,7 +136,7 @@ const Turmas = () => {
         const syncIfVisible = () => {
             if (!document.hidden) refresh(true);
         };
-        const interval = setInterval(syncIfVisible, 120000);
+        const interval = setInterval(syncIfVisible, 30000); // 30 seconds for real-time feel
         window.addEventListener('focus', syncIfVisible);
         return () => {
             clearInterval(interval);
@@ -182,7 +184,7 @@ const Turmas = () => {
             setShowModal(false);
             setSuccessMessage(modalMode === 'add' ? "Turma criada com sucesso!" : "Turma atualizada com sucesso!");
             setTimeout(() => setSuccessMessage(''), 4000);
-            refresh(true); // Refresh list to ensure consistency
+            clearCache('turmas'); // Trigger reactive update via Smart Cache
         } catch (err) {
             console.error("Erro ao salvar turma:", err);
             const msg = parseApiError(err, "Erro ao salvar turma.");
@@ -544,7 +546,15 @@ const Turmas = () => {
                                                 const curso = cursosDisponiveis.find(c => c.id_curso == formData.id_curso)?.nome_curso?.substring(0,2).toUpperCase() || '';
                                                 const classeNum = classesDisponiveis.find(c => c.id_classe == formData.id_classe)?.nivel || '';
                                                 const periodo = periodosDisponiveis.find(p => p.id_periodo == formData.id_periodo)?.periodo?.charAt(0).toUpperCase() || '';
-                                                const anoSuffix = formData.ano?.substring(formData.ano.length - 2) || '';
+                                                let anoSuffix = '';
+                                                if (formData.ano) {
+                                                    const parts = formData.ano.split('/');
+                                                    if (parts.length > 0 && parts[0].length >= 2) {
+                                                        anoSuffix = parts[0].substring(parts[0].length - 2);
+                                                    } else {
+                                                        anoSuffix = formData.ano.substring(formData.ano.length - 2);
+                                                    }
+                                                }
                                                 
                                                 const preview = `${sala}${curso}${classeNum}${periodo}${anoSuffix}`;
                                                 return preview.length > 0 ? preview : 'Aguardando seleções...';

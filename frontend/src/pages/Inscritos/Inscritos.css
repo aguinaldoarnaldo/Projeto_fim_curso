@@ -269,25 +269,6 @@ tbody .clickable-row:hover {
     font-weight: 600;
 }
 
-.status-pending {
-    background-color: #fef9c3;
-    color: #854d0e;
-}
-
-.status-analysis {
-    background-color: var(--bg-color);
-    color: var(--primary-color);
-}
-
-.status-approved {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-
-.status-rejected {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
 
 /* Botões de Ação na Tabela - REDESIGNED ICON ONLY */
 .inscritos-page .btn-action {

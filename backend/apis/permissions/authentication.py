@@ -63,6 +63,18 @@ class SchoolJWTAuthentication(JWTAuthentication):
             
             # Adicionar is_authenticated ao objeto para o DRF (Permission classes usam isso)
             user.is_authenticated = True
+
+            # Verificar se a conta está ativa
+            is_active = getattr(user, 'is_active', True)
+            if callable(is_active):
+                is_active = is_active()
+            
+            if not is_active:
+                raise exceptions.AuthenticationFailed(
+                    'Esta conta está desativada. Contacte o administrador.', 
+                    code='user_inactive'
+                )
+
             return user
             
         except (Funcionario.DoesNotExist, Aluno.DoesNotExist, Encarregado.DoesNotExist):

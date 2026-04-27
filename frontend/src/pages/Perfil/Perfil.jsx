@@ -165,7 +165,7 @@ const Perfil = () => {
                             />
                         </div>
                         <h2 className="user-displayName">{user?.nome_completo || 'Usuário'}</h2>
-                        <p className="user-roleTag">{user?.cargo || 'Administrador'}</p>
+                        <p className="user-roleTag">{user?.cargo || user?.papel || 'Normal'}</p>
                     </div>
 
                     <nav className="perfil-menu-v3">

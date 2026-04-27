@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, Info, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
+import { Bell, Check, Info, AlertTriangle, XCircle, CheckCircle, Trash2, Trash } from 'lucide-react';
 import api from '../../services/api';
 import './NotificationsMenu.css';
 import { useNavigate } from 'react-router-dom';
@@ -70,6 +70,27 @@ const NotificationsMenu = () => {
         }
     };
 
+    const deleteNotification = async (id, e) => {
+        e.stopPropagation();
+        try {
+            await api.delete(`/notificacoes/${id}/`);
+            fetchNotifications();
+        } catch (error) {
+            console.error("Erro ao eliminar notificação", error);
+        }
+    };
+
+    const deleteAllNotifications = async () => {
+        if (notifications.length === 0) return;
+        if (!window.confirm("Deseja eliminar todas as notificações?")) return;
+        try {
+            await api.delete(`/notificacoes/eliminar_todas/`);
+            fetchNotifications();
+        } catch (error) {
+            console.error("Erro ao eliminar todas as notificações", error);
+        }
+    };
+
     const handleNotificationClick = (notif) => {
         if (!notif.lida) {
             markAsRead(notif.id_notificacao, { stopPropagation: () => {} });
@@ -102,11 +123,18 @@ const NotificationsMenu = () => {
                     <div className="notifications-dropdown">
                         <div className="notifications-header">
                             <h3>Notificações</h3>
-                            {unreadCount > 0 && (
-                                <button className="mark-all-read" onClick={markAllAsRead}>
-                                    Marcar todas como lidas
-                                </button>
-                            )}
+                            <div className="notifications-header-actions">
+                                {unreadCount > 0 && (
+                                    <button className="mark-all-read" onClick={markAllAsRead} title="Marcar todas como lidas">
+                                        <Check size={14} />
+                                    </button>
+                                )}
+                                {notifications.length > 0 && (
+                                    <button className="delete-all-notif" onClick={deleteAllNotifications} title="Limpar todas">
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <div className="notifications-list">
                             {notifications.length === 0 ? (
@@ -142,6 +170,13 @@ const NotificationsMenu = () => {
                                                 <Check size={14} />
                                             </button>
                                         )}
+                                        <button 
+                                            className="delete-notif-btn" 
+                                            onClick={(e) => deleteNotification(notif.id_notificacao, e)} 
+                                            title="Eliminar"
+                                        >
+                                            <Trash size={14} />
+                                        </button>
                                     </div>
                                 ))
                             )}

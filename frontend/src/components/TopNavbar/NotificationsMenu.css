@@ -204,8 +204,8 @@
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 4px;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -215,7 +215,7 @@
     top: 50%;
     right: 16px;
     transform: translateY(-50%);
-    transition: opacity 0.2s;
+    transition: all 0.2s;
 }
 
 .notification-item:hover .mark-read-btn {
@@ -225,4 +225,72 @@
 .mark-read-btn:hover {
     background-color: #eff6ff;
     border-color: #bfdbfe;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.delete-notif-btn {
+    opacity: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    transition: all 0.2s;
+}
+
+.notification-item:hover .delete-notif-btn {
+    opacity: 1;
+}
+
+/* If unread, shift the delete button to the left to make room for check button */
+.notification-item.unread:hover .delete-notif-btn {
+    right: 48px;
+}
+
+.delete-notif-btn:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border-color: #fee2e2;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.notifications-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.notifications-header-actions button {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4b5563;
+}
+
+.notifications-header-actions .mark-all-read:hover {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+}
+
+.notifications-header-actions .delete-all-notif:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border-color: #fee2e2;
 }

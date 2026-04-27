@@ -76,7 +76,7 @@ export const CacheProvider = ({ children }) => {
     }, []);
 
     return (
-        <CacheContext.Provider value={{ getCache, setCache, isCacheValid, clearCache }}>
+        <CacheContext.Provider value={{ cache, getCache, setCache, isCacheValid, clearCache }}>
             {children}
         </CacheContext.Provider>
     );

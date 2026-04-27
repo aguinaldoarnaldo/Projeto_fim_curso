@@ -12,18 +12,19 @@ import {
     Save,
     X
 } from 'lucide-react';
-import api from '../../services/api';
-import { parseApiError } from '../../utils/errorParser';
+import { useDataCache } from '../../hooks/useDataCache';
+import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
 import Pagination from '../../components/Common/Pagination';
+import api from '../../services/api';
+import { parseApiError } from '../../utils/errorParser';
 
 const VagasCursos = () => {
+    const { clearCache } = useCache();
     const { hasPermission } = usePermission();
-    const [vagas, setVagas] = useState([]);
     const [courses, setCourses] = useState([]);
     const [academicYears, setAcademicYears] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedYear, setSelectedYear] = useState('');
     // Pagination
@@ -34,37 +35,51 @@ const VagasCursos = () => {
     const [editingVaga, setEditingVaga] = useState(null);
     const [vagasCount, setVagasCount] = useState(0);
 
-    const fetchData = React.useCallback(async () => {
-        try {
-            const [resVagas, resCursos, resAnos] = await Promise.all([
-                api.get('vaga-curso/'),
-                api.get('cursos/'),
-                api.get('anos-lectivos/?all=true')
-            ]);
-    
-            setVagas(resVagas.data.results || resVagas.data || []);
-            setCourses(resCursos.data.results || resCursos.data || []);
-            
-            const anos = resAnos.data.results || resAnos.data || [];
-            setAcademicYears(anos);
-    
-            // Selecionar o ano activo por padrão se existir
-            const active = anos.find(a => a.activo);
-            if (active) setSelectedYear(active.id_ano);
-    
-            setLoading(false);
-        } catch (err) {
-            console.error('Erro ao carregar dados:', err);
-            setLoading(false);
-        }
-    }, []); // Empty dependency array as fetchData relies on stable external api and state setters
+    // Fetcher for useDataCache
+    const fetchVagasData = async () => {
+        const response = await api.get('vaga-curso/');
+        return response.data.results || response.data || [];
+    };
 
+    const {
+        data: vagas = [],
+        loading,
+        error,
+        refresh
+    } = useDataCache('vagas_cursos', fetchVagasData);
+
+    // Initial Aux Data Fetch
     useEffect(() => {
-        // Defer execution to avoid synchronous setState warning in React 18
-        Promise.resolve().then(() => {
-            fetchData();
-        });
-    }, [fetchData]);
+        const fetchAuxData = async () => {
+            try {
+                const [resCursos, resAnos] = await Promise.all([
+                    api.get('cursos/'),
+                    api.get('anos-lectivos/?all=true')
+                ]);
+                setCourses(resCursos.data.results || resCursos.data || []);
+                const anos = resAnos.data.results || resAnos.data || [];
+                setAcademicYears(anos);
+                const active = anos.find(a => a.activo);
+                if (active) setSelectedYear(active.id_ano);
+            } catch (err) {
+                console.error('Erro ao carregar dados auxiliares:', err);
+            }
+        };
+        fetchAuxData();
+    }, []);
+
+    // Polling interval standardized to 120s
+    useEffect(() => {
+        const syncIfVisible = () => {
+            if (!document.hidden) refresh(true);
+        };
+        const interval = setInterval(syncIfVisible, 120000);
+        window.addEventListener('focus', syncIfVisible);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
+    }, [refresh]);
 
     const handleEdit = (vaga) => {
         setEditingVaga(vaga);
@@ -79,8 +94,7 @@ const VagasCursos = () => {
             });
             alert("Vagas atualizadas com sucesso!");
             setShowEditModal(false);
-            setLoading(true);
-            fetchData();
+            clearCache('vagas_cursos'); // Trigger reactive update via Smart Cache
         } catch (err) {
             alert(parseApiError(err, "Erro ao salvar vagas."));
         }
@@ -97,8 +111,7 @@ const VagasCursos = () => {
                 vagas: 0
             });
             alert("Vagas vinculadas ao curso com sucesso!");
-            setLoading(true);
-            fetchData();
+            clearCache('vagas_cursos'); // Trigger reactive update via Smart Cache
         } catch (err) {
             alert(parseApiError(err, "Este curso já possui vagas configuradas para este ano."));
         }

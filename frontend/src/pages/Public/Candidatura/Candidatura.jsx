@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, ClipboardList, BookOpen, GraduationCap, CheckCircle, Send, UploadCloud, CreditCard, Calendar, Search, AlertTriangle, History, RefreshCcw } from 'lucide-react';
+import { User, ClipboardList, BookOpen, GraduationCap, CheckCircle, Send, UploadCloud, CreditCard, Calendar, Search, AlertTriangle, History, RefreshCcw, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Candidatura.css';
@@ -300,11 +300,11 @@ const Candidatura = () => {
                 <div className="section-title"><User size={24} /> Dados Pessoais</div>
                 <div className="form-grid">
                     <div className="form-control full-width">
-                        <label>Nome Completo</label>
+                        <label>Nome Completo <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="nome_completo" value={formData.nome_completo} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
-                        <label>Género</label>
+                        <label>Género <span style={{color: '#ef4444'}}>*</span></label>
                         <select name="genero" value={formData.genero} onChange={handleChange} required>
                             <option value="">Selecione</option>
                             <option value="M">Masculino</option>
@@ -312,7 +312,7 @@ const Candidatura = () => {
                         </select>
                     </div>
                     <div className="form-control">
-                        <label>Data de Nascimento</label>
+                        <label>Data de Nascimento <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="date" name="data_nascimento" value={formData.data_nascimento} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
@@ -339,7 +339,7 @@ const Candidatura = () => {
 
                     {/* Novo Campo Solicitado */}
                     <div className="form-control">
-                        <label>Portador de Deficiência?</label>
+                        <label>Portador de Deficiência? <span style={{color: '#ef4444'}}>*</span></label>
                         <select name="deficiencia" value={formData.deficiencia || 'Não'} onChange={handleChange} required>
                             <option value="Não">Não</option>
                             <option value="Sim">Sim</option>
@@ -347,23 +347,23 @@ const Candidatura = () => {
                     </div>
 
                     <div className="form-control">
-                        <label>Telefone</label>
+                        <label>Telefone <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="telefone" value={formData.telefone} onChange={handleChange} required placeholder="Ex: 946464376"/>
                     </div>
                      <div className="form-control">
-                        <label>Email</label>
+                        <label>Email <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="Ex: aguinaldoarnaldo5@gmail.com"/>
                     </div>
                     <div className="form-control">
-                        <label>Província</label>
+                        <label>Província <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="provincia" value={formData.provincia} onChange={handleChange} required placeholder="Ex: Luanda" />
                     </div>
                     <div className="form-control">
-                        <label>Município</label>
+                        <label>Município <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="municipio" value={formData.municipio} onChange={handleChange} required placeholder="Ex: Sequele" />
                     </div>
                     <div className="form-control full-width">
-                        <label>Bairro / Endereço</label>
+                        <label>Bairro / Endereço <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="residencia" value={formData.residencia} onChange={handleChange} required placeholder="Ex: Bairro Vidrul" />
                     </div>
                     
@@ -372,15 +372,15 @@ const Candidatura = () => {
                         <label className="section-subtitle"><UploadCloud size={16}/> Documentos Obrigatórios</label>
                      </div>
                     <div className="form-control">
-                        <label>Foto Tipo Passe {formData.foto_passe && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>}</label>
+                        <label>Foto Tipo Passe {formData.foto_passe && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>} <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="file" name="foto_passe" onChange={handleFileChange} accept="image/*" required={!formData.foto_passe} />
                     </div>
                      <div className="form-control">
-                        <label>Cópia do BI {formData.comprovativo_bi && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>}</label>
+                        <label>Cópia do BI {formData.comprovativo_bi && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>} <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="file" name="comprovativo_bi" onChange={handleFileChange} accept="image/*,application/pdf" required={!formData.comprovativo_bi} />
                     </div>
                      <div className="form-control">
-                        <label>Certificado {formData.certificado && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>}</label>
+                        <label>Certificado {formData.certificado && <span style={{color:'green', fontSize:'0.8em'}}>(Anexado)</span>} <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="file" name="certificado" onChange={handleFileChange} accept="image/*,application/pdf" required={!formData.certificado} />
                     </div>
                 </div>
@@ -390,26 +390,26 @@ const Candidatura = () => {
                 <div className="section-title"><BookOpen size={24} /> Dados Académicos (9ª Classe)</div>
                 <div className="form-grid">
                      <div className="form-control">
-                        <label>Tipo de Escola</label>
+                        <label>Tipo de Escola <span style={{color: '#ef4444'}}>*</span></label>
                         <select name="tipo_escola" value={formData.tipo_escola || 'Pública'} onChange={handleChange} required>
                             <option value="Pública">Pública</option>
                             <option value="Privada">Privada</option>
                         </select>
                     </div>
                     <div className="form-control">
-                        <label>Nome da Escola</label>
+                        <label>Nome da Escola <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="escola_proveniencia" value={formData.escola_proveniencia} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
-                        <label>Município da Escola</label>
+                        <label>Município da Escola <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="municipio_escola" value={formData.municipio_escola} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
-                        <label>Ano de Conclusão</label>
+                        <label>Ano de Conclusão <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="number" name="ano_conclusao" value={formData.ano_conclusao} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
-                        <label>Média Final</label>
+                        <label>Média Final <span style={{color: '#ef4444'}}>*</span></label>
                         <input type="number" name="media_final" value={formData.media_final} onChange={handleChange} required step="0.1" />
                     </div>
                 </div>
@@ -438,7 +438,7 @@ const Candidatura = () => {
 
                 <div className="form-grid">
                     <div className="form-control">
-                        <label>1ª Opção</label>
+                        <label>1ª Opção <span style={{color: '#ef4444'}}>*</span></label>
                         <select name="curso_primeira_opcao" value={formData.curso_primeira_opcao} onChange={handleChange} required>
                             <option value="">Selecione</option>
                             {cursosDisponiveis.map(c => {
@@ -467,7 +467,7 @@ const Candidatura = () => {
                     </div>
                     {/* 
                     <div className="form-control">
-                        <label>Turno (Período)</label>
+                        <label>Turno (Período) <span style={{color: '#ef4444'}}>*</span></label>
                         <select name="turno_preferencial" value={formData.turno_preferencial} onChange={handleChange} required>
                             <option value="">Selecione</option>
                             <option value="Manhã">Manhã</option>
@@ -483,11 +483,11 @@ const Candidatura = () => {
                 <div className="section-title"><ClipboardList size={24} /> Encarregado de Educação</div>
                 <div className="form-grid">
                     <div className="form-control full-width">
-                        <label>Nome Completo do Encarregado</label>
+                        <label>Nome Completo do Encarregado <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="nome_encarregado" value={formData.nome_encarregado} onChange={handleChange} required />
                     </div>
                     <div className="form-control">
-                        <label>Grau de Parentesco</label>
+                        <label>Grau de Parentesco <span style={{color: '#ef4444'}}>*</span></label>
                         <select name="parentesco_encarregado" value={formData.parentesco_encarregado} onChange={handleChange} required>
                             <option value="">Selecione</option>
                             <option value="Pai">Pai</option>
@@ -509,7 +509,7 @@ const Candidatura = () => {
                         />
                     </div>
                     <div className="form-control">
-                        <label>Telefone Principal</label>
+                        <label>Telefone Principal <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="telefone_encarregado" value={formData.telefone_encarregado} onChange={handleChange} required placeholder="Ex: 923456789" />
                     </div>
                     <div className="form-control">
@@ -549,7 +549,7 @@ const Candidatura = () => {
                         </select>
                     </div>
                     <div className="form-control full-width">
-                        <label>Residência do Encarregado</label>
+                        <label>Residência do Encarregado <span style={{color: '#ef4444'}}>*</span></label>
                         <input name="residencia_encarregado" value={formData.residencia_encarregado || ''} onChange={handleChange} required placeholder="Ex: Bairro Vidrul, Rua 5" />
                     </div>
                 </div>

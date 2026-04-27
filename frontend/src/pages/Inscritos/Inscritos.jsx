@@ -37,6 +37,7 @@ import api from "../../services/api";
 import { parseApiError } from "../../utils/errorParser";
 import { useDataCache } from "../../hooks/useDataCache";
 import { usePermission } from "../../hooks/usePermission";
+import { useCache } from "../../context/CacheContext";
 import { PERMISSIONS } from "../../utils/permissions";
 
 // Sub-components
@@ -56,6 +57,7 @@ const ListaEsperaPanel = ({
   onRefreshInscritos,
   anosDisponiveis,
 }) => {
+  const { clearCache } = useCache();
   const { hasPermission } = usePermission();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -163,8 +165,8 @@ const ListaEsperaPanel = ({
     setFormError("");
     try {
       await api.post("lista-espera/adicionar_candidato_reprovado/", formData);
-      refreshLista();
-      onRefreshInscritos();
+      clearCache('lista-espera');
+      clearCache('inscritos');
       resetModal();
     } catch (err) {
       setFormError(err.response?.data?.erro || "Erro ao adicionar candidato.");
@@ -177,7 +179,8 @@ const ListaEsperaPanel = ({
     if (!window.confirm(`Chamar o candidato ${nome} para uma vaga?`)) return;
     try {
       await api.post(`lista-espera/${id}/chamar_candidato/`);
-      refreshLista();
+      clearCache('lista-espera');
+      clearCache('inscritos');
     } catch {
       alert("Erro ao chamar candidato.");
     }
@@ -192,8 +195,8 @@ const ListaEsperaPanel = ({
       return;
     try {
       await api.delete(`lista-espera/${id}/`);
-      refreshLista();
-      onRefreshInscritos();
+      clearCache('lista-espera');
+      clearCache('inscritos');
     } catch {
       alert("Erro ao remover candidato.");
     }
@@ -530,11 +533,6 @@ const ListaEsperaPanel = ({
                       <span
                         className={`status-badge status-${item.status?.toLowerCase()}`}
                       >
-                        {item.status === "Chamado" && <CheckCircle size={11} />}
-                        {item.status === "Aguardando" && <Clock size={11} />}
-                        {item.status === "Expirado" && (
-                          <AlertCircle size={11} />
-                        )}
                         {item.status}
                       </span>
                     </td>
@@ -1049,6 +1047,7 @@ const ListaEsperaPanel = ({
 //  MAIN INSCRITOS PAGE
 // ─────────────────────────────────────────────────────────────
 const Inscritos = () => {
+  const { clearCache } = useCache();
   const { hasPermission } = usePermission();
 
   // TABS
@@ -1123,7 +1122,7 @@ const Inscritos = () => {
       curso1: c.curso1_nome || "N/A",
       curso2: c.curso2_nome || "N/A",
       turno: c.turno_preferencial || "N/A",
-      status: c.status || "INSCRITO",
+      status: (c.status || "INSCRITO").toUpperCase(),
       exame_data: c.exame_data,
       dataInscricao: c.criado_em
         ? new Date(c.criado_em).toLocaleDateString()
@@ -1188,11 +1187,10 @@ const Inscritos = () => {
     const syncIfVisible = () => {
       if (!document.hidden) refresh(true);
     };
-    // REMOVIDO: Refresh automático periódico (atendendo ao pedido do usuário)
-    // const interval = setInterval(syncIfVisible, 60000);
+    const interval = setInterval(syncIfVisible, 30000); // 30 segundos para tempo real
     window.addEventListener("focus", syncIfVisible);
     return () => {
-      // clearInterval(interval);
+      clearInterval(interval);
       window.removeEventListener("focus", syncIfVisible);
     };
   }, [refresh]);
@@ -1281,6 +1279,7 @@ const Inscritos = () => {
       const { status, nota } = response.data;
       updateInscrito(candidateToEvaluate.id, { notaExame: nota, status });
       alert(`Avaliação registada! Candidato: ${status}.`);
+      clearCache('inscritos'); // Trigger reactive update via Smart Cache
     } catch (err) {
       alert(parseApiError(err, "Erro ao salvar avaliação."));
     }
@@ -1364,7 +1363,7 @@ const Inscritos = () => {
       await api.patch(`candidaturas/${data.real_id}/`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      refresh();
+      clearCache('inscritos'); // Trigger reactive update via Smart Cache
       alert("Dados atualizados com sucesso!");
       setShowEditModal(false);
     } catch (error) {
@@ -1383,7 +1382,7 @@ const Inscritos = () => {
     try {
       await api.post(`candidaturas/${candidato.real_id}/confirmar_pagamento/`);
       alert("Pagamento confirmado com sucesso!");
-      refresh();
+      clearCache('inscritos'); // Trigger reactive update via Smart Cache
       closeDetail();
     } catch (error) {
       alert(parseApiError(error, "Erro ao confirmar pagamento."));

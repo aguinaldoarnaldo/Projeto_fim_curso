@@ -18,12 +18,14 @@ import Pagination from "../../components/Common/Pagination";
 import FilterModal from "../../components/Common/FilterModal";
 import api from "../../services/api";
 import { parseApiError } from "../../utils/errorParser";
+import { useDataCache } from "../../hooks/useDataCache";
 import { useCache } from "../../context/CacheContext";
 import { usePermission } from "../../hooks/usePermission";
 import { PERMISSIONS } from "../../utils/permissions";
 import "./Salas.css";
 
 const Salas = () => {
+  const { clearCache } = useCache();
   const { hasPermission } = usePermission();
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -41,70 +43,39 @@ const Salas = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(23);
 
-  const [salas, setSalas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const [formData, setFormData] = useState({
     numero_sala: "",
     bloco: "",
     capacidade_alunos: "",
+    tipo: "Sala de Aula",
   });
 
-  // Cache
-  const { getCache, setCache } = useCache();
+  // Fetcher for useDataCache
+  const fetchSalasData = async () => {
+    const response = await api.get("salas/?page_size=5000");
+    const data = response.data.results || response.data;
+    return Array.isArray(data) ? data : [];
+  };
 
-  // Fetch Salas
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const {
+    data: salas = [],
+    loading,
+    error,
+    refresh
+  } = useDataCache("salas", fetchSalasData);
 
-  // Polling Inteligente para atualizações em tempo real
+  // Polling interval standardized to 120s
   useEffect(() => {
     const syncIfVisible = () => {
-      if (!document.hidden) {
-        fetchData(true);
-      }
+        if (!document.hidden) refresh(true);
     };
-
-    const interval = setInterval(syncIfVisible, 60000); // 60 segundos
-
-    window.addEventListener("focus", syncIfVisible);
-
+    const interval = setInterval(syncIfVisible, 30000); // 30 seconds for real-time feel
+    window.addEventListener('focus', syncIfVisible);
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", syncIfVisible);
+        clearInterval(interval);
+        window.removeEventListener('focus', syncIfVisible);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchData = async (force = false) => {
-    if (!force) {
-      const cachedData = getCache("salas");
-      if (cachedData) {
-        setSalas(cachedData);
-        setLoading(false);
-        return;
-      }
-    }
-
-    try {
-      // Do not set loading=true on polling to avoid flash
-      const response = await api.get("salas/?page_size=5000");
-      const data = response.data.results || response.data;
-      setSalas(Array.isArray(data) ? data : []);
-      setCache("salas", Array.isArray(data) ? data : []);
-      setLoading(false);
-    } catch (err) {
-      console.error("Erro ao buscar salas:", err);
-      // Only show error on initial load
-      if (loading) {
-        setError("Falha ao carregar lista de salas.");
-        setLoading(false);
-      }
-    }
-  };
+  }, [refresh]);
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -120,6 +91,7 @@ const Salas = () => {
         numero_sala: formData.numero_sala,
         bloco: formData.bloco,
         capacidade_alunos: formData.capacidade_alunos,
+        tipo: formData.tipo,
       };
 
       if (modalMode === "add") {
@@ -131,7 +103,7 @@ const Salas = () => {
       }
 
       setShowModal(false);
-      fetchData(true); // Force refresh to update cache
+      clearCache('salas'); // Trigger reactive update via Smart Cache
     } catch (err) {
       console.error("Erro ao salvar sala:", err);
       const msg = parseApiError(err, "Erro ao salvar sala.");
@@ -147,6 +119,7 @@ const Salas = () => {
       numero_sala: sala.numero_sala,
       bloco: sala.bloco || "",
       capacidade_alunos: sala.capacidade_alunos,
+      tipo: sala.tipo || "Sala de Aula",
     });
     setModalMode("edit");
     setShowModal(true);
@@ -158,6 +131,7 @@ const Salas = () => {
       numero_sala: "",
       bloco: "",
       capacidade_alunos: "",
+      tipo: "Sala de Aula",
     });
     setModalMode("add");
     setShowModal(true);
@@ -165,11 +139,14 @@ const Salas = () => {
 
   // Helper to determine Room Type based on capacity/name
   function getRoomType(sala) {
-    const cap = parseInt(sala.capacidade_alunos);
-    if (cap >= 60)
-      return { label: "Auditório", color: "#7c3aed", bg: "#f5f3ff" };
-    if (cap <= 25)
+    if (sala.tipo === "Laboratório")
       return { label: "Laboratório", color: "#059669", bg: "#ecfdf5" };
+    if (sala.tipo === "Auditório")
+      return { label: "Auditório", color: "#7c3aed", bg: "#f5f3ff" };
+    if (sala.tipo === "Outro")
+      return { label: "Outro", color: "#64748b", bg: "#f8fafc" };
+    
+    // Fallback or explicit Sala de Aula
     return { label: "Sala de Aula", color: "#2563eb", bg: "#eff6ff" };
   }
 
@@ -511,6 +488,22 @@ const Salas = () => {
                     }
                     className="form-input-salas"
                   />
+                </div>
+                <div>
+                  <label className="form-label-salas">Tipo de Sala</label>
+                  <select
+                    value={formData.tipo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tipo: e.target.value })
+                    }
+                    className="form-input-salas"
+                    style={{ appearance: 'auto' }}
+                  >
+                    <option value="Sala de Aula">Sala de Aula</option>
+                    <option value="Laboratório">Laboratório</option>
+                    <option value="Auditório">Auditório</option>
+                    <option value="Outro">Outro</option>
+                  </select>
                 </div>
               </div>
 

@@ -74,6 +74,7 @@ const NovaMatricula = () => {
         // Encarregado
         nome_encarregado: '',
         telefone_encarregado: '',
+        email_encarregado: '',
         parentesco_encarregado: '',
         numero_bi_encarregado: '',
         profissao_encarregado: '',
@@ -137,13 +138,22 @@ const NovaMatricula = () => {
                     setFormData(prev => ({ ...prev, ano_lectivo: activeYear.nome }));
                 }
 
+                // Auto-select 10th grade if enrolling a new candidate
+                if (location.state?.candidato) {
+                    const decima = classesRes.data?.results?.find(cl => cl.nivel === 10) || 
+                                   (Array.isArray(classesRes) ? classesRes.find(cl => cl.nivel === 10) : null);
+                    if (decima) {
+                        setFormData(prev => ({ ...prev, classe: decima.id_classe }));
+                    }
+                }
+
             } catch (error) {
                 console.error("Failed to load initial data", error);
             }
         };
         
         loadClassesAndYears();
-    }, []);
+    }, [location.state]); 
 
 
     // Populate data from candidate if available
@@ -183,6 +193,7 @@ const NovaMatricula = () => {
                 // Encarregado
                 nome_encarregado: (c.encarregado?.nome && c.encarregado.nome !== 'N/A') ? c.encarregado.nome : '',
                 telefone_encarregado: (c.encarregado?.telefone && c.encarregado.telefone !== 'N/A') ? c.encarregado.telefone : '',
+                email_encarregado: (c.encarregado?.email && c.encarregado.email !== 'N/A') ? c.encarregado.email : '',
                 parentesco_encarregado: (c.encarregado?.parentesco && c.encarregado.parentesco !== 'N/A') ? c.encarregado.parentesco : '',
                 numero_bi_encarregado: c.encarregado?.bi || '',
                 profissao_encarregado: c.encarregado?.profissao || '',
@@ -191,6 +202,14 @@ const NovaMatricula = () => {
                 doc_bi_url: c.files?.bi || null,
                 doc_certificado_url: c.files?.certificado || null
             }));
+            
+            // Definir 10ª Classe como padrão para novos inscritos
+            if (classesDisponiveis.length > 0) {
+                const decimaClasse = classesDisponiveis.find(cl => cl.nivel === 10 || String(cl.nome_classe).includes('10'));
+                if (decimaClasse) {
+                    setFormData(prev => ({ ...prev, classe: decimaClasse.id_classe }));
+                }
+            }
             
             // Fetch turmas relevant to this course/turn
             fetchTurmas(c.curso1, c.turno);
@@ -222,6 +241,7 @@ const NovaMatricula = () => {
                 // Encarregado
                 nome_encarregado: d.encarregado !== 'N/A' ? (d.encarregado || '') : '',
                 telefone_encarregado: d.telefoneEncarregado !== 'N/A' ? (d.telefoneEncarregado || '') : '',
+                email_encarregado: d.email_encarregado || '',
                 parentesco_encarregado: d.parentesco !== 'N/A' ? (d.parentesco || '') : '',
                 numero_bi_encarregado: d.bi_encarregado || '',
                 profissao_encarregado: d.profissao_encarregado || '',
@@ -256,9 +276,14 @@ const NovaMatricula = () => {
                 curso: a.curso !== 'N/A' ? a.curso : '',
                 turno: a.turno !== 'N/A' ? a.turno : '',
                 tipo: 'Edicao',
-                // Campos académicos pré-preenchidos
-                nome_encarregado: a.detalhes?.encarregado !== 'N/A' ? (a.detalhes?.encarregado || '') : '',
-                telefone_encarregado: a.detalhes?.telefone !== 'N/A' ? (a.detalhes?.telefone || '') : '',
+                matricula_id: a.real_id || '',
+                // Dados do Encarregado pré-preenchidos correctamente
+                nome_encarregado: a.detalhes?.encarregado?.nome || '',
+                telefone_encarregado: a.detalhes?.encarregado?.telefone || '',
+                email_encarregado: a.detalhes?.encarregado?.email || '',
+                numero_bi_encarregado: a.detalhes?.encarregado?.numero_bi || '',
+                parentesco_encarregado: a.detalhes?.encarregado?.parentesco || '',
+                profissao_encarregado: a.detalhes?.encarregado?.profissao || '',
             }));
 
             // Ir direto para a secção académica — sem menu de escolha
@@ -312,7 +337,18 @@ const NovaMatricula = () => {
                         municipio: s.municipio_residencia || '',
                         bairro: s.bairro_residencia || '',
                         numero_casa: s.numero_casa || '',
-                        naturalidade: s.naturalidade || '',
+                        // Naturalidade pode vir em formatos diferentes dependendo do endpoint/normalização
+                        // (e em alguns cenários ela vem com outro nome). Último fallback: província de residência.
+                        naturalidade: (
+                            (s.naturalidade && s.naturalidade !== 'N/A' ? s.naturalidade : '') ||
+                            (s.detalhes?.naturalidade && s.detalhes.naturalidade !== 'N/A' ? s.detalhes.naturalidade : '') ||
+                            (s.aluno?.naturalidade && s.aluno.naturalidade !== 'N/A' ? s.aluno.naturalidade : '') ||
+                            (s.provincia_naturalidade && s.provincia_naturalidade !== 'N/A' ? s.provincia_naturalidade : '') ||
+                            (s.naturalidade_provincia && s.naturalidade_provincia !== 'N/A' ? s.naturalidade_provincia : '') ||
+                            (s.provincia && s.provincia !== 'N/A' ? s.provincia : '') ||
+                            (s.provincia_residencia && s.provincia_residencia !== 'N/A' ? s.provincia_residencia : '') ||
+                            ''
+                        ),
                         nacionalidade: s.nacionalidade || 'Angolana',
                         deficiencia: s.deficiencia || 'Não',
                         curso: s.id_turma?.id_curso?.nome_curso || '',
@@ -323,9 +359,10 @@ const NovaMatricula = () => {
                         // Guardian info - Try multiple common keys from API
                         nome_encarregado: s.encarregado_principal?.nome || s.encarregado?.nome || s.encarregados?.[0]?.nome_completo || '',
                         telefone_encarregado: s.encarregado_principal?.telefone || s.encarregado?.telefone || s.encarregados?.[0]?.telefone || '',
+                        email_encarregado: s.encarregado_principal?.email || s.encarregado?.email || s.encarregados?.[0]?.email || '',
                         parentesco_encarregado: s.encarregado_principal?.parentesco || s.encarregado?.parentesco || s.encarregados?.[0]?.grau_parentesco || '',
-                        numero_bi_encarregado: s.encarregado_principal?.numero_bi || s.encarregado?.numero_bi || '',
-                        profissao_encarregado: s.encarregado_principal?.profissao || s.encarregado?.profissao || '',
+                        numero_bi_encarregado: s.encarregado_principal?.numero_bi || s.encarregado?.numero_bi || s.encarregados?.[0]?.numero_bi || '',
+                        profissao_encarregado: s.encarregado_principal?.profissao || s.encarregado?.profissao || s.encarregados?.[0]?.profissao || '',
                         // Do not overwrite ano_lectivo if it was already set by fetchInitialData
                         ano_lectivo: prev.ano_lectivo || '',
                     }));
@@ -380,7 +417,17 @@ const NovaMatricula = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        
+        // Se mudar curso, classe ou turno, limpamos a turma selecionada pois a lista vai mudar
+        if (['curso', 'classe', 'turno'].includes(name)) {
+            setFormData(prev => ({ 
+                ...prev, 
+                [name]: value,
+                turma_id: '' // Limpar turma para forçar nova seleção
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
 
         if (name === 'turno') {
              fetchTurmas(formData.curso, value, formData.classe);
@@ -396,7 +443,21 @@ const NovaMatricula = () => {
     const handleFileChange = (e) => {
         const { name, files } = e.target;
         if (files && files[0]) {
-            setFormData(prev => ({ ...prev, [name]: files[0] }));
+            const file = files[0];
+
+            // Documentos obrigatórios: aceitar apenas PDF
+            if (name === 'doc_bi' || name === 'doc_certificado') {
+                const isPdf = file.type === 'application/pdf' || String(file.name || '').toLowerCase().endsWith('.pdf');
+                if (!isPdf) {
+                    alert("⚠️ Apenas arquivos PDF são permitidos para BI e Certificado.");
+                    // Limpar seleção e estado
+                    e.target.value = '';
+                    setFormData(prev => ({ ...prev, [name]: null }));
+                    return;
+                }
+            }
+
+            setFormData(prev => ({ ...prev, [name]: file }));
         }
     };
 
@@ -471,12 +532,41 @@ const NovaMatricula = () => {
                         nacionalidade: alunoFound.nacionalidade || 'Angolana',
                         deficiencia: alunoFound.deficiencia || 'Não',
                         novo_aluno_foto: alunoFound.img_path || null,
-                        tipo: 'Confirmacao'
+                        tipo: 'Confirmacao',
+                        // Pre-fill Guardian data if available
+                        nome_encarregado: alunoFound.encarregado_principal?.nome_completo || alunoFound.encarregado_principal?.nome || '',
+                        telefone_encarregado: alunoFound.encarregado_principal?.telefone || '',
+                        email_encarregado: alunoFound.encarregado_principal?.email || '',
+                        numero_bi_encarregado: alunoFound.encarregado_principal?.numero_bi || '',
+                        profissao_encarregado: alunoFound.encarregado_principal?.profissao || '',
+                        parentesco_encarregado: alunoFound.encarregado_principal?.grau_parentesco || alunoFound.encarregado_principal?.parentesco || 'Pai'
                     }));
                     alert(`✅ Aluno encontrado no sistema!\n\nO aluno: ${alunoFound.nome_completo || alunoFound.nome} já existe.\nOs dados pessoais foram preenchidos automaticamente. Preencha os dados académicos para matricular.`);
                 }
             } catch (error) {
                 console.log("Aluno não encontrado ou erro na busca:", error);
+            }
+        }
+    };
+
+    const handleGuardianBiBlur = async () => {
+        if (formData.numero_bi_encarregado && formData.numero_bi_encarregado.length > 5) {
+            try {
+                const res = await api.get(`encarregados/?search=${formData.numero_bi_encarregado}`);
+                const encs = res.data.results || res.data;
+                const found = encs.find(e => e.numero_bi === formData.numero_bi_encarregado);
+                
+                if (found) {
+                    setFormData(prev => ({
+                        ...prev,
+                        nome_encarregado: found.nome_completo || found.nome || prev.nome_encarregado,
+                        telefone_encarregado: Array.isArray(found.telefone) ? found.telefone[0] : (found.telefone || prev.telefone_encarregado),
+                        email_encarregado: found.email || prev.email_encarregado,
+                        profissao_encarregado: found.profissao || prev.profissao_encarregado
+                    }));
+                }
+            } catch (err) {
+                console.log("Encarregado não encontrado:", err);
             }
         }
     };
@@ -559,9 +649,11 @@ const NovaMatricula = () => {
                   `🏫 Turma: ${turmaObj ? turmaObj.codigo_turma : 'N/A'}\n` + 
                   `📊 Estado: ${statusFinal}`);
             
-            // Invalida o cache para forçar atualização na lista
+            // Invalida o cache para forçar atualização em tempo real em todas as listas
             clearCache('matriculas');
             clearCache('alunos');
+            clearCache('inscritos');
+            clearCache('lista-espera');
                   
             // Volta para a origem: alunos ou matrículas
             navigate(location.state?.alunoEdicao ? '/alunos' : '/matriculas');
@@ -702,7 +794,7 @@ const NovaMatricula = () => {
                             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
                                 
                                 <div style={{ gridColumn: 'span 3' }}>
-                                    <label className="field-label">Nome Completo</label>
+                                    <label className="field-label">Nome Completo <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="nome_completo"
@@ -717,7 +809,7 @@ const NovaMatricula = () => {
 
 
                                 <div>
-                                    <label className="field-label">Data de Nascimento</label>
+                                    <label className="field-label">Data de Nascimento <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="date" 
                                         name="data_nascimento"
@@ -728,7 +820,7 @@ const NovaMatricula = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label">Gênero</label>
+                                    <label className="field-label">Gênero <span style={{color: '#ef4444'}}>*</span></label>
                                     {isReadOnly ? (
                                         <input 
                                             type="text" 
@@ -757,7 +849,7 @@ const NovaMatricula = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label">Nacionalidade</label>
+                                    <label className="field-label">Nacionalidade <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="nacionalidade"
@@ -778,19 +870,6 @@ const NovaMatricula = () => {
                                         </select>
                                     )}
                                 </div>
-
-                                <div>
-                                    <label className="field-label">Email</label>
-                                    <input 
-                                        type="email" 
-                                        name="email"
-                                        value={formData.email || ''}
-                                        onChange={handleInputChange}
-                                        readOnly={isStrictlyReadOnly}
-                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
-                                        placeholder="exemplo@email.com"
-                                    />
-                                </div>
                                 <div>
                                     <label className="field-label">Telefone</label>
                                     <input 
@@ -803,8 +882,21 @@ const NovaMatricula = () => {
                                         placeholder="923000000"
                                     />
                                 </div>
+
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <label className="field-label">Email</label>
+                                    <input 
+                                        type="email" 
+                                        name="email"
+                                        value={formData.email || ''}
+                                        onChange={handleInputChange}
+                                        readOnly={isStrictlyReadOnly}
+                                        className={`field-input ${isStrictlyReadOnly ? 'read-only' : ''}`}
+                                        placeholder="exemplo@email.com"
+                                    />
+                                </div>
                                 <div>
-                                    <label className="field-label">Nº BI</label>
+                                    <label className="field-label">Nº BI <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="numero_bi"
@@ -821,7 +913,7 @@ const NovaMatricula = () => {
                                 <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', margin: '5px 0' }}></div>
 
                                 <div>
-                                    <label className="field-label">Província</label>
+                                    <label className="field-label">Província <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="provincia"
@@ -833,7 +925,7 @@ const NovaMatricula = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label">Município</label>
+                                    <label className="field-label">Município <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="municipio"
@@ -845,7 +937,7 @@ const NovaMatricula = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label">Bairro</label>
+                                    <label className="field-label">Bairro <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="bairro"
@@ -873,56 +965,64 @@ const NovaMatricula = () => {
                         </div>
 
                         {/* Guardian Section - Compacta */}
-                        <div style={{ marginTop: '12px', background: '#f8fafc', padding: '10px 15px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                            <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>
-                                <User size={16} style={{ display: 'inline', marginRight: '5px' }} /> Encarregado de Educação
+                        <div style={{ marginTop: '12px', background: '#f8fafc', padding: '15px 20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', marginBottom: '15px' }}>
+                                <User size={18} style={{ display: 'inline', marginRight: '5px' }} /> Encarregado de Educação
                             </h4>
-                             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr', gap: '10px' }}>
+                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
                                  <div>
-                                    <label className="field-label">Nome Completo</label>
+                                    <label className="field-label">Nome Completo <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="nome_encarregado"
                                         value={formData.nome_encarregado}
                                         onChange={handleInputChange}
                                         readOnly={isStrictlyReadOnly}
-                                        className="field-input small-input" 
-                                        style={{ height: '38px' }}
+                                        className="field-input" 
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label">Nº BI</label>
+                                    <label className="field-label">Nº BI <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="numero_bi_encarregado"
                                         value={formData.numero_bi_encarregado}
                                         onChange={handleInputChange}
                                         readOnly={isStrictlyReadOnly}
-                                        className="field-input small-input"
-                                        style={{ height: '38px' }}
+                                        className="field-input"
                                     />
                                 </div>
                                 <div>
-                                    <label className="field-label">Telefone</label>
+                                    <label className="field-label">Telefone <span style={{color: '#ef4444'}}>*</span></label>
                                     <input 
                                         type="text" 
                                         name="telefone_encarregado"
                                         value={formData.telefone_encarregado}
                                         onChange={handleInputChange}
                                         readOnly={isStrictlyReadOnly}
-                                        className="field-input small-input"
-                                        style={{ height: '38px' }}
+                                        className="field-input"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="field-label">Email</label>
+                                    <input 
+                                        type="email" 
+                                        name="email_encarregado"
+                                        value={formData.email_encarregado}
+                                        onChange={handleInputChange}
+                                        readOnly={isStrictlyReadOnly}
+                                        className="field-input"
+                                        placeholder="email@exemplo.com"
                                     />
                                 </div>
                                  <div>
-                                    <label className="field-label">Parentesco</label>
+                                    <label className="field-label">Parentesco <span style={{color: '#ef4444'}}>*</span></label>
                                     <select 
                                         name="parentesco_encarregado"
                                         value={formData.parentesco_encarregado}
                                         onChange={handleInputChange}
                                         disabled={isStrictlyReadOnly}
                                         className="field-select"
-                                        style={{ height: '38px' }}
                                     >
                                         <option value="">Selecione...</option>
                                         <option value="Pai">Pai</option>
@@ -944,7 +1044,6 @@ const NovaMatricula = () => {
                                         onChange={handleInputChange}
                                         disabled={isStrictlyReadOnly}
                                         className="field-select"
-                                        style={{ height: '38px' }}
                                     >
                                         <option value="">Selecione...</option>
                                         <option value="Professor(a)">Professor(a)</option>
@@ -1001,7 +1100,7 @@ const NovaMatricula = () => {
                             
                             {/* Coluna 1: Curso */}
                             <div style={{ gridColumn: (formData.curso_primario && formData.curso_secundario) ? 'span 2' : 'span 1' }}>
-                                <label className="field-label">Curso</label>
+                                <label className="field-label">Curso <span style={{color: '#ef4444'}}>*</span></label>
                                 {formData.curso_primario && formData.curso_secundario ? (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
@@ -1053,7 +1152,7 @@ const NovaMatricula = () => {
 
                             {/* Coluna 2: Tipo de Matrícula */}
                             <div>
-                                <label className="field-label">Tipo de Matrícula</label>
+                                <label className="field-label">Tipo de Matrícula <span style={{color: '#ef4444'}}>*</span></label>
                                 <select 
                                     name="tipo" 
                                     value={formData.tipo} 
@@ -1072,7 +1171,7 @@ const NovaMatricula = () => {
 
                             {/* Coluna 3: Classe */}
                             <div>
-                                <label className="field-label">Classe (Ano Curricular)</label>
+                                <label className="field-label">Classe (Ano Curricular) <span style={{color: '#ef4444'}}>*</span></label>
                                 <select 
                                     name="classe" 
                                     value={formData.classe} 
@@ -1088,7 +1187,7 @@ const NovaMatricula = () => {
 
                             {/* Coluna 4: Turno */}
                             <div>
-                                <label className="field-label">Turno</label>
+                                <label className="field-label">Turno <span style={{color: '#ef4444'}}>*</span></label>
                                 <select 
                                     name="turno" 
                                     value={formData.turno || ''} 
@@ -1104,7 +1203,7 @@ const NovaMatricula = () => {
 
                              {/* Coluna 5: Ano Lectivo */}
                             <div>
-                                <label className="field-label">Ano Lectivo</label>
+                                <label className="field-label">Ano Lectivo <span style={{color: '#ef4444'}}>*</span></label>
                                 <select 
                                     name="ano_lectivo" 
                                     value={formData.ano_lectivo} 
@@ -1128,7 +1227,7 @@ const NovaMatricula = () => {
                         {/* Seleção de Turma (Destaque) */}
                         <div style={{ background: '#f0f9ff', padding: '20px', borderRadius: '8px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <label className="field-label" style={{ color: '#0369a1', fontWeight: 700, marginBottom: 0 }}>TURMA (Obrigatório)</label>
+                                <label className="field-label" style={{ color: '#0369a1', fontWeight: 700, marginBottom: 0 }}>TURMA (Obrigatório) <span style={{color: '#ef4444'}}>*</span></label>
                                 <div style={{ position: 'relative' }}>
                                     <button 
                                         type="button"
@@ -1381,7 +1480,7 @@ const NovaMatricula = () => {
                                 
                                 <div className="file-upload-box" style={{border: (!formData.doc_bi) ? '2px dashed #cbd5e1' : '2px dashed #3b82f6', padding: '15px', borderRadius: '8px', textAlign: 'center', background: '#f8fafc'}}>
                                     <Upload size={20} color={formData.doc_bi ? "#3b82f6" : "#64748b"} style={{marginBottom:'5px'}}/>
-                                    <input type="file" name="doc_bi" onChange={handleFileChange} accept=".pdf, image/*" style={{width:'100%', fontSize:'12px'}} />
+                                    <input type="file" name="doc_bi" onChange={handleFileChange} accept=".pdf,application/pdf" style={{width:'100%', fontSize:'12px'}} />
                                     {isConfirming && <p style={{fontSize: '10px', color: '#94a3b8', marginTop: '5px'}}>Anexe apenas se desejar substituir o original</p>}
                                     {formData.doc_bi && <span style={{color: 'green', fontSize:'12px', display:'block', marginTop:'5px'}}><CheckCircle size={12} style={{display:'inline'}}/> Selecionado: {formData.doc_bi.name}</span>}
                                 </div>
@@ -1401,7 +1500,7 @@ const NovaMatricula = () => {
 
                                 <div className="file-upload-box" style={{border: (!formData.doc_certificado) ? '2px dashed #cbd5e1' : '2px dashed #3b82f6', padding: '15px', borderRadius: '8px', textAlign: 'center', background: '#f8fafc'}}>
                                     <Upload size={20} color={formData.doc_certificado ? "#3b82f6" : "#64748b"} style={{marginBottom:'5px'}}/>
-                                    <input type="file" name="doc_certificado" onChange={handleFileChange} accept=".pdf, image/*" style={{width:'100%', fontSize:'12px'}} />
+                                    <input type="file" name="doc_certificado" onChange={handleFileChange} accept=".pdf,application/pdf" style={{width:'100%', fontSize:'12px'}} />
                                     {isConfirming && <p style={{fontSize: '10px', color: '#94a3b8', marginTop: '5px'}}>Anexe apenas se desejar substituir o original</p>}
                                     {formData.doc_certificado && <span style={{color: 'green', fontSize:'12px', display:'block', marginTop:'5px'}}><CheckCircle size={12} style={{display:'inline'}}/> Selecionado: {formData.doc_certificado.name}</span>}
                                 </div>

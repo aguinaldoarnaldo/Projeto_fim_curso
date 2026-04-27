@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCache } from '../context/CacheContext';
 
 export const useDataCache = (key, fetcher, autoFetch = true) => {
-    const { getCache, setCache } = useCache();
+    const { cache, getCache, setCache } = useCache();
     
     // INICIALIZAÇÃO SÍNCRONA: Lê o cache IMEDIATAMENTE
     // Isso garante que na primeira renderização os dados já estejam lá
@@ -10,6 +10,18 @@ export const useDataCache = (key, fetcher, autoFetch = true) => {
         const cached = getCache(key);
         return cached || undefined; // Retorna undefined se não houver cache para permitir valores padrão na desestruturação
     });
+
+    // Sincronização em tempo real: Se o cache for limpo externamente (clearCache), revalida imediatamente
+    useEffect(() => {
+        const cached = getCache(key);
+        if (!cached && data) {
+            // Se o cache sumiu mas ainda temos dados locais, significa que foi invalidado
+            refresh(true);
+        } else if (cached && JSON.stringify(cached) !== JSON.stringify(data)) {
+            // Se o cache mudou externamente, atualiza o estado local
+            setData(cached);
+        }
+    }, [cache, key]); // Reage a qualquer mudança no objeto cache global
 
     // Se já temos dados do cache, não estamos "carregando" visualmente
     // Mas ainda faremos o fetch em background (stale-while-revalidate)

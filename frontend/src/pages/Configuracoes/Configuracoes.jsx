@@ -51,11 +51,13 @@ import {
 } from "../../utils/permissions";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth"; // Assuming AuthContext exists
+import { useCache } from "../../context/CacheContext";
 import api, { getServerIP } from "../../services/api";
 import { parseApiError } from "../../utils/errorParser";
 import Pagination from "../../components/Common/Pagination";
 
 const Configuracoes = () => {
+  const { clearCache } = useCache();
   const { themeColor, changeColor } = useTheme();
   // Try to get auth context, fallback to mock if not available
   const auth = useAuth() || {};
@@ -617,6 +619,27 @@ const Configuracoes = () => {
 
   const handleUpdateStatus = async (isActive) => {
     if (!selectedUser) return;
+
+    // Proteção contra bloqueio do último admin (Check Front-end)
+    if (!isActive) {
+      const isAdmin = selectedUser.is_superuser || selectedUser.papel === "Admin";
+      if (isAdmin) {
+        const otherActiveAdmins = usuarios.filter(
+          (u) =>
+            u.is_active &&
+            (u.is_superuser || u.papel === "Admin") &&
+            u.id_usuario !== selectedUser.id_usuario,
+        );
+
+        if (otherActiveAdmins.length === 0) {
+          alert(
+            "Não é possível bloquear o último administrador activo com todas as permissões. Deve existir pelo menos um admin disponível.",
+          );
+          return;
+        }
+      }
+    }
+
     try {
       await api.patch(`usuarios/${selectedUser.id_usuario}/`, {
         is_active: isActive,
@@ -876,6 +899,9 @@ const Configuracoes = () => {
       });
       setShowYearForm(false);
       fetchAcademicYears();
+      clearCache('anos_lectivos'); // Trigger reactive update via Smart Cache
+      clearCache('matriculas');
+      clearCache('alunos');
     } catch (error) {
       console.error("Erro ao salvar ano lectivo:", error);
       const msg = parseApiError(error, "Erro ao salvar ano lectivo.");
@@ -943,6 +969,9 @@ const Configuracoes = () => {
         activo: true,
       });
       fetchAcademicYears(); // Refresh to see updates
+      clearCache('anos_lectivos'); // Trigger reactive update via Smart Cache
+      clearCache('matriculas');
+      clearCache('alunos');
 
       if (response.data.stats) {
         showTransitionStats(response.data.stats);
@@ -973,6 +1002,9 @@ const Configuracoes = () => {
         alert(`Ano Lectivo encerrado com sucesso.`);
       }
       fetchAcademicYears();
+      clearCache('anos_lectivos'); // Trigger reactive update via Smart Cache
+      clearCache('matriculas');
+      clearCache('alunos');
     } catch (error) {
       console.error("Erro ao encerrar ano:", error);
       const msg = parseApiError(error, "Erro ao encerrar ano lectivo.");

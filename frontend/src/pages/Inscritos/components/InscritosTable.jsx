@@ -104,7 +104,7 @@ const InscritosTable = ({
                 <span className={`status-badge ${
                   i.status === 'INSCRITO' ? 'status-pending' :
                   i.status === 'CLASSIFICADO' ? 'status-approved' :
-                  i.status === 'MATRICULADO' ? 'status-confirmed' :
+                  i.status === 'MATRICULADO' ? 'status-approved' :
                   i.status === 'LISTA_ESPERA' ? 'status-waiting' :
                   i.status === 'AUSENTE' ? 'status-analysis' : 'status-rejected'
                 }`}>

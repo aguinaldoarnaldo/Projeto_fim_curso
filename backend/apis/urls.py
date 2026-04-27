@@ -39,7 +39,7 @@ router.register(r'cargo-funcionario', CargoFuncionarioViewSet, basename='cargo-f
 
 # Alunos
 router.register(r'alunos', AlunoViewSet, basename='aluno')
-router.register(r'aluno-encarregado', AlunoEncarregadoViewSet, basename='aluno-encarregado')
+router.register(r'aluno-encarregados', AlunoEncarregadoViewSet, basename='aluno-encarregado')
 
 # Acadêmico
 router.register(r'salas', SalaViewSet, basename='sala')

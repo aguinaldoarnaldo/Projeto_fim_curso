@@ -29,3 +29,8 @@ class NotificacaoViewSet(viewsets.ModelViewSet):
     def marcar_todas_como_lida(self, request):
         Notificacao.objects.filter(lida=False).update(lida=True)
         return Response({'status': 'todas notificacoes marcadas como lida'})
+
+    @action(detail=False, methods=['delete'])
+    def eliminar_todas(self, request):
+        Notificacao.objects.all().delete()
+        return Response({'status': 'todas notificacoes eliminadas'})

@@ -14,11 +14,13 @@ import FilterModal from '../../components/Common/FilterModal';
 import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
+import { useDataCache } from '../../hooks/useDataCache';
 import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
 
 const Cursos = () => {
+    const { clearCache } = useCache();
     const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
@@ -26,15 +28,10 @@ const Cursos = () => {
         area: '',
         duracao: ''
     });
-
+    
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(23);
-
-    // State for courses
-    const [courses, setCourses] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
@@ -53,58 +50,46 @@ const Cursos = () => {
     const [areasFormacao, setAreasFormacao] = useState([]);
     const [coordenadores, setCoordenadores] = useState([]);
 
-    // Fetch courses from API
-    // Cache
-    const { getCache, setCache } = useCache();
-
-    // Fetch courses from API
-    const fetchCourses = async (force = false) => {
-        if (!force) {
-            const cachedData = getCache('cursos');
-            if (cachedData) {
-                setCourses(cachedData);
-                setLoading(false);
-                return;
-            }
+    // Fetcher for useDataCache
+    const fetchCoursesData = async () => {
+        const response = await api.get('cursos/');
+        let data = [];
+        if (Array.isArray(response.data)) {
+            data = response.data;
+        } else if (response.data && Array.isArray(response.data.results)) {
+            data = response.data.results;
         }
-
-        try {
-            // Note: We don't set loading=true here to avoid flashing UI during polling
-            const response = await api.get('cursos/');
-            
-            // Handle different response structures (pagination vs flat array)
-            let data = [];
-            if (Array.isArray(response.data)) {
-                data = response.data;
-            } else if (response.data && Array.isArray(response.data.results)) {
-                data = response.data.results;
-            } else {
-                data = [];
-            }
-            
-            const formattedCourses = data.map(c => ({
-                id: c.id_curso,
-                nome: String(c.nome_curso || 'Sem Nome'),
-                area: c.area_formacao_nome || 'N/A',
-                duracao: c.duracao ? `${c.duracao} Anos` : 'N/A',
-                totalTurmas: c.total_turmas || 0,
-                coordenador: String(c.responsavel_nome || 'Sem Coordenador'),
-                // Raw data for editing
-                raw: c
-            }));
-            setCourses(formattedCourses);
-            setCache('cursos', formattedCourses);
-            setError(null);
-            setLoading(false);
-        } catch (err) {
-            console.error('Erro ao buscar cursos:', err);
-            // Don't show error on polling failures to avoid interrupting user
-            if (loading) {
-                setError('Falha ao carregar cursos: ' + (err.response?.data?.detail || err.message));
-                setLoading(false);
-            }
-        }
+        
+        return data.map(c => ({
+            id: c.id_curso,
+            nome: String(c.nome_curso || 'Sem Nome'),
+            area: c.area_formacao_nome || 'N/A',
+            duracao: c.duracao ? `${c.duracao} Anos` : 'N/A',
+            totalTurmas: c.total_turmas || 0,
+            coordenador: String(c.responsavel_nome || 'Sem Coordenador'),
+            raw: c
+        }));
     };
+
+    const {
+        data: courses = [],
+        loading,
+        error,
+        refresh
+    } = useDataCache('cursos', fetchCoursesData);
+
+    // Polling interval standardized to 120s
+    useEffect(() => {
+        const syncIfVisible = () => {
+            if (!document.hidden) refresh(true);
+        };
+        const interval = setInterval(syncIfVisible, 30000); // 30 seconds for real-time feel
+        window.addEventListener('focus', syncIfVisible);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', syncIfVisible);
+        };
+    }, [refresh]);
 
     const handleSaveCourse = async () => {
         if (isSaving) return;
@@ -132,7 +117,7 @@ const Cursos = () => {
 
             setShowCreateModal(false);
             resetForm();
-            fetchCourses(true);
+            clearCache('cursos'); // Trigger reactive update via Smart Cache
         } catch (error) {
             console.error("Erro ao salvar curso:", error);
             const msg = parseApiError(error, "Erro ao salvar curso.");
@@ -170,8 +155,6 @@ const Cursos = () => {
 
     // Initial Fetch & Aux Data
     useEffect(() => {
-        fetchCourses(true);
-        
         // Fetch Aux Data (Areas & Coordinators)
         const fetchAuxData = async () => {
              try {
@@ -186,22 +169,6 @@ const Cursos = () => {
              }
         };
         fetchAuxData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Real-time Update (Polling Otimizado)
-    useEffect(() => {
-        const syncIfVisible = () => {
-            if (!document.hidden) {
-                fetchCourses(true);
-            }
-        };
-
-        // Polling a cada 30 segundos (apenas se visível)
-        const intervalId = setInterval(syncIfVisible, 30000); 
-
-        return () => clearInterval(intervalId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filterButtonRef = React.useRef(null);

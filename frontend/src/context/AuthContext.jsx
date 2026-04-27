@@ -2,24 +2,34 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 import { hasPermission } from '../utils/permissions';
 
+import { Clock, LogIn } from 'lucide-react';
 import { AuthContext } from './AuthContextInstance';
 
-const INACTIVITY_TIMEOUT_MS = 3 * 60 * 60 * 1000; // 3 horas
+const INACTIVITY_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutos
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [error, setError] = useState(null);
+    const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+    const [showDeactivatedModal, setShowDeactivatedModal] = useState(false);
 
     const inactivityTimerRef = useRef(null);
 
     // =========================================================================
     // LOGOUT
     // =========================================================================
-    const signOut = useCallback(async () => {
+    const signOut = useCallback(async (isTimeout = false, isDeactivated = false) => {
         clearTimeout(inactivityTimerRef.current);
-        setIsLoggingOut(true); // Mostra o loader de logout
+        
+        if (isTimeout) {
+            setShowTimeoutModal(true);
+        } else if (isDeactivated) {
+            setShowDeactivatedModal(true);
+        } else {
+            setIsLoggingOut(true); // Mostra o loader de logout apenas no manual
+        }
 
         try {
             const currentUser = JSON.parse(sessionStorage.getItem('@App:user') || 'null');
@@ -33,8 +43,10 @@ export const AuthProvider = ({ children }) => {
             console.warn('⚠️ [AuthContext] Erro ao notificar logout no backend:', err.message);
         }
 
-        // Aguarda um breve período para o loader ser visível
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        if (!isTimeout) {
+            // Aguarda um breve período para o loader ser visível no logout manual
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
 
         sessionStorage.removeItem('@App:token');
         sessionStorage.removeItem('@App:refresh');
@@ -56,7 +68,7 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.setItem('@App:lastActivity', Date.now().toString());
         clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = setTimeout(() => {
-            signOut();
+            signOut(true); // Chamada de timeout
         }, INACTIVITY_TIMEOUT_MS);
     }, [signOut]);
 
@@ -75,7 +87,7 @@ export const AuthProvider = ({ children }) => {
                     if (lastActivity) {
                         const elapsed = Date.now() - parseInt(lastActivity, 10);
                         if (elapsed >= INACTIVITY_TIMEOUT_MS) {
-                            await signOut();
+                            await signOut(true); // Notifica timeout
                             setLoading(false);
                             return;
                         }
@@ -129,6 +141,11 @@ export const AuthProvider = ({ children }) => {
             });
             const remoteUser = response.data.user || response.data;
 
+            if (remoteUser.is_active === false || remoteUser.status === 'Inactivo' || remoteUser.status === 'Banido') {
+                signOut(false, true);
+                return;
+            }
+
             const localPerms = JSON.stringify(user.permissoes || []);
             const remotePerms = JSON.stringify(remoteUser.permissoes || []);
             const changed =
@@ -144,8 +161,15 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.setItem('@App:user', JSON.stringify(remoteUser));
             }
         } catch (err) {
+            // Se falhar por 401/403, pode ser token expirado ou conta bloqueada
             if (err.response?.status === 401 || err.response?.status === 403) {
-                signOut();
+                // Tenta ver se há uma mensagem de conta bloqueada no corpo da resposta
+                const errorDetail = err.response?.data?.detail || '';
+                const isDeactivated = errorDetail.toLowerCase().includes('desativada') || 
+                                    errorDetail.toLowerCase().includes('bloqueada') ||
+                                    err.response?.data?.code === 'user_inactive';
+                
+                signOut(false, isDeactivated);
             }
         }
     }, [user, signOut]);
@@ -157,7 +181,16 @@ export const AuthProvider = ({ children }) => {
         if (!user) return;
         const syncIfVisible = () => { if (!document.hidden) syncRef.current(); };
         window.addEventListener('focus', syncIfVisible);
-        return () => window.removeEventListener('focus', syncIfVisible);
+        
+        // Sincronização periódica a cada 60 segundos
+        const interval = setInterval(() => {
+            if (!document.hidden) syncRef.current();
+        }, 60000);
+
+        return () => {
+            window.removeEventListener('focus', syncIfVisible);
+            clearInterval(interval);
+        };
     }, [user]);
 
     // =========================================================================
@@ -232,6 +265,16 @@ export const AuthProvider = ({ children }) => {
             error,
             hasPermission: (permission) => hasPermission(user, permission)
         }}>
+            {/* Estilos Globais de Animação */}
+            <style>{`
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideUp { 
+                    from { opacity: 0; transform: translateY(20px); } 
+                    to { opacity: 1; transform: translateY(0); } 
+                }
+            `}</style>
+
             {/* Loader de Logout - ecrã completo */}
             {isLoggingOut && (
                 <div style={{
@@ -241,7 +284,6 @@ export const AuthProvider = ({ children }) => {
                     alignItems: 'center', justifyContent: 'center',
                     gap: '24px', animation: 'fadeIn 0.3s ease'
                 }}>
-                    {/* Spinner */}
                     <div style={{
                         width: '72px', height: '72px',
                         border: '5px solid rgba(255,255,255,0.2)',
@@ -253,12 +295,102 @@ export const AuthProvider = ({ children }) => {
                         <p style={{ color: 'white', fontSize: '20px', fontWeight: 700, margin: 0 }}>A terminar sessão...</p>
                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', marginTop: '8px' }}>Por favor aguarde</p>
                     </div>
-                    <style>{`
-                        @keyframes spin { to { transform: rotate(360deg); } }
-                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                    `}</style>
                 </div>
             )}
+
+            {/* Modal de Timeout de Inatividade */}
+            {showTimeoutModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 100000,
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '20px', animation: 'fadeIn 0.3s ease'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px', padding: '40px',
+                        maxWidth: '450px', width: '100%', textAlign: 'center',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}>
+                        <div style={{
+                            width: '80px', height: '80px', borderRadius: '50%',
+                            background: '#fff7ed', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', margin: '0 auto 24px',
+                            color: '#f97316', border: '1px solid #ffedd5'
+                        }}>
+                            <Clock size={40} />
+                        </div>
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b', marginBottom: '12px' }}>Sessão Expirada</h2>
+                        <p style={{ color: '#64748b', fontSize: '16px', lineHeight: '1.6', marginBottom: '32px' }}>
+                            Por motivos de segurança, a sua sessão foi encerrada devido a uma inatividade superior a 20 minutos.
+                        </p>
+                        <button 
+                            onClick={() => {
+                                setShowTimeoutModal(false);
+                                window.location.href = '/login';
+                            }}
+                            style={{
+                                width: '100%', padding: '14px', borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
+                                color: 'white', fontWeight: 600, border: 'none',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                            }}
+                        >
+                            <LogIn size={20} />
+                            Voltar ao Login
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Conta Desativada */}
+            {showDeactivatedModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 100001,
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '20px', animation: 'fadeIn 0.3s ease'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px', padding: '40px',
+                        maxWidth: '450px', width: '100%', textAlign: 'center',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                        animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}>
+                        <div style={{
+                            width: '80px', height: '80px', borderRadius: '50%',
+                            background: '#fef2f2', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', margin: '0 auto 24px',
+                            color: '#ef4444', border: '2px solid #fee2e2'
+                        }}>
+                            <LogIn size={40} style={{ transform: 'rotate(180deg)' }} />
+                        </div>
+                        <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#1e293b', marginBottom: '12px' }}>Conta Desativada</h2>
+                        <p style={{ color: '#475569', fontSize: '17px', lineHeight: '1.6', marginBottom: '32px' }}>
+                            A sua conta foi desativada pelo administrador. <br />
+                            <strong>Por favor, contacte o administrador para mais informações.</strong>
+                        </p>
+                        <button 
+                            onClick={() => {
+                                setShowDeactivatedModal(false);
+                                window.location.href = '/login';
+                            }}
+                            style={{
+                                width: '100%', padding: '16px', borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                color: 'white', fontWeight: 700, border: 'none',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                            }}
+                        >
+                            <LogIn size={20} />
+                            Sair do Sistema
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {children}
         </AuthContext.Provider>
     );

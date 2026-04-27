@@ -98,7 +98,6 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
 
 
     @action(detail=False, methods=['get'])
-    @method_decorator(cache_page(60 * 10)) # Cache de 10 min para summary
     def summary(self, request):
         """Retorna contagem total de matrículas (geral) e breakdown por estado (global)"""
         from django.db.models import Count
@@ -141,7 +140,6 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
     ordering_fields = ['data_matricula', 'id_aluno__nome_completo', 'numero_matricula']
     ordering = ['-data_matricula']
 
-    @method_decorator(cache_page(60 * 5)) # Cache de 5 min para a lista
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -187,14 +185,17 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                 encarregado = None
                 nome_enc = data.get('nome_encarregado')
                 tel_enc = data.get('telefone_encarregado')
+                email_enc = data.get('email_encarregado') or None  # Converter '' em None
                 
                 if nome_enc:
                     # Tentar encontrar por BI ou telefone
-                    bi_enc = data.get('numero_bi_encarregado')
+                    bi_enc = data.get('numero_bi_encarregado') or None  # Converter '' em None
                     if bi_enc:
                         encarregado = Encarregado.objects.filter(numero_bi=bi_enc).first()
                     elif tel_enc:
                         encarregado = Encarregado.objects.filter(telefone__contains=tel_enc).first()
+                    elif email_enc:
+                        encarregado = Encarregado.objects.filter(email=email_enc).first()
                     
                     if encarregado:
                         # Atualizar dados do encarregado existente
@@ -202,12 +203,18 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                         if bi_enc: encarregado.numero_bi = bi_enc
                         if tel_enc and tel_enc not in encarregado.telefone:
                             encarregado.telefone.append(tel_enc)
+                        if email_enc:
+                            encarregado.email = email_enc
+                        elif not encarregado.email:
+                            encarregado.email = None
+
                         encarregado.profissao = data.get('profissao_encarregado')
                         encarregado.save()
                     else:
                         encarregado = Encarregado.objects.create(
                             nome_completo=nome_enc,
                             numero_bi=bi_enc,
+                            email=email_enc,
                             profissao=data.get('profissao_encarregado'),
                             telefone=[tel_enc] if tel_enc else [],
                             senha_hash='123456', 
@@ -382,7 +389,7 @@ class MatriculaViewSet(AuditMixin, viewsets.ModelViewSet):
                 
                 # 4.1 Atualizar Status do Candidato
                 if candidato:
-                    candidato.status = 'Matriculado'
+                    candidato.status = 'MATRICULADO'
                     candidato.save()
 
                 # 5. Histórico Escolar (se houver)

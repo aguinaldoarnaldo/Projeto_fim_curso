@@ -144,7 +144,7 @@ class Funcionario(BaseModel):
     
     @property
     def is_active(self):
-        return self.status_funcionario == 'Ativo'
+        return self.status_funcionario == 'Activo'
 
     def save(self, *args, **kwargs):
         # Se a senha não estiver criptografada (não começa com o prefixo padrão do Django)

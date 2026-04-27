@@ -56,22 +56,39 @@ class Aluno(BaseModel):
         return f"{self.nome_completo}"
     
     def save(self, *args, **kwargs):
-        # --- Bloqueio de estados finais (alunos congelados) ---
-        # Se o aluno já existir (pk definida) e o status anterior for um estado final,
-        # impede qualquer alteração para preservar a integridade histórica.
+        # --- Regra: Estados finais não bloqueiam dados pessoais ---
+        # Permite editar dados pessoais mesmo em estados finais, mas bloqueia alterações académicas (Turma).
         ESTADOS_FINAIS = {'Concluido', 'Transferido', 'Inativo'}
         if self.pk:
             from django.core.exceptions import ValidationError
             try:
-                estado_anterior = Aluno.objects.values_list('status_aluno', flat=True).get(pk=self.pk)
-                # Permitimos salvar se o estado estiver a ser alterado (ex: desbloqueio de Inativo -> Ativo)
-                # Caso contrário, se o estado atual for final e não estiver a mudar, bloqueia outras edições.
+                old = Aluno.objects.values('status_aluno', 'id_turma_id').get(pk=self.pk)
+                estado_anterior = old.get('status_aluno')
+                turma_anterior_id = old.get('id_turma_id')
+
+                # 1) Se o aluno estiver num estado final e o estado não estiver a mudar,
+                #    bloquear apenas mudança de turma (académico).
                 if estado_anterior in ESTADOS_FINAIS and self.status_aluno == estado_anterior:
-                    raise ValidationError(
-                        f"O aluno encontra-se com o estado '{estado_anterior}' que é um estado final. "
-                        f"Não são permitidas alterações nos dados enquanto estiver neste estado. "
-                        f"Para editar, altere primeiro o estado do aluno."
-                    )
+                    if self.id_turma_id != turma_anterior_id:
+                        raise ValidationError(
+                            f"O aluno encontra-se com o estado '{estado_anterior}'. "
+                            f"Não é permitido alterar a Turma/Dados Académicos neste estado."
+                        )
+
+                # 2) Se o ano lectivo da turma anterior estiver encerrado, também não permite mudar a turma,
+                # EXCETO se a nova turma pertencer a um ano lectivo ativo (Progressão/Confirmação).
+                if turma_anterior_id:
+                    from .academico import Turma
+                    turma_old = Turma.objects.select_related('ano_lectivo').filter(pk=turma_anterior_id).first()
+                    if turma_old and turma_old.ano_lectivo and not turma_old.ano_lectivo.activo:
+                        if self.id_turma_id != turma_anterior_id:
+                            # Verificar se a nova turma pertence a um ano ativo
+                            turma_new = Turma.objects.select_related('ano_lectivo').filter(pk=self.id_turma_id).first()
+                            if not (turma_new and turma_new.ano_lectivo and turma_new.ano_lectivo.activo):
+                                raise ValidationError(
+                                    f"O Ano Lectivo '{turma_old.ano_lectivo.nome}' está encerrado. "
+                                    f"Não é permitido alterar a Turma/Dados Académicos do aluno nesse ciclo."
+                                )
             except Aluno.DoesNotExist:
                 pass  # Novo registo, nada a validar
 

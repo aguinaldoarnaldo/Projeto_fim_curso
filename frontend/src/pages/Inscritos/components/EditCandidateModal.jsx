@@ -119,19 +119,19 @@ const EditCandidateModal = ({
                     <div className="collapse-content animate-fade-in">
                         <div className="form-grid-2">
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Nome Completo</label>
+                               <label className="evaluation-label">Nome Completo <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Nº Bilhete</label>
+                               <label className="evaluation-label">Nº Bilhete <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.bi} onChange={(e) => setFormData({...formData, bi: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Data Nascimento</label>
+                               <label className="evaluation-label">Data Nascimento <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="date" value={formData.dataNascimento} onChange={(e) => setFormData({...formData, dataNascimento: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Género</label>
+                               <label className="evaluation-label">Género <span style={{color: '#ef4444'}}>*</span></label>
                                <select value={formData.genero} onChange={(e) => setFormData({...formData, genero: e.target.value})} className="evaluation-input-small">
                                   <option value="M">Masculino</option>
                                   <option value="F">Feminino</option>
@@ -146,11 +146,11 @@ const EditCandidateModal = ({
                                <input type="text" value={formData.naturalidade} onChange={(e) => setFormData({...formData, naturalidade: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Telefone</label>
+                               <label className="evaluation-label">Telefone <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.telefone} onChange={(e) => setFormData({...formData, telefone: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Email</label>
+                               <label className="evaluation-label">Email <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
@@ -158,15 +158,15 @@ const EditCandidateModal = ({
                                <input type="text" value={formData.deficiencia} onChange={(e) => setFormData({...formData, deficiencia: e.target.value})} className="evaluation-input-small" placeholder="Não ou descreva"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Província de Residência</label>
+                               <label className="evaluation-label">Província de Residência <span style={{color: '#ef4444'}}>*</span></label>
                                 <input type="text" value={formData.provincia} onChange={(e) => setFormData({...formData, provincia: e.target.value})} className="evaluation-input-small"/>
                              </div>
                              <div className="evaluation-input-group">
-                                <label className="evaluation-label">Município de Residência</label>
+                                <label className="evaluation-label">Município de Residência <span style={{color: '#ef4444'}}>*</span></label>
                                 <input type="text" value={formData.municipio} onChange={(e) => setFormData({...formData, municipio: e.target.value})} className="evaluation-input-small"/>
                              </div>
                              <div className="evaluation-input-group">
-                                <label className="evaluation-label">Residência (Bairro/Rua)</label>
+                                <label className="evaluation-label">Residência (Bairro/Rua) <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.residencia} onChange={(e) => setFormData({...formData, residencia: e.target.value})} className="evaluation-input-small"/>
                             </div>
                         </div>
@@ -190,26 +190,26 @@ const EditCandidateModal = ({
                     <div className="collapse-content animate-fade-in">
                         <div className="form-grid-2">
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Escola Proveniência</label>
+                               <label className="evaluation-label">Escola Proveniência <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.escola_proveniencia} onChange={(e) => setFormData({...formData, escola_proveniencia: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Município Escola</label>
+                               <label className="evaluation-label">Município Escola <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.municipio_escola} onChange={(e) => setFormData({...formData, municipio_escola: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Tipo de Escola</label>
+                               <label className="evaluation-label">Tipo de Escola <span style={{color: '#ef4444'}}>*</span></label>
                                <select value={formData.tipo_escola} onChange={(e) => setFormData({...formData, tipo_escola: e.target.value})} className="evaluation-input-small">
                                   <option value="Pública">Pública</option>
                                   <option value="Privada">Privada</option>
                                </select>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Ano Conclusão</label>
+                               <label className="evaluation-label">Ano Conclusão <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="number" value={formData.ano_conclusao} onChange={(e) => setFormData({...formData, ano_conclusao: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Média Final (9ª)</label>
+                               <label className="evaluation-label">Média Final (9ª) <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="number" step="0.1" value={formData.media_final} onChange={(e) => setFormData({...formData, media_final: e.target.value})} className="evaluation-input-small"/>
                             </div>
                         </div>
@@ -233,11 +233,11 @@ const EditCandidateModal = ({
                     <div className="collapse-content animate-fade-in">
                         <div className="form-grid-2">
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Nome Encarregado</label>
+                               <label className="evaluation-label">Nome Encarregado <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.enc_nome} onChange={(e) => setFormData({...formData, enc_nome: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Parentesco</label>
+                               <label className="evaluation-label">Parentesco <span style={{color: '#ef4444'}}>*</span></label>
                                <select value={formData.enc_parentesco} onChange={(e) => setFormData({...formData, enc_parentesco: e.target.value})} className="evaluation-input-small">
                                   <option value="">Selecione...</option>
                                   <option value="Pai">Pai</option>
@@ -252,7 +252,7 @@ const EditCandidateModal = ({
                                </select>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Telefone Enc.</label>
+                               <label className="evaluation-label">Telefone Enc. <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.enc_telefone} onChange={(e) => setFormData({...formData, enc_telefone: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
@@ -260,7 +260,7 @@ const EditCandidateModal = ({
                                <input type="email" value={formData.enc_email} onChange={(e) => setFormData({...formData, enc_email: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Residência Enc.</label>
+                               <label className="evaluation-label">Residência Enc. <span style={{color: '#ef4444'}}>*</span></label>
                                <input type="text" value={formData.enc_residencia} onChange={(e) => setFormData({...formData, enc_residencia: e.target.value})} className="evaluation-input-small"/>
                             </div>
                         </div>
@@ -328,7 +328,7 @@ const EditCandidateModal = ({
                                <input type="number" value={formData.notaExame} onChange={(e) => setFormData({...formData, notaExame: e.target.value})} className="evaluation-input-small"/>
                             </div>
                             <div className="evaluation-input-group">
-                               <label className="evaluation-label">Estado da Candidatura</label>
+                               <label className="evaluation-label">Estado da Candidatura <span style={{color: '#ef4444'}}>*</span></label>
                                <select 
                                   value={formData.status}
                                   onChange={(e) => setFormData({...formData, status: e.target.value})}

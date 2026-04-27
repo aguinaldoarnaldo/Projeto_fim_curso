@@ -133,15 +133,22 @@ class UsuarioSerializer(serializers.ModelSerializer):
              
         img_path = self.initial_data.get('img_path', None)
         
-        Usuario.objects.create(
+        profile = Usuario.objects.create(
             user=user,
             email=user.email,
             nome_completo=user.get_full_name(),
             cargo=cargo,
             papel=papel,
+            is_active=user.is_active,
+            is_superuser=user.is_superuser,
             permissoes=permissoes,
             img_path=img_path
         )
+        
+        # Sincronizar com Funcionário se existir (embora no create geralmente ainda não exista)
+        if hasattr(profile, 'funcionario_perfil') and profile.funcionario_perfil:
+            profile.funcionario_perfil.status_funcionario = 'Activo' if profile.is_active else 'Inactivo'
+            profile.funcionario_perfil.save()
             
         return user
 
@@ -168,6 +175,11 @@ class UsuarioSerializer(serializers.ModelSerializer):
             else:
                 instance.is_superuser = False
 
+        # Sincronizar is_active
+        is_active = validated_data.get('is_active')
+        if is_active is not None:
+            instance.is_active = is_active
+
         if senha:
             instance.set_password(senha)
             
@@ -181,6 +193,14 @@ class UsuarioSerializer(serializers.ModelSerializer):
         
         if papel:
              profile.papel = papel
+             profile.is_superuser = (papel == 'Admin')
+        
+        if is_active is not None:
+             profile.is_active = is_active
+             # Sincronizar com o perfil de funcionário se existir
+             if hasattr(profile, 'funcionario_perfil') and profile.funcionario_perfil:
+                 profile.funcionario_perfil.status_funcionario = 'Activo' if is_active else 'Inactivo'
+                 profile.funcionario_perfil.save()
              
         # Tentar pegar permissões do root (devido ao tratamento em to_internal_value)
         # Se vier como string JSON no initial_data, o to_internal_value já deve ter colocado no local certo,
@@ -281,19 +301,35 @@ class FuncionarioListSerializer(serializers.ModelSerializer):
 
 class EncarregadoSerializer(serializers.ModelSerializer):
     """Serializer para Encarregado"""
-    
+
     class Meta:
         model = Encarregado
         fields = [
-            'id_encarregado', 'nome_completo', 'email', 'telefone',
+            'id_encarregado', 'nome_completo', 'numero_bi', 'profissao',
+            'email', 'telefone',
             'provincia_residencia', 'municipio_residencia', 'bairro_residencia',
             'numero_casa', 'senha_hash', 'img_path', 'is_online',
             'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['id_encarregado', 'criado_em', 'atualizado_em']
         extra_kwargs = {
-            'senha_hash': {'write_only': True, 'required': False}
+            'senha_hash': {'write_only': True, 'required': False},
+            'email': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'numero_bi': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'profissao': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
+
+    def validate_email(self, value):
+        """Converte string vazia para None — evita UniqueConstraint com emails em branco"""
+        if not value or str(value).strip() == '':
+            return None
+        return value
+
+    def validate_numero_bi(self, value):
+        """Converte string vazia para None — evita UniqueConstraint com BI em branco"""
+        if not value or str(value).strip() == '':
+            return None
+        return value
 
 
 class EncarregadoListSerializer(serializers.ModelSerializer):

@@ -222,6 +222,15 @@ class IsActiveYearOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
+        # EXCEÇÃO: Para Aluno, permitimos edição mesmo em ano encerrado.
+        # O bloqueio de dados académicos (ex.: mudança de turma) é tratado no modelo/view.
+        try:
+            from ..models import Aluno
+            if isinstance(obj, Aluno):
+                return True
+        except Exception:
+            pass
+
         # 2. Verifica se o objeto tem relação com 'ano_lectivo'
         # Hierarquia de verificação:
         # A. Directo (ano_lectivo)

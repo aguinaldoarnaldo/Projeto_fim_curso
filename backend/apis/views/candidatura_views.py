@@ -135,6 +135,23 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
                         'erro': 'Candidatura já existe.',
                         'detalhe': f'O BI {numero_bi} já possui uma candidatura neste Ano Lectivo ({target_year.nome}).'
                     }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            telefone = request.data.get('telefone')
+            if telefone and target_year:
+                if Candidato.objects.filter(telefone=telefone, ano_lectivo=target_year).exists():
+                    return Response({
+                        'erro': 'Telefone já em uso.',
+                        'detalhe': f'O número de telefone {telefone} já está associado a uma candidatura neste Ano Lectivo.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            email = request.data.get('email')
+            if email and target_year:
+                # Só validamos se o email não estiver vazio (já que é opcional no modelo)
+                if Candidato.objects.filter(email=email, ano_lectivo=target_year).exists():
+                    return Response({
+                        'erro': 'Email já em uso.',
+                        'detalhe': f'O email {email} já está associado a uma candidatura neste Ano Lectivo.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
             serializer = self.get_serializer(data=request.data)
             if not serializer.is_valid():
@@ -146,6 +163,34 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
             import traceback
             traceback.print_exc()
             return Response({'erro_interno': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if not serializer.is_valid():
+            print("PATCH ERRORS:", serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Unique check for telefone and email (ignoring the current instance)
+        telefone = request.data.get('telefone')
+        email = request.data.get('email')
+        target_year = instance.ano_lectivo
+
+        if telefone and Candidato.objects.filter(telefone=telefone, ano_lectivo=target_year).exclude(pk=instance.pk).exists():
+            return Response({
+                'erro': 'Telefone já em uso.',
+                'detalhe': f'O número de telefone {telefone} já está associado a uma candidatura neste Ano Lectivo.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if email and Candidato.objects.filter(email=email, ano_lectivo=target_year).exclude(pk=instance.pk).exists():
+            return Response({
+                'erro': 'Email já em uso.',
+                'detalhe': f'O email {email} já está associado a uma candidatura neste Ano Lectivo.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
     def download_comprovativo(self, request, pk=None):
@@ -620,7 +665,14 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
                 if not encarregado:
                     encarregado = Encarregado.objects.filter(telefone__contains=candidato.telefone_encarregado).first()
                 
-                if not encarregado:
+                if encarregado:
+                    # Sync data if existing
+                    if candidato.email_encarregado and not encarregado.email:
+                        encarregado.email = candidato.email_encarregado
+                    if candidato.profissao_encarregado and not encarregado.profissao:
+                        encarregado.profissao = candidato.profissao_encarregado
+                    encarregado.save()
+                else:
                     encarregado = Encarregado.objects.create(
                         nome_completo=candidato.nome_encarregado,
                         numero_bi=candidato.numero_bi_encarregado,
@@ -648,6 +700,9 @@ class CandidaturaViewSet(AuditMixin, viewsets.ModelViewSet):
                         data_nascimento=candidato.data_nascimento,
                         genero=candidato.genero,
                         numero_bi=candidato.numero_bi,
+                        nacionalidade=candidato.nacionalidade or 'Angolana',
+                        naturalidade=candidato.naturalidade,
+                        deficiencia=candidato.deficiencia or 'Não',
                         email=candidato.email,
                         telefone=candidato.telefone,
                         provincia_residencia=candidato.provincia or 'Huíla', 

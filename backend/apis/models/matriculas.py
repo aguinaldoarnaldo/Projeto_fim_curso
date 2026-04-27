@@ -65,7 +65,13 @@ class Matricula(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_MATRICULA, default='Novo', verbose_name='Tipo de Matrícula')
     status = models.CharField(max_length=20, choices=STATUS_MATRICULA, default='Ativa', verbose_name='Estado')
     ativo = models.BooleanField(default=True, verbose_name='Ativo') # Mantendo para retrocompatibilidade
-    numero_matricula = models.BigIntegerField(unique=True, null=True, blank=True, verbose_name='Número de Matrícula')
+    numero_matricula = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name='Número de Matrícula'
+    )
 
     
     doc_certificado = models.FileField(
@@ -146,23 +152,9 @@ class Matricula(models.Model):
         if self.tipo == 'Confirmacao':
             self.status = 'Ativa'
 
-        # Gerar número de matrícula se não existir
+        # Gerar número de matrícula se não existir (ex: 0038IN21AG)
         if not self.numero_matricula:
-            import datetime
-            year = datetime.datetime.now().year
-            start_range = year * 10000
-            end_range = (year + 1) * 10000
-            
-            # Pegar o último número do ano atual para evitar conflitos
-            last = Matricula.objects.filter(
-                numero_matricula__gte=start_range,
-                numero_matricula__lt=end_range
-            ).order_by('-numero_matricula').first()
-            
-            if last and last.numero_matricula:
-                self.numero_matricula = last.numero_matricula + 1
-            else:
-                self.numero_matricula = start_range + 1
+            self.numero_matricula = self._generate_numero_matricula()
 
         self.clean()
         
@@ -238,6 +230,102 @@ class Matricula(models.Model):
                 Candidato.objects.filter(numero_bi=self.id_aluno.numero_bi, status='Aprovado').update(status='Matriculado')
             except ImportError:
                 pass # Avoid issues if candidacy app isn't ready
+
+    @staticmethod
+    def _only_alpha_upper(value: str) -> str:
+        if not value:
+            return ''
+        import unicodedata
+        normalized = unicodedata.normalize('NFKD', str(value))
+        ascii_str = ''.join(ch for ch in normalized if not unicodedata.combining(ch))
+        return ''.join(ch for ch in ascii_str.upper() if 'A' <= ch <= 'Z')
+
+    @staticmethod
+    def _get_curso_sigla_from_turma(turma: Turma) -> str:
+        # Mantém a mesma lógica usada para gerar codigo_turma (2 letras do nome do curso)
+        try:
+            nome = turma.id_curso.nome_curso if turma and turma.id_curso else ''
+        except Exception:
+            nome = ''
+        sigla = Matricula._only_alpha_upper(nome)[:2]
+        return sigla or 'XX'
+
+    @staticmethod
+    def _get_ano_suffix(ano_lectivo: AnoLectivo) -> str:
+        # AnoLectivo.nome costuma ser "2025/2026" → "25"
+        import re
+        nome = getattr(ano_lectivo, 'nome', '') or ''
+        years = re.findall(r'(\d{4})', nome)
+        if years:
+            return years[0][-2:]
+        return Matricula._only_alpha_upper(nome)[-2:] or '00'
+
+    @staticmethod
+    def _get_iniciais_aluno(nome_completo: str) -> str:
+        parts = [p for p in str(nome_completo or '').strip().split() if p.strip()]
+        if not parts:
+            return 'XX'
+        first = Matricula._only_alpha_upper(parts[0])[:1] or 'X'
+        last = Matricula._only_alpha_upper(parts[-1])[:1] or 'X'
+        return f"{first}{last}"
+
+    def _next_sequencia(self) -> int:
+        """
+        Sequência GLOBAL de 4 dígitos (não reseta por ano).
+        Ex.: 0001IN25GJ → 0001, 0002IN25AG → 0002, 0003IN26AC → 0003.
+
+        IMPORTANTE: ignora valores legados numéricos (ex.: "20270001") que podem ter sido
+        copiados de versões antigas, para não “pular” para 2027.
+        """
+        import re
+
+        # Padrão esperado: 4 dígitos + 2 letras + 2 dígitos + 2 letras
+        # Ex.: 0001IN25GJ
+        pattern = re.compile(r'^(\d{4})[A-Z]{2}\d{2}[A-Z]{2}$')
+
+        qs = Matricula.objects.exclude(pk=self.pk).values_list('numero_matricula', flat=True)
+
+        max_seq = 0
+        for num in qs:
+            if not num:
+                continue
+            m = pattern.match(str(num))
+            if m:
+                try:
+                    prefix = int(m.group(1))
+                    # Se o prefixo parecer um ano (ex.: 2027), ignorar (legado/geração antiga)
+                    if prefix >= 2000:
+                        continue
+                    max_seq = max(max_seq, prefix)
+                except ValueError:
+                    continue
+        return max_seq + 1
+
+    def _generate_numero_matricula(self) -> str:
+        from django.db import IntegrityError, transaction
+
+        curso_sigla = self._get_curso_sigla_from_turma(self.id_turma)
+        ano_suffix = self._get_ano_suffix(self.ano_lectivo)
+        iniciais = self._get_iniciais_aluno(self.id_aluno.nome_completo if self.id_aluno else '')
+
+        # Evitar colisões em concorrência: tentar algumas vezes
+        for _ in range(5):
+            seq = self._next_sequencia()
+            candidate = f"{seq:04d}{curso_sigla}{ano_suffix}{iniciais}"
+            if not Matricula.objects.filter(numero_matricula=candidate).exists():
+                return candidate
+
+            # Se já existir, força incremento e tenta novamente
+            try:
+                with transaction.atomic():
+                    if not Matricula.objects.select_for_update().filter(numero_matricula=candidate).exists():
+                        return candidate
+            except IntegrityError:
+                continue
+
+        # Fallback final (deve ser raríssimo)
+        import uuid
+        return f"{self._next_sequencia():04d}{curso_sigla}{ano_suffix}{iniciais}{uuid.uuid4().hex[:2].upper()}"
 
 
     def delete(self, *args, **kwargs):

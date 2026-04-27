@@ -115,6 +115,7 @@ const CandidateDetailModal = ({
                     <div className="section-title"><User size={18} /> Dados Pessoais</div>
                     <div className="info-grid-2">
                           <div><p className="info-label">Nome Completo</p><p className="info-value">{candidate.nome}</p></div>
+                          <div><p className="info-label">Data de Inscrição</p><p className="info-value">{candidate.dataInscricao}</p></div>
                           <div><p className="info-label">Género</p><p className="info-value">{candidate.genero}</p></div>
                           <div><p className="info-label">Nascimento</p><p className="info-value">{candidate.dataNascimento} ({calculateAge(candidate.dataNascimento)} anos)</p></div>
                           <div><p className="info-label">Nacionalidade</p><p className="info-value">{candidate.nacionalidade}</p></div>

@@ -45,11 +45,13 @@ import api from '../../services/api';
 import { parseApiError } from '../../utils/errorParser';
 
 import { useDataCache } from '../../hooks/useDataCache';
+import { useCache } from '../../context/CacheContext';
 import { usePermission } from '../../hooks/usePermission';
 import { PERMISSIONS } from '../../utils/permissions';
 
 const Alunos = () => {
     const navigate = useNavigate();
+    const { clearCache } = useCache();
     const { hasPermission } = usePermission();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
@@ -211,6 +213,7 @@ const Alunos = () => {
         return {
             id: student.id_aluno,
             matricula: student.numero_matricula,
+            real_id: (student.matriculas_detalhes && student.matriculas_detalhes.length > 0) ? student.matriculas_detalhes[0].id_matricula : null,
             nome: student.nome_completo,
             foto: student.img_path,
             anoLectivo: isMatriculado ? (student.ano_lectivo || 'N/A') : 'Não Matriculado',
@@ -224,9 +227,10 @@ const Alunos = () => {
             sugeridoTipo: null,
             dataMatricula: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
             genero: student.genero || 'N/A',
+            dataCadastro: student.criado_em ? new Date(student.criado_em).toLocaleDateString() : 'N/A',
             detalhes: {
                 nascimento: student.data_nascimento || 'N/A',
-                encarregado: student.encarregado_principal,
+                encarregado: student.encarregado_principal || (student.encarregados && student.encarregados.length > 0 ? student.encarregados[0] : null),
                 telefone: student.telefone || 'N/A',
                 email: student.email,
                 endereco: `${student.municipio_residencia || ''}, ${student.provincia_residencia || ''}`,
@@ -259,14 +263,13 @@ const Alunos = () => {
         }
     };
 
-    // USE DATA CACHE HOOK - Atualizado para v3 para forçar atualização após migração de matrícula
     const { 
         data: students = [], 
         loading, 
         error,
         refresh,
         update: updateStudent
-    } = useDataCache('alunos_v3', fetchStudentsData);
+    } = useDataCache('alunos', fetchStudentsData);
 
     // Polling Inteligente para atualizações em tempo real (Silent Refresh)
     useEffect(() => {
@@ -276,7 +279,7 @@ const Alunos = () => {
             }
         };
 
-        const interval = setInterval(syncIfVisible, 180000); // 3 minutos devido ao volume de dados
+        const interval = setInterval(syncIfVisible, 30000); // 30 segundos para tempo real (Smart Cache)
         
         window.addEventListener('focus', syncIfVisible);
 
@@ -365,14 +368,14 @@ const Alunos = () => {
             bairro: student.detalhes.bairro !== 'N/A' ? student.detalhes.bairro : '',
             numero_casa: student.detalhes.numeroCasa !== 'N/A' ? student.detalhes.numeroCasa : '',
             foto: student.foto,
-            // Dados do Encarregado
-            encarregado_id: student.detalhes.encarregado?.id || null,
-            encarregado_nome: student.detalhes.encarregado?.nome || '',
+            // Dados do Encarregado (Suporta formatos de lista e detalhe unificados)
+            encarregado_id: student.detalhes.encarregado?.id_encarregado || student.detalhes.encarregado?.id || null,
+            encarregado_nome: student.detalhes.encarregado?.nome_completo || student.detalhes.encarregado?.nome || '',
             encarregado_telefone: student.detalhes.encarregado?.telefone || '',
             encarregado_email: student.detalhes.encarregado?.email || '',
             encarregado_bi: student.detalhes.encarregado?.numero_bi || '',
             encarregado_profissao: student.detalhes.encarregado?.profissao || '',
-            encarregado_parentesco: student.detalhes.encarregado?.parentesco || ''
+            encarregado_parentesco: student.detalhes.encarregado?.grau_parentesco || student.detalhes.encarregado?.parentesco || ''
         });
         setShowEditModal(true);
     };
@@ -425,8 +428,7 @@ const Alunos = () => {
                 setEditPersonalData(null);
                 alert(`Dados pessoais de ${updatedStudent.nome} actualizados com sucesso!`);
                 
-                // Silent refresh opcional para garantir consistência total
-                refresh(true);
+                clearCache('alunos'); // Trigger reactive update via Smart Cache
             }
         } catch (err) {
             console.error('Erro ao salvar dados pessoais:', err);
@@ -471,6 +473,29 @@ const Alunos = () => {
         setShowModal(true);
     };
 
+    const handleGuardianBiBlur = async () => {
+        if (formData.enc_bi && formData.enc_bi.length > 5) {
+            try {
+                // Procurar encarregado pelo BI
+                const res = await api.get(`encarregados/?search=${formData.enc_bi}`);
+                const encs = res.data.results || res.data;
+                const found = encs.find(e => e.numero_bi === formData.enc_bi);
+                
+                if (found) {
+                    setFormData(prev => ({
+                        ...prev,
+                        enc_nome: found.nome_completo || found.nome || prev.enc_nome,
+                        enc_telefone: found.telefone?.[0] || found.telefone || prev.enc_telefone,
+                        enc_email: found.email || prev.enc_email,
+                        enc_profissao: found.profissao || prev.enc_profissao
+                    }));
+                }
+            } catch (err) {
+                console.log("Encarregado não encontrado ou erro na busca:", err);
+            }
+        }
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         try {
@@ -497,36 +522,24 @@ const Alunos = () => {
             fd.append('status_aluno', formData.status || 'Ativo');
             if (formData.foto instanceof File) fd.append('img_path', formData.foto);
 
-            let alunoId = null;
+            // Enviar dados do encarregado junto com o aluno (o backend trata tudo atomicamente)
+            if (formData.enc_nome) {
+                fd.append('enc_nome', formData.enc_nome);
+                if (formData.enc_bi) fd.append('enc_bi', formData.enc_bi);
+                if (formData.enc_telefone) fd.append('enc_telefone', formData.enc_telefone);
+                if (formData.enc_email) fd.append('enc_email', formData.enc_email);
+                if (formData.enc_profissao) fd.append('enc_profissao', formData.enc_profissao);
+                fd.append('enc_parentesco', formData.enc_parentesco || 'Pai');
+            }
+
             if (modalMode === 'add') {
                 const res = await api.post('alunos/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                alunoId = res.data?.id_aluno || res.data?.id;
 
-                // Criar encarregado se nome fornecido
-                if (formData.enc_nome && alunoId) {
-                    try {
-                        const encPayload = {
-                            nome_completo: formData.enc_nome,
-                            numero_bi: formData.enc_bi || '',
-                            telefone: formData.enc_telefone ? [formData.enc_telefone] : [],
-                            email: formData.enc_email || '',
-                            profissao: formData.enc_profissao || '',
-                            senha_hash: formData.enc_bi || '123456',
-                        };
-                        const encRes = await api.post('encarregados/', encPayload);
-                        const encId = encRes.data?.id_encarregado || encRes.data?.id;
-                        if (encId) {
-                            await api.post('aluno-encarregados/', {
-                                id_aluno: alunoId,
-                                id_encarregado: encId,
-                                grau_parentesco: formData.enc_parentesco || 'Pai'
-                            });
-                        }
-                    } catch (encErr) {
-                        console.warn('Encarregado não foi criado:', encErr);
-                    }
+                if (res.data?.encarregado_criado) {
+                    alert(`✅ Aluno registrado com sucesso!\n\n👤 Encarregado "${res.data.encarregado_nome}" vinculado automaticamente.`);
+                } else {
+                    alert("✅ Aluno registrado com sucesso!");
                 }
-                alert("Aluno registrado com sucesso!");
             } else {
                 await api.patch(`alunos/${selectedStudentId}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
                 alert("Dados do aluno atualizados com sucesso!");
@@ -534,7 +547,7 @@ const Alunos = () => {
 
             setShowModal(false);
             setFotoPreview(null);
-            refresh(true);
+            clearCache('alunos'); // Trigger reactive update via Smart Cache
         } catch (err) {
             console.error("Erro ao salvar aluno:", err);
             const msg = parseApiError(err, "Erro ao salvar aluno.");
@@ -1104,6 +1117,7 @@ const Alunos = () => {
                                     </h3>
                                     <div className="info-grid-2">
                                         <div style={{ gridColumn: 'span 2' }}><p className="info-label">Nome Completo</p><p className="info-value">{selectedStudent.nome}</p></div>
+                                        <div><p className="info-label">Data de Cadastro</p><p className="info-value">{selectedStudent.dataCadastro}</p></div>
                                         <div><p className="info-label">Género</p><p className="info-value">{selectedStudent.genero === 'M' ? 'Masculino' : selectedStudent.genero === 'F' ? 'Feminino' : (selectedStudent.genero || 'N/A')}</p></div>
                                         <div><p className="info-label">Data de Nascimento</p><p className="info-value">{selectedStudent.detalhes.nascimento}</p></div>
                                         <div><p className="info-label">Bilhete de Identidade</p><p className="info-value" style={{ fontFamily: 'monospace' }}>{selectedStudent.detalhes.bi || 'N/A'}</p></div>
@@ -1214,6 +1228,7 @@ const Alunos = () => {
                                                 <div><p className="info-label">Classe</p><p className="info-value">{h.classe_nome}</p></div>
                                                 <div><p className="info-label">Turno</p><p className="info-value">{h.periodo_nome}</p></div>
                                                 <div><p className="info-label">Tipo de Matrícula</p><p className="info-value" style={{color: 'var(--primary-color)', fontWeight: 700}}>{getTipoMatriculaLabel(h.tipo)}</p></div>
+                                                <div><p className="info-label">{h.tipo === 'Confirmacao' ? 'Data da Confirmação' : 'Data da Matrícula'}</p><p className="info-value">{h.data_matricula ? new Date(h.data_matricula).toLocaleDateString() : (h.criado_em ? new Date(h.criado_em).toLocaleDateString() : 'N/A')}</p></div>
                                                 <div><p className="info-label">Estado no Ano</p>
                                                     <span className="student-status-badge" style={{
                                                         background: getStatusStyle(h.status).bg,
@@ -1286,7 +1301,7 @@ const Alunos = () => {
                                             <p className="info-label">Encarregado Principal</p>
                                             <p className="info-value" style={{ fontSize: '15px' }}>
                                                 {selectedStudent.detalhes?.encarregado && typeof selectedStudent.detalhes.encarregado === 'object'
-                                                    ? (selectedStudent.detalhes.encarregado.nome || 'N/A')
+                                                    ? (selectedStudent.detalhes.encarregado.nome_completo || selectedStudent.detalhes.encarregado.nome || 'N/A')
                                                     : (selectedStudent.detalhes.encarregado || 'N/A')}
                                             </p>
                                         </div>
@@ -1355,7 +1370,7 @@ const Alunos = () => {
                                 {/* Campos */}
                                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                                     <div style={{ gridColumn: 'span 3' }}>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Nome Completo <span style={{color: '#ef4444'}}>*</span></label>
                                         <input type="text" value={editPersonalData.nome_completo} onChange={e => setEditPersonalData(p => ({ ...p, nome_completo: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} placeholder="Nome completo do aluno" />
                                     </div>
                                     <div>
@@ -1568,25 +1583,25 @@ const Alunos = () => {
                                 {/* Coluna Campos */}
                                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
                                     <div style={{ gridColumn: 'span 3' }}>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nome Completo *</label>
-                                        <input type="text" value={formData.nome} onChange={e => setFormData(p => ({ ...p, nome: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} placeholder="Nome do Aluno" />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nome Completo <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="text" value={formData.nome} onChange={e => setFormData(p => ({ ...p, nome: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} placeholder="Nome do Aluno" />
                                     </div>
 
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Data de Nascimento</label>
-                                        <input type="date" value={formData.data_nascimento} onChange={e => setFormData(p => ({ ...p, data_nascimento: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Data de Nascimento <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="date" value={formData.data_nascimento} onChange={e => setFormData(p => ({ ...p, data_nascimento: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Gênero</label>
-                                        <select value={formData.genero} onChange={e => setFormData(p => ({ ...p, genero: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Gênero <span style={{color: '#ef4444'}}>*</span></label>
+                                        <select value={formData.genero} onChange={e => setFormData(p => ({ ...p, genero: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: 'white' }}>
                                             <option value="">Selecione...</option>
                                             <option value="M">Masculino</option>
                                             <option value="F">Feminino</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nº BI *</label>
-                                        <input type="text" value={formData.bi} onChange={e => setFormData(p => ({ ...p, bi: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none' }} placeholder="000000000LA000" />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Nº BI <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="text" value={formData.bi} onChange={e => setFormData(p => ({ ...p, bi: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none' }} placeholder="000000000LA000" />
                                     </div>
 
                                     <div>
@@ -1606,27 +1621,27 @@ const Alunos = () => {
                                     </div>
 
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email</label>
-                                        <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="exemplo@email.com" />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Email <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="exemplo@email.com" />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Telefone</label>
-                                        <input type="text" value={formData.telefone} onChange={e => setFormData(p => ({ ...p, telefone: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="9XXXXXXXX" />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Telefone <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="text" value={formData.telefone} onChange={e => setFormData(p => ({ ...p, telefone: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="9XXXXXXXX" />
                                     </div>
 
                                     <div style={{ gridColumn: 'span 3', borderTop: '1px dashed #e2e8f0', margin: '2px 0' }}></div>
 
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Província</label>
-                                        <input type="text" value={formData.provincia} onChange={e => setFormData(p => ({ ...p, provincia: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Huíla" />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Província <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="text" value={formData.provincia} onChange={e => setFormData(p => ({ ...p, provincia: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Huíla" />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Município</label>
-                                        <input type="text" value={formData.municipio} onChange={e => setFormData(p => ({ ...p, municipio: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Lubango" />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Município <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="text" value={formData.municipio} onChange={e => setFormData(p => ({ ...p, municipio: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Lubango" />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Bairro</label>
-                                        <input type="text" value={formData.bairro} onChange={e => setFormData(p => ({ ...p, bairro: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Bairro..." />
+                                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Bairro <span style={{color: '#ef4444'}}>*</span></label>
+                                        <input type="text" value={formData.bairro} onChange={e => setFormData(p => ({ ...p, bairro: e.target.value }))} required style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', outline: 'none' }} placeholder="Bairro..." />
                                     </div>
                                 </div>
                             </div>
@@ -1655,7 +1670,14 @@ const Alunos = () => {
                                     </div>
                                     <div>
                                         <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>BI do Encarregado</label>
-                                        <input type="text" value={formData.enc_bi} onChange={e => setFormData(p => ({ ...p, enc_bi: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', background: 'white' }} placeholder="000000000LA000" />
+                                        <input 
+                                            type="text" 
+                                            value={formData.enc_bi} 
+                                            onChange={e => setFormData(p => ({ ...p, enc_bi: e.target.value }))} 
+                                            onBlur={handleGuardianBiBlur}
+                                            style={{ width: '100%', padding: '10px 14px', border: '1px solid #bae6fd', borderRadius: '10px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', background: 'white' }} 
+                                            placeholder="000000000LA000" 
+                                        />
                                     </div>
                                     <div>
                                         <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Telefone</label>
@@ -1737,8 +1759,8 @@ const Alunos = () => {
                             <button 
                                 onClick={() => { handleEdit(menuStudent); setActiveMenuId(null); }}
                                 className="dropdown-item-btn"
-                                disabled={menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo'}
-                                style={(menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo') ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                                // Edição de dados pessoais é permitida mesmo com Ano Lectivo encerrado.
+                                // O backend bloqueia apenas alterações académicas (ex.: mudança de Turma).
                             >
                                 <div style={{ color: '#64748b' }}><Edit size={16} /></div>
                                 Editar Aluno
@@ -1765,9 +1787,9 @@ const Alunos = () => {
                         {hasPermission(PERMISSIONS.EDIT_ALUNO) && (
                             <div 
                                 className="submenu-trigger"
-                                onMouseEnter={(menuStudent.anoLectivoAtivo !== false || !menuStudent.matricula || menuStudent.status === 'Ativo') ? handleStatusEnter : undefined}
-                                onMouseLeave={(menuStudent.anoLectivoAtivo !== false || !menuStudent.matricula || menuStudent.status === 'Ativo') ? handleStatusLeave : undefined}
-                                style={(menuStudent.anoLectivoAtivo === false && !!menuStudent.matricula && menuStudent.status !== 'Ativo') ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+                                // Alterar Estado também deve ser permitido (mesmo em ano encerrado).
+                                onMouseEnter={handleStatusEnter}
+                                onMouseLeave={handleStatusLeave}
                             >
                                 <button 
                                     className={`trigger-btn ${showStatusSubmenu ? 'active' : ''}`}

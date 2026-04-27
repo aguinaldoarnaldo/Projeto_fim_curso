@@ -24,7 +24,7 @@ class SalaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Sala
-        fields = ['id_sala', 'numero_sala', 'capacidade_alunos', 'bloco', 'total_alunos', 'ocupacao_detalhada', 'criado_em', 'atualizado_em']
+        fields = ['id_sala', 'numero_sala', 'capacidade_alunos', 'bloco', 'tipo', 'total_alunos', 'ocupacao_detalhada', 'criado_em', 'atualizado_em']
         read_only_fields = ['id_sala', 'criado_em', 'atualizado_em']
         
     def get_total_alunos(self, obj):

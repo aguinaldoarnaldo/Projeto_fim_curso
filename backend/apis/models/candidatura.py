@@ -150,6 +150,14 @@ class Candidato(BaseModel):
             models.UniqueConstraint(
                 fields=['numero_bi', 'ano_lectivo'],
                 name='unique_bi_por_ano_lectivo'
+            ),
+            models.UniqueConstraint(
+                fields=['email', 'ano_lectivo'],
+                name='unique_email_por_ano_lectivo'
+            ),
+            models.UniqueConstraint(
+                fields=['telefone', 'ano_lectivo'],
+                name='unique_telefone_por_ano_lectivo'
             )
         ]
 

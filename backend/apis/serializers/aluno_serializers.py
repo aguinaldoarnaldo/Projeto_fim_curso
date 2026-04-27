@@ -14,12 +14,23 @@ class AlunoSerializer(serializers.ModelSerializer):
             'id_aluno', 'numero_bi', 'nome_completo', 'email', 'numero_matricula',
             'telefone', 'provincia_residencia', 'municipio_residencia',
             'bairro_residencia', 'numero_casa', 'senha_hash', 'genero', 'data_nascimento',
+            'nacionalidade', 'naturalidade', 'deficiencia',
             'status_aluno', 'modo_user', 'id_turma', 'turma_codigo',
             'img_path', 'is_online', 'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['id_aluno', 'criado_em', 'atualizado_em']
         extra_kwargs = {
-            'senha_hash': {'write_only': True}
+            'senha_hash': {'write_only': True, 'required': False},
+            'email': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'telefone': {'required': False, 'allow_blank': True},
+            'naturalidade': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'nacionalidade': {'required': False, 'allow_blank': True},
+            'deficiencia': {'required': False},
+            'id_turma': {'required': False, 'allow_null': True},
+            'provincia_residencia': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'municipio_residencia': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'bairro_residencia': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'numero_casa': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
     
     def get_numero_matricula(self, obj):
@@ -138,20 +149,22 @@ class AlunoListSerializer(serializers.ModelSerializer):
 
         if first and first.id_encarregado:
             e = first.id_encarregado
+            # Handle phone list vs string
             telefone = e.telefone
             tel_str = ''
             if isinstance(telefone, list):
                 tel_str = telefone[0] if telefone else ''
             elif isinstance(telefone, str):
                 tel_str = telefone
+                
             return {
-                'id': e.id_encarregado,
-                'nome': e.nome_completo,
+                'id_encarregado': e.id_encarregado,
+                'nome_completo': e.nome_completo,
                 'telefone': tel_str,
                 'email': e.email or '',
                 'numero_bi': e.numero_bi or '',
                 'profissao': e.profissao or '',
-                'parentesco': first.grau_parentesco or '',
+                'grau_parentesco': first.grau_parentesco or '',
             }
         return None
 
@@ -208,6 +221,7 @@ class AlunoDetailSerializer(serializers.ModelSerializer):
             'id_aluno', 'numero_bi', 'nome_completo', 'email', 'numero_matricula',
             'telefone', 'provincia_residencia', 'municipio_residencia',
             'bairro_residencia', 'numero_casa', 'genero', 'data_nascimento', 'status_aluno',
+            'nacionalidade', 'naturalidade', 'deficiencia',
             'modo_user', 'id_turma', 'turma_codigo', 'img_path', 'is_online',
             'encarregados', 'historico_escolar', 'matriculas_detalhes', 
             'criado_em', 'atualizado_em', 'ano_lectivo_ativo'
@@ -244,12 +258,22 @@ class AlunoDetailSerializer(serializers.ModelSerializer):
         data = []
         for ae in aluno_encarregados:
             e = ae.id_encarregado
+            # Handle phone list vs string
+            telefone = e.telefone
+            tel_str = ''
+            if isinstance(telefone, list):
+                tel_str = telefone[0] if telefone else ''
+            elif isinstance(telefone, str):
+                tel_str = telefone
+
             data.append({
                 'id_encarregado': e.id_encarregado,
                 'nome_completo': e.nome_completo,
-                'email': e.email,
-                'telefone': e.telefone,
-                'grau_parentesco': ae.grau_parentesco
+                'email': e.email or '',
+                'telefone': tel_str,
+                'numero_bi': e.numero_bi or '',
+                'profissao': e.profissao or '',
+                'grau_parentesco': ae.grau_parentesco or ''
             })
         return data
 

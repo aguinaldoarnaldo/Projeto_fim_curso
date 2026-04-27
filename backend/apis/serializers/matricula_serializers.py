@@ -5,7 +5,7 @@ from ..models import Matricula, Aluno, Candidato
 class MatriculaSerializer(serializers.ModelSerializer):
     """Serializer para Matricula"""
     aluno_nome = serializers.CharField(source='id_aluno.nome_completo', read_only=True)
-    aluno_numero = serializers.IntegerField(source='numero_matricula', read_only=True)
+    aluno_numero = serializers.CharField(source='numero_matricula', read_only=True)
     aluno_foto = serializers.SerializerMethodField()
     
     # Campo opcional para matricular via candidato
@@ -25,6 +25,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
     encarregado_parentesco = serializers.SerializerMethodField()
     encarregado_bi = serializers.SerializerMethodField()
     encarregado_profissao = serializers.SerializerMethodField()
+    encarregado_email = serializers.SerializerMethodField()
 
     # Aluno address and personal fields
     nacionalidade = serializers.CharField(source='id_aluno.nacionalidade', read_only=True, default='Angolana')
@@ -43,6 +44,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
     sala_numero = serializers.SerializerMethodField()
     periodo_nome = serializers.SerializerMethodField()
     id_classe = serializers.SerializerMethodField()
+    aluno_criado_em = serializers.DateTimeField(source='id_aluno.criado_em', read_only=True)
     matriculas_detalhes = serializers.SerializerMethodField()
 
     class Meta:
@@ -53,7 +55,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'id_candidato', # Campo write-only
             'bi', 'genero', 'data_nascimento', 'telefone', 'email', 'endereco',
             'encarregado_nome', 'encarregado_telefone', 'encarregado_parentesco',
-            'encarregado_bi', 'encarregado_profissao',
+            'encarregado_bi', 'encarregado_profissao', 'encarregado_email',
             'nacionalidade', 'naturalidade', 'deficiencia',
             'provincia_residencia', 'municipio_residencia', 'bairro_residencia', 'numero_casa',
             'id_turma', 'turma_codigo', 
@@ -64,6 +66,7 @@ class MatriculaSerializer(serializers.ModelSerializer):
             'sala_numero',
             'periodo_nome',
             'data_matricula', 'ativo',
+            'aluno_criado_em',
             'tipo', 'status', 'doc_bi', 'doc_certificado',
             'matriculas_detalhes'
         ]
@@ -150,6 +153,10 @@ class MatriculaSerializer(serializers.ModelSerializer):
     def get_encarregado_profissao(self, obj):
         rel = self._get_encarregado_relation(obj)
         return rel.id_encarregado.profissao if rel and rel.id_encarregado else ''
+
+    def get_encarregado_email(self, obj):
+        rel = self._get_encarregado_relation(obj)
+        return rel.id_encarregado.email if rel and rel.id_encarregado else ''
 
     def validate(self, attrs):
         """

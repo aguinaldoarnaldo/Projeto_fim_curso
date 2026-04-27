@@ -161,6 +161,27 @@
     cursor: pointer;
 }
 
+/* Search input: keep icon outside text */
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon-v2 {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.search-input {
+    padding-left: 44px !important;
+}
+
 /* Modal Styling */
 .vaga-modal-overlay {
     position: fixed;

@@ -65,7 +65,6 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     
     permission_classes = [IsAuthenticated, HasAdditionalPermission, IsActiveYearOrReadOnly]
     
-    # Mapeamento de permissões por ação
     permission_map = {
         # 'list': 'view_alunos',     # Liberado para autenticados
         # 'retrieve': 'view_alunos', # Liberado para autenticados
@@ -81,6 +80,121 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         'boletim': 'view_notas',
         'encarregados': 'view_alunos',
     }
+
+    def create(self, request, *args, **kwargs):
+        from django.db import transaction
+        from ..models import Encarregado
+
+        telefone = request.data.get('telefone')
+        email = request.data.get('email')
+
+        if telefone:
+            if Aluno.objects.filter(telefone=telefone).exists():
+                return Response(
+                    {'error': 'Já existe um aluno registado com este número de telefone.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        if email:
+            if Aluno.objects.filter(email=email).exists():
+                return Response(
+                    {'error': 'Já existe um aluno registado com este email.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Extrair dados do encarregado do request (enviados junto com o aluno)
+        enc_nome = request.data.get('enc_nome', '').strip()
+        enc_bi = request.data.get('enc_bi', '').strip() or None
+        enc_telefone = request.data.get('enc_telefone', '').strip()
+        enc_email = request.data.get('enc_email', '').strip() or None
+        enc_profissao = request.data.get('enc_profissao', '').strip()
+        enc_parentesco = request.data.get('enc_parentesco', 'Pai').strip()
+
+        try:
+            with transaction.atomic():
+                # 1. Criar o aluno normalmente
+                response = super().create(request, *args, **kwargs)
+                
+                if response.status_code != 201:
+                    return response
+                
+                aluno_id = response.data.get('id_aluno') or response.data.get('id')
+                
+                # 2. Criar e vincular encarregado se o nome foi fornecido
+                if enc_nome and aluno_id:
+                    aluno = Aluno.objects.get(pk=aluno_id)
+                    
+                    # Tentar encontrar encarregado existente por BI ou email
+                    encarregado = None
+                    if enc_bi:
+                        encarregado = Encarregado.objects.filter(numero_bi=enc_bi).first()
+                    if not encarregado and enc_email:
+                        encarregado = Encarregado.objects.filter(email=enc_email).first()
+                    
+                    if encarregado:
+                        # Atualizar dados do encarregado existente
+                        encarregado.nome_completo = enc_nome
+                        if enc_bi:
+                            encarregado.numero_bi = enc_bi
+                        if enc_telefone:
+                            tel_list = encarregado.telefone if isinstance(encarregado.telefone, list) else []
+                            if enc_telefone not in tel_list:
+                                tel_list.append(enc_telefone)
+                            encarregado.telefone = tel_list
+                        if enc_email:
+                            encarregado.email = enc_email
+                        elif not encarregado.email: # Only set to None if it's already empty
+                            encarregado.email = None
+
+                        if enc_profissao:
+                            encarregado.profissao = enc_profissao
+                        encarregado.save()
+                    else:
+                        # Criar novo encarregado
+                        encarregado = Encarregado.objects.create(
+                            nome_completo=enc_nome,
+                            numero_bi=enc_bi,
+                            email=enc_email,
+                            profissao=enc_profissao,
+                            telefone=[enc_telefone] if enc_telefone else [],
+                            senha_hash=enc_bi or '123456',
+                            is_online=False
+                        )
+                    
+                    # 3. Criar vínculo aluno-encarregado
+                    AlunoEncarregado.objects.update_or_create(
+                        id_aluno=aluno,
+                        id_encarregado=encarregado,
+                        defaults={'grau_parentesco': enc_parentesco}
+                    )
+                    
+                    # Enriquecer resposta com info do encarregado
+                    response.data['encarregado_criado'] = True
+                    response.data['encarregado_nome'] = encarregado.nome_completo
+                
+                return response
+                
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Erro ao criar aluno e encarregado: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        telefone = request.data.get('telefone')
+        email = request.data.get('email')
+        
+        if telefone and Aluno.objects.filter(telefone=telefone).exclude(pk=instance.pk).exists():
+            return Response({'error': 'Já existe um aluno registado com este número de telefone.'}, status=status.HTTP_400_BAD_REQUEST)
+        if email and Aluno.objects.filter(email=email).exclude(pk=instance.pk).exists():
+            return Response({'error': 'Já existe um aluno registado com este email.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return super().update(request, *args, **kwargs, partial=partial)
 
     @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, HasAdditionalPermission])
     def update_status(self, request, pk=None):
@@ -160,8 +274,10 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
             # Preparar campos do Encarregado
             e_update = {}
             if enc_data.get('nome'): e_update['nome_completo'] = enc_data['nome']
-            if 'email' in enc_data: e_update['email'] = enc_data['email']
-            if 'numero_bi' in enc_data: e_update['numero_bi'] = enc_data['numero_bi']
+            if 'email' in enc_data: 
+                e_update['email'] = enc_data['email'] if enc_data['email'] else None
+            if 'numero_bi' in enc_data: 
+                e_update['numero_bi'] = enc_data['numero_bi'] if enc_data['numero_bi'] else None
             if 'profissao' in enc_data: e_update['profissao'] = enc_data['profissao']
             if 'telefone' in enc_data: 
                 tel = enc_data['telefone']
@@ -211,7 +327,6 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     ordering_fields = ['nome_completo', 'matricula__numero_matricula', 'criado_em']
     ordering = ['nome_completo']
     
-    @method_decorator(cache_page(60 * 5)) # Cache de 5 minutos para a lista
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -225,12 +340,11 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def ativos(self, request):
         """Retorna apenas alunos ativos"""
-        alunos = self.queryset.filter(status_aluno='Ativo')
+        alunos = self.queryset.filter(status_aluno__in=['Ativo', 'Activo'])
         serializer = AlunoListSerializer(alunos, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
-    @method_decorator(cache_page(60 * 10)) # Cache de 10 min para estatísticas
     def stats(self, request):
         """Retorna estatísticas gerais dos alunos para o dashboard"""
         from django.db.models import Count
@@ -254,7 +368,7 @@ class AlunoViewSet(AuditMixin, viewsets.ModelViewSet):
         
         # 1. Total e outros status (Globais)
         total = Aluno.objects.count()
-        ativos = Aluno.objects.filter(status_aluno='Ativo').count()
+        ativos = Aluno.objects.filter(status_aluno__in=['Ativo', 'Activo']).count()
         inativos = Aluno.objects.filter(status_aluno='Inativo').count()
         transferidos = Aluno.objects.filter(status_aluno='Transferido').count()
         concluidos = Aluno.objects.filter(status_aluno='Concluido').count()

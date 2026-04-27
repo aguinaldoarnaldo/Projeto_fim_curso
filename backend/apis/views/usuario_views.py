@@ -36,6 +36,53 @@ class UsuarioViewSet(AuditMixin, viewsets.ModelViewSet):
     search_fields = ['username', 'first_name', 'last_name', 'email']
     ordering_fields = ['username', 'date_joined']
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        # Check if the user is being deactivated
+        is_active_in_data = request.data.get('is_active')
+        
+        if is_active_in_data is not None:
+            # Convert to boolean if it's a string (common with FormData)
+            if isinstance(is_active_in_data, str):
+                is_active_in_data = is_active_in_data.lower() == 'true'
+            
+            # If attempting to deactivate
+            if not is_active_in_data:
+                # Is the user being edited an Admin?
+                is_admin = instance.is_superuser
+                if not is_admin and hasattr(instance, 'profile'):
+                    is_admin = instance.profile.papel == 'Admin'
+                
+                if is_admin:
+                    # Count other active admins
+                    from django.db.models import Q
+                    other_admins_count = User.objects.filter(
+                        is_active=True
+                    ).filter(
+                        Q(is_superuser=True) | Q(profile__papel='Admin')
+                    ).exclude(pk=instance.pk).count()
+                    
+                    if other_admins_count == 0:
+                        return Response(
+                            {"detail": "Operação não permitida: Você não pode bloquear o último administrador ativo com todas as permissões do sistema."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+        
+        # Invalidate profile cache
+        from django.core.cache import cache
+        # We need to determine the user type (usually 'usuario' or 'funcionario')
+        user_id = instance.id
+        cache.delete(f'user_profile_usuario_{user_id}')
+        cache.delete(f'user_profile_funcionario_{user_id}')
+        
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+
     def perform_create(self, serializer):
         from django.utils.crypto import get_random_string
         password = self.request.data.get('senha_hash')

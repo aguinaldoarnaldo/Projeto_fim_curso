@@ -217,6 +217,8 @@ const Matriculas = () => {
                     numero_casa: item.numero_casa || '',
                     bi_encarregado: item.encarregado_bi || item.bi_encarregado || '',
                     profissao_encarregado: item.encarregado_profissao || item.profissao_encarregado || '',
+                    email_encarregado: item.encarregado_email || item.email_encarregado || item.emailEncarregado || '',
+                    dataCadastro: item.aluno_criado_em ? new Date(item.aluno_criado_em).toLocaleDateString() : 'N/A',
                     pagamentoStatus: item.ativo || item.pagamento_confirmado ? 'Confirmado' : 'Pendente',
                     documentos: item.documentos_entregues ? (typeof item.documentos_entregues === 'string' ? item.documentos_entregues.split(',') : []) : [],
                     doc_bi: item.comprovativo_bi || item.doc_bi,
@@ -289,7 +291,7 @@ const Matriculas = () => {
             }
         };
 
-        const interval = setInterval(syncIfVisible, 120000); // 120s polling
+        const interval = setInterval(syncIfVisible, 30000); // 30 segundos para tempo real
         
         window.addEventListener('focus', syncIfVisible);
         
@@ -1119,6 +1121,7 @@ const Matriculas = () => {
                                     <div className="section-title"><User size={20} color="#b45309" /> Dados do Estudante</div>
                                     <div className="info-grid-2">
                                         <div><p className="info-label">Nome Completo</p><p className="info-value">{selectedMatricula.aluno}</p></div>
+                                        <div><p className="info-label">Data de Cadastro</p><p className="info-value">{selectedMatricula.detalhes.dataCadastro}</p></div>
                                         <div><p className="info-label">Género</p><p className="info-value">{selectedMatricula.detalhes.genero}</p></div>
                                         <div><p className="info-label">Nascimento</p><p className="info-value">{selectedMatricula.detalhes.dataNascimento}</p></div>
                                         <div><p className="info-label">Bilhete de Identidade</p><p className="info-value monospace">{selectedMatricula.detalhes.bi}</p></div>
@@ -1143,16 +1146,22 @@ const Matriculas = () => {
                                     {/* Seletor de Anos Interativo */}
                                     {selectedMatricula.detalhes.historicoMatriculas && selectedMatricula.detalhes.historicoMatriculas.length > 1 && (
                                         <div className="year-history-tabs">
-                                            {selectedMatricula.detalhes.historicoMatriculas.map((m, idx) => (
+                                            {selectedMatricula.detalhes.historicoMatriculas.map((m, idx) => {
+                                                const isAtivo = String(m.status).toLowerCase() === 'ativa';
+                                                const isConcluido = String(m.status).toLowerCase() === 'concluida' || String(m.status).toLowerCase() === 'concluída';
+                                                return (
                                                 <button
                                                     key={m.id_matricula}
                                                     onClick={() => setSelectedHistoryIndex(idx)}
                                                     className={`history-tab-btn ${selectedHistoryIndex === idx ? 'active' : ''}`}
+                                                    title={isAtivo ? 'Matrícula Activa' : (isConcluido ? 'Matrícula Concluída' : m.status)}
                                                 >
                                                     <Calendar size={14} className="tab-year-icon" />
                                                     {m.ano_lectivo_nome}
+                                                    {isAtivo && <span style={{width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', marginLeft: 6}} title="Activa" />}
+                                                    {isConcluido && <span style={{width: 8, height: 8, borderRadius: '50%', backgroundColor: '#9ca3af', display: 'inline-block', marginLeft: 6}} title="Concluída" />}
                                                 </button>
-                                            ))}
+                                            )})}
                                         </div>
                                     )}
 
@@ -1170,12 +1179,13 @@ const Matriculas = () => {
 
                                         if (!h) {
                                             return (
-                                                <div className="info-grid-2">
-                                                    <div><p className="info-label">Ano Lectivo</p><p className="info-value">{selectedMatricula.anoLectivo}</p></div>
-                                                    <div><p className="info-label">Curso</p><p className="info-value">{selectedMatricula.curso}</p></div>
-                                                    <div><p className="info-label">Classe/Nível</p><p className="info-value">{selectedMatricula.classe}</p></div>
-                                                    <div><p className="info-label">Turno</p><p className="info-value">{selectedMatricula.turno}</p></div>
-                                                </div>
+                                            <div className="info-grid-2">
+                                                <div><p className="info-label">Ano Lectivo</p><p className="info-value">{selectedMatricula.anoLectivo}</p></div>
+                                                <div><p className="info-label">Curso</p><p className="info-value">{selectedMatricula.curso}</p></div>
+                                                <div><p className="info-label">Classe/Nível</p><p className="info-value">{selectedMatricula.classe}</p></div>
+                                                <div><p className="info-label">Turno</p><p className="info-value">{selectedMatricula.turno}</p></div>
+                                                <div><p className="info-label">Data da Matrícula</p><p className="info-value">{selectedMatricula.dataMatricula}</p></div>
+                                            </div>
                                             );
                                         }
 
@@ -1186,6 +1196,7 @@ const Matriculas = () => {
                                                 <div><p className="info-label">Classe</p><p className="info-value">{h.classe_nome}</p></div>
                                                 <div><p className="info-label">Turno</p><p className="info-value">{h.periodo_nome}</p></div>
                                                 <div><p className="info-label">Tipo de Matrícula</p><p className="info-value" style={{color: 'var(--primary-color)', fontWeight: 700}}>{getTipoLabel(h.tipo)}</p></div>
+                                                <div><p className="info-label">{h.tipo === 'Confirmacao' ? 'Data da Confirmação' : 'Data da Matrícula'}</p><p className="info-value">{h.data_matricula ? new Date(h.data_matricula).toLocaleDateString() : (h.criado_em ? new Date(h.criado_em).toLocaleDateString() : selectedMatricula.dataMatricula)}</p></div>
                                                 <div><p className="info-label">Estado no Ano</p>
                                                     <span className={`status-badge ${getBadgeClass(h.status)}`} style={{fontSize: '11px', padding: '3px 10px'}}>
                                                         {h.status.toUpperCase()}

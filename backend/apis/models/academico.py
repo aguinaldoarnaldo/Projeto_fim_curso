@@ -203,10 +203,18 @@ class AnoLectivo(BaseModel):
 
 class Sala(BaseModel):
     """Salas de aula"""
+    TIPO_CHOICES = [
+        ('Sala de Aula', 'Sala de Aula'),
+        ('Laboratório', 'Laboratório'),
+        ('Auditório', 'Auditório'),
+        ('Outro', 'Outro'),
+    ]
+
     id_sala = models.AutoField(primary_key=True)
     numero_sala = models.SmallIntegerField(verbose_name='Número da Sala', unique=True)
     capacidade_alunos = models.IntegerField(verbose_name='Capacidade')
     bloco = models.CharField(max_length=50, verbose_name='Bloco', null=True, blank=True, default='')
+    tipo = models.CharField(max_length=50, choices=TIPO_CHOICES, default='Sala de Aula', verbose_name='Tipo de Sala')
 
     
     class Meta:
@@ -438,7 +446,13 @@ class Turma(BaseModel):
             if self.ano_lectivo:
                 ano_str = self.ano_lectivo.nome
             
-            ano_suffix = str(ano_str)[-2:] if ano_str else "25"
+            ano_suffix = "25"
+            if ano_str:
+                parts = str(ano_str).split('/')
+                if len(parts) > 0 and len(parts[0]) >= 2:
+                    ano_suffix = parts[0][-2:]
+                else:
+                    ano_suffix = str(ano_str)[-2:]
             
             self.codigo_turma = f"{sala}{curso}{classe}{periodo}{ano_suffix}"
 
