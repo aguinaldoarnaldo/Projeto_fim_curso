@@ -2,7 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from .alunos import Aluno
 
-from .academico import Turma, AnoLectivo
+from .academico import Turma, AnoLectivo, Curso
 
 
 class Inscricao(models.Model):
@@ -159,11 +159,11 @@ class Matricula(models.Model):
         self.clean()
         
         # Check capacity and notify if full
-        if self.id_turma and self.id_turma.id_sala:
+        if self.id_turma:
             # Import here to avoid circular dependencies
-            from apis.models.notificacao import Notificacao
+            from .notificacao import Notificacao
             
-            capacity = self.id_turma.id_sala.capacidade_alunos
+            capacity = self.id_turma.capacidade
             # Count existing active enrollments for this turma and year
             current_count = Matricula.objects.filter(
                 id_turma=self.id_turma, 
@@ -226,7 +226,7 @@ class Matricula(models.Model):
         # Sync Candidato status if applicable (so it shows as 'Matriculado' in Inscritos list)
         if self.id_aluno and self.id_aluno.numero_bi:
             try:
-                from apis.models.candidatura import Candidato
+                from .candidatura import Candidato
                 Candidato.objects.filter(numero_bi=self.id_aluno.numero_bi, status='Aprovado').update(status='Matriculado')
             except ImportError:
                 pass # Avoid issues if candidacy app isn't ready
@@ -242,13 +242,10 @@ class Matricula(models.Model):
 
     @staticmethod
     def _get_curso_sigla_from_turma(turma: Turma) -> str:
-        # Mantém a mesma lógica usada para gerar codigo_turma (2 letras do nome do curso)
-        try:
-            nome = turma.id_curso.nome_curso if turma and turma.id_curso else ''
-        except Exception:
-            nome = ''
-        sigla = Matricula._only_alpha_upper(nome)[:2]
-        return sigla or 'XX'
+        # Usa a mesma lógica centralizada no modelo Curso
+        if not turma or not turma.id_curso:
+            return 'XX'
+        return Curso.get_sigla(turma.id_curso.nome_curso)
 
     @staticmethod
     def _get_ano_suffix(ano_lectivo: AnoLectivo) -> str:

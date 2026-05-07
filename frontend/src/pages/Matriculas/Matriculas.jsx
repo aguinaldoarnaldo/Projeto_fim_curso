@@ -82,7 +82,7 @@ const Matriculas = () => {
 
     // Menu States
     const [activeMenuId, setActiveMenuId] = useState(null);
-    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, isBottom: false });
     const [menuMatricula, setMenuMatricula] = useState(null);
 
     // Close dropdown on click outside
@@ -925,9 +925,11 @@ const Matriculas = () => {
                                                             setMenuMatricula(null);
                                                         } else {
                                                             const rect = e.currentTarget.getBoundingClientRect();
+                                                            const isBottom = rect.bottom > window.innerHeight - 250;
                                                             setMenuPosition({
-                                                                top: rect.bottom + 5,
-                                                                left: Math.max(10, Math.min(window.innerWidth - 220, rect.right - 210))
+                                                                top: isBottom ? rect.top - 5 : rect.bottom + 5,
+                                                                left: Math.max(10, Math.min(window.innerWidth - 220, rect.right - 210)),
+                                                                isBottom
                                                             });
                                                             setMenuMatricula(m);
                                                             setActiveMenuId(m.real_id);
@@ -1434,6 +1436,7 @@ const Matriculas = () => {
                         position: 'fixed',
                         top: `${menuPosition.top}px`,
                         left: `${menuPosition.left}px`,
+                        transform: menuPosition.isBottom ? 'translateY(-100%)' : 'none',
                         zIndex: 10000,
                         margin: 0,
                         display: 'block',

@@ -341,6 +341,36 @@ class Curso(BaseModel):
     def __str__(self):
         return self.nome_curso
 
+    @staticmethod
+    def get_sigla(nome):
+        """
+        Gera a sigla do curso.
+        - Se 1 palavra: primeira letra (ex: Informática -> I)
+        - Se >1 palavra: iniciais das palavras significativas (ex: Informática de Gestão -> IG)
+        """
+        if not nome:
+            return "XX"
+            
+        import unicodedata
+        # Normalizar para remover acentos
+        nfkd_form = unicodedata.normalize('NFKD', str(nome))
+        ascii_name = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+        nome_limpo = ascii_name.upper()
+        
+        words = [w for w in nome_limpo.split() if w]
+        # Palavras para ignorar (preposições e conjunções curtas)
+        to_ignore = {'DE', 'DO', 'DA', 'DOS', 'DAS', 'E', 'COM', 'PARA', 'EM'}
+        
+        significant_words = [w for w in words if w not in to_ignore]
+        
+        if not significant_words:
+            return nome_limpo[:1] or "X"
+            
+        if len(significant_words) == 1:
+            return significant_words[0][:1]
+        else:
+            return "".join(w[0] for w in significant_words)
+
 
 class Periodo(models.Model):
     """Períodos de aula (Manhã, Tarde, Noite)"""
@@ -437,7 +467,7 @@ class Turma(BaseModel):
 
         if self.id_sala and self.id_curso and self.id_classe and self.id_periodo:
             sala = str(self.id_sala.numero_sala)
-            curso = self.id_curso.nome_curso[:2].upper()
+            curso = Curso.get_sigla(self.id_curso.nome_curso)
             classe = str(self.id_classe.nivel)
             periodo = self.id_periodo.periodo[0].upper()
             

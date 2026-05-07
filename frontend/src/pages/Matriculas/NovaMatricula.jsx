@@ -533,6 +533,7 @@ const NovaMatricula = () => {
                         deficiencia: alunoFound.deficiencia || 'Não',
                         novo_aluno_foto: alunoFound.img_path || null,
                         tipo: 'Confirmacao',
+                        curso: alunoFound.id_turma?.id_curso?.nome_curso || alunoFound.curso || '',
                         // Pre-fill Guardian data if available
                         nome_encarregado: alunoFound.encarregado_principal?.nome_completo || alunoFound.encarregado_principal?.nome || '',
                         telefone_encarregado: alunoFound.encarregado_principal?.telefone || '',
@@ -672,7 +673,7 @@ const NovaMatricula = () => {
         // but documents might be locked if they already exist.
         // The original isReadOnly blocked EVERYTHING. We want to unblock everything except specific logic.
         // So we won't use a global isReadOnly for the inputs.
-        const isConfirming = tipo_param === 'Confirmacao' || (location.state && location.state.tipo === 'Confirmacao');
+        const isConfirming = tipo_param === 'Confirmacao' || (location.state && location.state.tipo === 'Confirmacao') || formData.tipo === 'Confirmacao';
         const isEditing = formData.tipo === 'Edicao' || (location.state && location.state.tipo === 'Edicao');
         const isStrictlyReadOnly = false; // Permitir alterações sempre
         const isReadOnly = false;
@@ -1099,9 +1100,9 @@ const NovaMatricula = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' }}>
                             
                             {/* Coluna 1: Curso */}
-                            <div style={{ gridColumn: (formData.curso_primario && formData.curso_secundario) ? 'span 2' : 'span 1' }}>
+                            <div style={{ gridColumn: (formData.curso_primario && formData.curso_secundario && !isConfirming) ? 'span 2' : 'span 1' }}>
                                 <label className="field-label">Curso <span style={{color: '#ef4444'}}>*</span></label>
-                                {formData.curso_primario && formData.curso_secundario ? (
+                                {formData.curso_primario && formData.curso_secundario && !isConfirming ? (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
                                             type="button"
@@ -1141,7 +1142,14 @@ const NovaMatricula = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    <select name="curso" value={formData.curso} onChange={handleInputChange} className="field-select">
+                                    <select 
+                                        name="curso" 
+                                        value={formData.curso} 
+                                        onChange={handleInputChange} 
+                                        className={`field-select ${isConfirming ? 'read-only' : ''}`}
+                                        disabled={isConfirming}
+                                        title={isConfirming ? "O curso não pode ser alterado em confirmações de matrícula" : ""}
+                                    >
                                         <option value="">Selecione o Curso...</option>
                                         {cursosDisponiveis.map(c => (
                                             <option key={c.id_curso} value={c.nome_curso}>{c.nome_curso}</option>
@@ -1275,7 +1283,7 @@ const NovaMatricula = () => {
                                     ))}
                             </select>
                             {turmaSelect && (() => {
-                                const cap = turmaSelect.sala_capacidade || 40;
+                                const cap = turmaSelect.capacidade || 40;
                                 const ocup = turmaSelect.total_alunos || 0;
                                 const rest = cap - ocup;
                                 const isCrit = rest <= 5; 

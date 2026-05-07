@@ -543,7 +543,20 @@ const Turmas = () => {
                                                 if (modalMode === 'edit') return formData.codigo_turma;
                                                 
                                                 const sala = salas.find(s => s.id_sala == formData.id_sala)?.numero_sala || '';
-                                                const curso = cursosDisponiveis.find(c => c.id_curso == formData.id_curso)?.nome_curso?.substring(0,2).toUpperCase() || '';
+                                                const getCursoSigla = (nome) => {
+                                                    if (!nome) return '';
+                                                    const nomeLimpo = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                                                    const words = nomeLimpo.split(/\s+/).filter(w => w.length > 0);
+                                                    const toIgnore = ['DE', 'DO', 'DA', 'DOS', 'DAS', 'E', 'COM', 'PARA', 'EM'];
+                                                    const significantWords = words.filter(w => !toIgnore.includes(w));
+                                                    
+                                                    if (significantWords.length === 0) return nomeLimpo.substring(0, 1);
+                                                    if (significantWords.length === 1) return significantWords[0].substring(0, 1);
+                                                    return significantWords.map(w => w[0]).join('');
+                                                };
+
+                                                const cursoNome = cursosDisponiveis.find(c => c.id_curso == formData.id_curso)?.nome_curso || '';
+                                                const curso = getCursoSigla(cursoNome);
                                                 const classeNum = classesDisponiveis.find(c => c.id_classe == formData.id_classe)?.nivel || '';
                                                 const periodo = periodosDisponiveis.find(p => p.id_periodo == formData.id_periodo)?.periodo?.charAt(0).toUpperCase() || '';
                                                 let anoSuffix = '';
